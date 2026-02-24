@@ -1,5 +1,5 @@
 # Laravel specific
-/api/storage/framework/cache/data/*
+/api/storage/framework/cache/data/**/*
 /api/storage/framework/sessions/*
 /api/storage/framework/views/*.php
 /api/storage/logs/*.log
