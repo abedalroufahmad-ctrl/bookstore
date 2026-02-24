@@ -1,23 +1,16 @@
-/.phpunit.cache
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/vendor
+# Laravel specific
+/api/storage/framework/cache/data/*
+/api/storage/framework/sessions/*
+/api/storage/framework/views/*.php
+/api/storage/logs/*.log
+/api/.env
+/api/vendor/
+
+# Frontend specific
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env
+
+# General
+.DS_Store
 .env
-.env.backup
-.env.production
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-auth.json
-npm-debug.log
-yarn-error.log
-/.fleet
-/.idea
-/.vscode
-
-
-#Ignore vscode AI rules
-.github/instructions/codacy.instructions.md
