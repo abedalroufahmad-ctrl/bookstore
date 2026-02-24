@@ -1,0 +1,658 @@
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { admin, type Book, type BookFormData } from '../lib/api'
+
+const emptyForm: BookFormData = {
+  title: '',
+  author_ids: [],
+  category_id: '',
+  warehouse_id: '',
+  price: 0,
+  isbn: '',
+  stock_quantity: 0,
+  description: '',
+  pages: undefined,
+  publish_year: undefined,
+  publisher: '',
+  size: '',
+  weight: undefined,
+  cover_image: '',
+  cover_image_thumb: '',
+  edition_number: undefined,
+}
+
+function extractList<T>(data: unknown): T[] {
+  if (!data) return []
+  const d = data as Record<string, unknown>
+  if (Array.isArray(d.data)) return d.data as T[]
+  if (d.data && typeof d.data === 'object' && 'data' in d.data) {
+    return (d.data as { data: T[] }).data
+  }
+  return Array.isArray(d) ? d : []
+}
+
+export function AdminBookForm() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const isEdit = Boolean(id)
+
+  const [form, setForm] = useState<BookFormData>(emptyForm)
+  const [error, setError] = useState('')
+  const [newAuthorName, setNewAuthorName] = useState('')
+  const [newCategory, setNewCategory] = useState({ dewey_code: '', subject_title: '' })
+  const [addingAuthor, setAddingAuthor] = useState(false)
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+
+  const { data: bookData } = useQuery({
+    queryKey: ['admin-book', id],
+    queryFn: async () => {
+      const res = await admin.books.get(id!)
+      return res.data
+    },
+    enabled: isEdit,
+  })
+
+  const { data: authorsData } = useQuery({
+    queryKey: ['admin-authors'],
+    queryFn: async () => {
+      const res = await admin.authors.list()
+      return res.data
+    },
+  })
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: async () => {
+      const res = await admin.categories.list()
+      return res.data
+    },
+  })
+
+  const { data: warehousesData } = useQuery({
+    queryKey: ['admin-warehouses'],
+    queryFn: async () => {
+      const res = await admin.warehouses.list()
+      return res.data
+    },
+  })
+
+  const authorList = extractList<{ _id: string; name: string }>(authorsData)
+  const categoryList = extractList<{
+    _id: string
+    subject_title: string
+    dewey_code: string
+  }>(categoriesData)
+  const warehouseList = extractList<{ _id: string; name: string }>(warehousesData)
+
+  useEffect(() => {
+    if (bookData?.data) {
+      const b = bookData.data as Book
+      setForm({
+        title: b.title ?? '',
+        author_ids: b.author_ids ?? (b.authors?.map((a) => a._id) ?? []),
+        category_id: b.category_id ?? b.category?._id ?? '',
+        warehouse_id: b.warehouse_id ?? b.warehouse?._id ?? '',
+        price: b.price ?? 0,
+        isbn: b.isbn ?? '',
+        stock_quantity: b.stock_quantity ?? 0,
+        description: b.description ?? '',
+        pages: b.pages,
+        publish_year: b.publish_year,
+        publisher: b.publisher ?? '',
+        size: b.size ?? '',
+        weight: b.weight,
+        cover_image: b.cover_image ?? '',
+        cover_image_thumb: b.cover_image_thumb ?? '',
+        edition_number: b.edition_number,
+      })
+    }
+  }, [bookData])
+
+  const createMutation = useMutation({
+    mutationFn: (data: BookFormData) => admin.books.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-books'] })
+      navigate('/admin/books')
+    },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      setError(err?.response?.data?.message ?? 'Failed to create')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<BookFormData>) =>
+      admin.books.update(id!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-books'] })
+      navigate('/admin/books')
+    },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      setError(err?.response?.data?.message ?? 'Failed to update')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+      const payload: BookFormData = {
+        ...form,
+        author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
+        category_id: (form.category_id || categoryList[0]?._id) ?? '',
+        warehouse_id: (form.warehouse_id || warehouseList[0]?._id) ?? '',
+      }
+    if (isEdit) {
+      updateMutation.mutate(payload)
+    } else {
+      if (!payload.author_ids.length || !payload.category_id || !payload.warehouse_id) {
+        setError('Please add at least one author, category, and warehouse first')
+        return
+      }
+      createMutation.mutate(payload)
+    }
+  }
+
+  const toggleAuthor = (authorId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      author_ids: prev.author_ids.includes(authorId)
+        ? prev.author_ids.filter((id) => id !== authorId)
+        : [...prev.author_ids, authorId],
+    }))
+  }
+
+  const addAuthorMutation = useMutation({
+    mutationFn: (name: string) => admin.authors.create({ name }),
+    onSuccess: (axiosRes) => {
+      const data = axiosRes.data?.data as { _id: string } | undefined
+      if (data) {
+        setForm((prev) => ({
+          ...prev,
+          author_ids: [...prev.author_ids, data._id],
+        }))
+        queryClient.invalidateQueries({ queryKey: ['admin-authors'] })
+        setNewAuthorName('')
+        setAddingAuthor(false)
+      }
+    },
+  })
+
+  const addCategoryMutation = useMutation({
+    mutationFn: (data: { dewey_code: string; subject_title: string }) =>
+      admin.categories.create(data),
+    onSuccess: (axiosRes) => {
+      const data = axiosRes.data?.data as { _id: string } | undefined
+      if (data) {
+        setForm((prev) => ({ ...prev, category_id: data._id }))
+        queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+        setNewCategory({ dewey_code: '', subject_title: '' })
+        setAddingCategory(false)
+      }
+    },
+  })
+
+  const loading = createMutation.isPending || updateMutation.isPending
+
+  const needsData = !isEdit && warehouseList.length === 0
+
+  if (needsData) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-amber-900 mb-6">
+          {isEdit ? 'Edit Book' : 'Add Book'}
+        </h1>
+        <p className="text-stone-600 mb-4">
+          Before adding books, you need at least one warehouse. Add authors and
+          categories below or in Admin → Authors / Categories.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/books')}
+          className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
+        >
+          Back to Books
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-amber-900 mb-6">
+        {isEdit ? 'Edit Book' : 'Add Book'}
+      </h1>
+      <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Title *
+          </label>
+          <input
+            type="text"
+            value={form.title}
+            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+            required
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            ISBN *
+          </label>
+          <input
+            type="text"
+            value={form.isbn}
+            onChange={(e) => setForm((p) => ({ ...p, isbn: e.target.value }))}
+            required
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Price *
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.price || ''}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, price: parseFloat(e.target.value) || 0 }))
+            }
+            required
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Stock quantity *
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={form.stock_quantity}
+            onChange={(e) =>
+              setForm((p) => ({
+                ...p,
+                stock_quantity: parseInt(e.target.value, 10) || 0,
+              }))
+            }
+            required
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Category *
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={form.category_id}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, category_id: e.target.value }))
+              }
+              required
+              className="flex-1 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">Select category</option>
+              {categoryList.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.subject_title} ({c.dewey_code})
+                </option>
+              ))}
+            </select>
+          </div>
+          {addingCategory ? (
+            <div className="mt-2 flex gap-2 items-center flex-wrap">
+              <input
+                type="text"
+                value={newCategory.dewey_code}
+                onChange={(e) =>
+                  setNewCategory((p) => ({ ...p, dewey_code: e.target.value }))
+                }
+                placeholder="Dewey code"
+                className="px-3 py-1 border border-stone-300 rounded-lg text-sm w-24"
+              />
+              <input
+                type="text"
+                value={newCategory.subject_title}
+                onChange={(e) =>
+                  setNewCategory((p) => ({ ...p, subject_title: e.target.value }))
+                }
+                placeholder="Subject title"
+                className="px-3 py-1 border border-stone-300 rounded-lg text-sm flex-1 min-w-[120px]"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  newCategory.dewey_code &&
+                  newCategory.subject_title &&
+                  addCategoryMutation.mutate(newCategory)
+                }
+                disabled={
+                  addCategoryMutation.isPending ||
+                  !newCategory.dewey_code ||
+                  !newCategory.subject_title
+                }
+                className="text-sm px-3 py-1 bg-amber-100 text-amber-900 rounded-lg hover:bg-amber-200"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAddingCategory(false)
+                  setNewCategory({ dewey_code: '', subject_title: '' })
+                }}
+                className="text-sm text-stone-500 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingCategory(true)}
+              className="mt-2 text-sm text-amber-700 hover:underline"
+            >
+              + Add new category
+            </button>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Warehouse *
+          </label>
+          <select
+            value={form.warehouse_id}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, warehouse_id: e.target.value }))
+            }
+            required
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="">Select warehouse</option>
+            {warehouseList.map((w) => (
+              <option key={w._id} value={w._id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Authors *
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {authorList.map((a) => (
+              <label
+                key={a._id}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.author_ids.includes(a._id)}
+                  onChange={() => toggleAuthor(a._id)}
+                />
+                <span>{a.name}</span>
+              </label>
+            ))}
+          </div>
+          {addingAuthor ? (
+            <div className="mt-2 flex gap-2 items-center">
+              <input
+                type="text"
+                value={newAuthorName}
+                onChange={(e) => setNewAuthorName(e.target.value)}
+                placeholder="Author name"
+                className="px-3 py-1 border border-stone-300 rounded-lg text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => newAuthorName.trim() && addAuthorMutation.mutate(newAuthorName.trim())}
+                disabled={addAuthorMutation.isPending || !newAuthorName.trim()}
+                className="text-sm px-3 py-1 bg-amber-100 text-amber-900 rounded-lg hover:bg-amber-200"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAddingAuthor(false); setNewAuthorName('') }}
+                className="text-sm text-stone-500 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingAuthor(true)}
+              className="mt-2 text-sm text-amber-700 hover:underline"
+            >
+              + Add new author
+            </button>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Description
+          </label>
+          <textarea
+            value={form.description || ''}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, description: e.target.value }))
+            }
+            rows={3}
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Size
+            </label>
+            <input
+              type="text"
+              value={form.size ?? ''}
+              onChange={(e) => setForm((p) => ({ ...p, size: e.target.value }))}
+              placeholder="e.g. 8.5x11"
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Weight (kg)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.weight ?? ''}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  weight: e.target.value ? parseFloat(e.target.value) : undefined,
+                }))
+              }
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Cover image
+          </label>
+          <p className="text-xs text-stone-500 mb-2">
+            Upload an image to create two copies: thumbnail (340×480) and original.
+          </p>
+          <input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              setCoverUploading(true)
+              try {
+                const res = await admin.uploadCover(file)
+                const data = res.data?.data
+                if (data?.cover_image && data?.cover_image_thumb) {
+                  setForm((p) => ({
+                    ...p,
+                    cover_image: data.cover_image,
+                    cover_image_thumb: data.cover_image_thumb,
+                  }))
+                }
+              } catch {
+                setError('Failed to upload cover image')
+              } finally {
+                setCoverUploading(false)
+                e.target.value = ''
+              }
+            }}
+            disabled={coverUploading}
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-100 file:text-amber-900 file:font-medium hover:file:bg-amber-200"
+          />
+          {coverUploading && (
+            <p className="mt-1 text-sm text-amber-700">Uploading and creating thumbnail...</p>
+          )}
+          {(form.cover_image || form.cover_image_thumb) && (
+            <div className="mt-3 flex gap-4 items-start">
+              {form.cover_image_thumb && (
+                <div>
+                  <p className="text-xs text-stone-500 mb-1">Thumbnail (340×480)</p>
+                  <img
+                    src={form.cover_image_thumb}
+                    alt="Thumb"
+                    className="h-24 w-auto rounded border border-stone-200"
+                  />
+                </div>
+              )}
+              {form.cover_image && (
+                <div>
+                  <p className="text-xs text-stone-500 mb-1">Original</p>
+                  <img
+                    src={form.cover_image}
+                    alt="Cover"
+                    className="max-h-24 w-auto rounded border border-stone-200"
+                  />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((p) => ({ ...p, cover_image: '', cover_image_thumb: '' }))
+                }
+                className="px-3 py-1.5 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50"
+              >
+                Remove images
+              </button>
+            </div>
+          )}
+          <div className="mt-2">
+            <label className="block text-xs text-stone-500 mb-1">Or paste URL (legacy)</label>
+            <input
+              type="url"
+              value={form.cover_image ?? ''}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, cover_image: e.target.value, cover_image_thumb: e.target.value }))
+              }
+              placeholder="https://..."
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Pages
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={form.pages ?? ''}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  pages: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                }))
+              }
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Edition number
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={form.edition_number ?? ''}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  edition_number: e.target.value
+                    ? parseInt(e.target.value, 10)
+                    : undefined,
+                }))
+              }
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Publish year
+            </label>
+            <input
+              type="number"
+              min="1000"
+              max="2100"
+              value={form.publish_year ?? ''}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  publish_year: e.target.value
+                    ? parseInt(e.target.value, 10)
+                    : undefined,
+                }))
+              }
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Publisher
+          </label>
+          <input
+            type="text"
+            value={form.publisher || ''}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, publisher: e.target.value }))
+            }
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+        {error && (
+          <p className="text-red-600 text-sm">{error}</p>
+        )}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-6 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/books')}
+            className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

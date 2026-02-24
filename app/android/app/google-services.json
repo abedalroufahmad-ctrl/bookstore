@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "266193266623",
+    "project_id": "farman360-6850a",
+    "storage_bucket": "farman360-6850a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:266193266623:android:790a48d883925a8e0b630a",
+        "android_client_info": {
+          "package_name": "farmanapp_01.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_YflL3QAk-IYtUyj8e86_bbApVpmvYTk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Store API Documentation</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 2rem; max-width: 900px; margin: 0 auto; line-height: 1.6; color: #1a1a1a; }
+    h1 { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
+    h2 { color: #1e40af; margin-top: 2rem; }
+    h3 { color: #374151; margin-top: 1.5rem; }
+    code { background: #f1f5f9; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    .method { font-weight: 700; display: inline-block; width: 4rem; }
+    .method.get { color: #059669; }
+    .method.post { color: #2563eb; }
+    .method.put { color: #d97706; }
+    .method.patch { color: #7c3aed; }
+    .method.delete { color: #dc2626; }
+    .endpoint { margin: 0.5rem 0 1rem; }
+    .auth { background: #fef3c7; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <h1>Book Store API Documentation</h1>
+  <p><strong>Base URL:</strong> <code>http://localhost:8000/api/v1</code></p>
+  <p>All responses use: <code>{ "success": true|false, "message": "...", "data": {...} }</code></p>
+  <p>Auth header: <code>Authorization: Bearer &lt;token&gt;</code></p>
+
+  <h2>Public Catalog</h2>
+  <p class="auth">No authentication required</p>
+
+  <div class="endpoint"><span class="method get">GET</span> <code>/books</code> — List books (paginated)</div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/books/{id}</code> — Get book by ID</div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/categories</code> — List categories</div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/categories/{id}</code> — Get category</div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/authors</code> — List authors</div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/authors/{id}</code> — Get author</div>
+
+  <h2>Employee Auth</h2>
+  <div class="endpoint"><span class="method post">POST</span> <code>/employees/login</code></div>
+  <table>
+    <tr><th>Body</th><th></th></tr>
+    <tr><td>email</td><td>string, required</td></tr>
+    <tr><td>password</td><td>string, required</td></tr>
+  </table>
+
+  <p class="auth">Requires: <code>Authorization: Bearer &lt;employee_token&gt;</code></p>
+  <div class="endpoint"><span class="method post">POST</span> <code>/employees/logout</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/employees/refresh</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/employees/me</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/employees/orders</code> — List orders (employee)</div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/employees/orders/{id}</code></div>
+  <div class="endpoint"><span class="method patch">PATCH</span> <code>/employees/orders/{id}/status</code></div>
+
+  <h2>Customer Auth</h2>
+  <div class="endpoint"><span class="method post">POST</span> <code>/customers/register</code></div>
+  <table>
+    <tr><th>Body</th><th></th></tr>
+    <tr><td>name</td><td>string, required</td></tr>
+    <tr><td>email</td><td>string, required, unique</td></tr>
+    <tr><td>password</td><td>string, min 8, confirmed</td></tr>
+    <tr><td>address</td><td>string, optional</td></tr>
+    <tr><td>country</td><td>string, optional</td></tr>
+    <tr><td>city</td><td>string, optional</td></tr>
+    <tr><td>phone</td><td>string, optional</td></tr>
+  </table>
+
+  <div class="endpoint"><span class="method post">POST</span> <code>/customers/login</code></div>
+  <table><tr><td>email</td><td>string</td></tr><tr><td>password</td><td>string</td></tr></table>
+
+  <p class="auth">Requires: <code>Authorization: Bearer &lt;customer_token&gt;</code></p>
+  <div class="endpoint"><span class="method post">POST</span> <code>/customers/logout</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/customers/refresh</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/customers/me</code></div>
+  <div class="endpoint"><span class="method put">PUT</span> <code>/customers/profile</code> — Update profile</div>
+
+  <h3>Cart (Customer)</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/customers/cart</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/customers/cart/items</code></div>
+  <table><tr><td>book_id</td><td>string, required</td></tr><tr><td>quantity</td><td>integer, optional, default 1</td></tr></table>
+  <div class="endpoint"><span class="method delete">DELETE</span> <code>/customers/cart/items/{bookId}</code></div>
+  <div class="endpoint"><span class="method patch">PATCH</span> <code>/customers/cart/items/{bookId}</code></div>
+  <table><tr><td>quantity</td><td>integer</td></tr></table>
+
+  <h3>Orders (Customer)</h3>
+  <div class="endpoint"><span class="method post">POST</span> <code>/customers/orders/checkout</code></div>
+  <table>
+    <tr><td>shipping_address</td><td>object: address, city, country, postal_code (optional)</td></tr>
+    <tr><td>payment_info</td><td>object, optional</td></tr>
+  </table>
+  <div class="endpoint"><span class="method get">GET</span> <code>/customers/orders</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/customers/orders/{id}</code></div>
+  <div class="endpoint"><span class="method patch">PATCH</span> <code>/customers/orders/{id}/status</code></div>
+
+  <h2>Admin</h2>
+  <p class="auth">Requires: Employee token + role: manager, shipping, review, accounting, employee</p>
+
+  <h3>Books</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/books</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/admin/books</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/books/{id}</code></div>
+  <div class="endpoint"><span class="method put">PUT</span> <code>/admin/books/{id}</code></div>
+  <div class="endpoint"><span class="method delete">DELETE</span> <code>/admin/books/{id}</code></div>
+  <p>Book payload: title, author_ids[], category_id, price, isbn, warehouse_id, stock_quantity, pages, publish_year, etc.</p>
+
+  <h3>Warehouses</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/warehouses</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/admin/warehouses</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/warehouses/{id}</code></div>
+  <div class="endpoint"><span class="method put">PUT</span> <code>/admin/warehouses/{id}</code></div>
+  <div class="endpoint"><span class="method delete">DELETE</span> <code>/admin/warehouses/{id}</code></div>
+
+  <h3>Authors</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/authors</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/admin/authors</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/authors/{id}</code></div>
+  <div class="endpoint"><span class="method put">PUT</span> <code>/admin/authors/{id}</code></div>
+  <div class="endpoint"><span class="method delete">DELETE</span> <code>/admin/authors/{id}</code></div>
+
+  <h3>Categories</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/categories</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/admin/categories</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/categories/{id}</code></div>
+  <div class="endpoint"><span class="method put">PUT</span> <code>/admin/categories/{id}</code></div>
+  <div class="endpoint"><span class="method delete">DELETE</span> <code>/admin/categories/{id}</code></div>
+
+  <h3>Employees</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/employees</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/admin/employees</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/employees/{id}</code></div>
+
+  <h3>Customers</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/customers</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/customers/{id}</code></div>
+
+  <h3>Orders</h3>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/orders</code></div>
+  <div class="endpoint"><span class="method get">GET</span> <code>/admin/orders/{id}</code></div>
+  <div class="endpoint"><span class="method patch">PATCH</span> <code>/admin/orders/{id}/status</code></div>
+  <div class="endpoint"><span class="method post">POST</span> <code>/admin/orders/{id}/assign</code> — Assign to employee</div>
+
+  <h2>Order Statuses</h2>
+  <p><code>pending_review</code>, <code>confirmed</code>, <code>preparing</code>, <code>shipped</code>, <code>delivered</code>, <code>cancelled</code></p>
+
+  <h2>Rate Limiting</h2>
+  <p>60 requests per minute per IP</p>
+</body>
+</html>
