@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
@@ -10,6 +11,10 @@ import 'screens/admin_orders_screen.dart';
 import 'screens/book_detail_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/checkout_screen.dart';
+import 'screens/author_books_screen.dart';
+import 'screens/author_list_screen.dart';
+import 'screens/category_books_screen.dart';
+import 'screens/category_list_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/orders_screen.dart';
@@ -28,10 +33,22 @@ class BookStoreApp extends StatelessWidget {
       create: (_) => AuthProvider(),
       child: MaterialApp(
         title: 'Book Store',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
           useMaterial3: true,
+          fontFamily: 'Roboto', // Default, we might want a better Arabic font later
         ),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('ar', ''),
+          Locale('en', ''),
+        ],
+        locale: const Locale('ar', ''),
         initialRoute: '/',
         routes: {
           '/': (context) => const AuthWrapper(),
@@ -46,11 +63,35 @@ class BookStoreApp extends StatelessWidget {
           '/cart': (context) => const CartScreen(),
           '/checkout': (context) => const CheckoutScreen(),
           '/orders': (context) => const OrdersScreen(),
+          '/authors': (context) => const AuthorListScreen(),
+          '/categories': (context) => const CategoryListScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name?.startsWith('/book/') == true) {
             return MaterialPageRoute(
               builder: (_) => const BookDetailScreen(),
+              settings: settings,
+            );
+          }
+          if (settings.name?.startsWith('/author/') == true) {
+            final id = settings.name!.replaceFirst('/author/', '');
+            final args = settings.arguments as Map<String, dynamic>?;
+            return MaterialPageRoute(
+              builder: (_) => AuthorBooksScreen(
+                authorId: id,
+                authorName: args?['name'],
+              ),
+              settings: settings,
+            );
+          }
+          if (settings.name?.startsWith('/category/') == true) {
+            final id = settings.name!.replaceFirst('/category/', '');
+            final args = settings.arguments as Map<String, dynamic>?;
+            return MaterialPageRoute(
+              builder: (_) => CategoryBooksScreen(
+                categoryId: id,
+                categoryTitle: args?['title'],
+              ),
               settings: settings,
             );
           }

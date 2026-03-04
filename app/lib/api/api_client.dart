@@ -24,11 +24,15 @@ class ApiClient {
     Map<String, String>? params,
     T Function(dynamic)? fromJson,
   }) async {
-    final uri = params != null && params.isNotEmpty
-        ? Uri.parse('$_baseUrl$path').replace(queryParameters: params)
-        : Uri.parse('$_baseUrl$path');
-    final res = await http.get(uri, headers: await _headers());
-    return _parseResponse<T>(res, fromJson);
+    try {
+      final uri = params != null && params.isNotEmpty
+          ? Uri.parse('$_baseUrl$path').replace(queryParameters: params)
+          : Uri.parse('$_baseUrl$path');
+      final res = await http.get(uri, headers: await _headers());
+      return _parseResponse<T>(res, fromJson);
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+    }
   }
 
   Future<ApiResponse<T>> post<T>(
@@ -36,12 +40,18 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic)? fromJson,
   }) async {
-    final res = await http.post(
-      Uri.parse('$_baseUrl$path'),
-      headers: await _headers(),
-      body: body != null ? jsonEncode(body) : null,
-    );
-    return _parseResponse<T>(res, fromJson);
+    try {
+      final uri = Uri.parse('$_baseUrl$path');
+      print('ApiClient POST: $uri');
+      final res = await http.post(
+        uri,
+        headers: await _headers(),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _parseResponse<T>(res, fromJson);
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+    }
   }
 
   Future<ApiResponse<T>> put<T>(
@@ -49,12 +59,16 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic)? fromJson,
   }) async {
-    final res = await http.put(
-      Uri.parse('$_baseUrl$path'),
-      headers: await _headers(),
-      body: body != null ? jsonEncode(body) : null,
-    );
-    return _parseResponse<T>(res, fromJson);
+    try {
+      final res = await http.put(
+        Uri.parse('$_baseUrl$path'),
+        headers: await _headers(),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _parseResponse<T>(res, fromJson);
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+    }
   }
 
   Future<ApiResponse<T>> patch<T>(
@@ -62,44 +76,60 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic)? fromJson,
   }) async {
-    final res = await http.patch(
-      Uri.parse('$_baseUrl$path'),
-      headers: await _headers(),
-      body: body != null ? jsonEncode(body) : null,
-    );
-    return _parseResponse<T>(res, fromJson);
+    try {
+      final res = await http.patch(
+        Uri.parse('$_baseUrl$path'),
+        headers: await _headers(),
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _parseResponse<T>(res, fromJson);
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+    }
   }
 
   Future<ApiResponse<T>> delete<T>(
     String path, {
     T Function(dynamic)? fromJson,
   }) async {
-    final res = await http.delete(
-      Uri.parse('$_baseUrl$path'),
-      headers: await _headers(),
-    );
-    return _parseResponse<T>(res, fromJson);
+    try {
+      final res = await http.delete(
+        Uri.parse('$_baseUrl$path'),
+        headers: await _headers(),
+      );
+      return _parseResponse<T>(res, fromJson);
+    } catch (e) {
+      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+    }
   }
 
   ApiResponse<T> _parseResponse<T>(http.Response res, T Function(dynamic)? fromJson) {
-    final map = jsonDecode(res.body) as Map<String, dynamic>?;
-    if (map == null) {
-      return ApiResponse(success: false, message: 'Invalid response', data: null);
-    }
-    final success = map['success'] as bool? ?? false;
-    final message = map['message'] as String? ?? '';
-    dynamic data = map['data'];
-    T? parsed;
-    if (data != null && fromJson != null) {
-      try {
-        parsed = fromJson(data);
-      } catch (_) {
+    try {
+      final map = jsonDecode(res.body) as Map<String, dynamic>?;
+      if (map == null) {
+        return ApiResponse(success: false, message: 'Invalid response', data: null);
+      }
+      final success = map['success'] as bool? ?? false;
+      final message = map['message'] as String? ?? '';
+      dynamic data = map['data'];
+      T? parsed;
+      if (data != null && fromJson != null) {
+        try {
+          parsed = fromJson(data);
+        } catch (_) {
+          parsed = data as T?;
+        }
+      } else {
         parsed = data as T?;
       }
-    } else {
-      parsed = data as T?;
+      return ApiResponse(success: success, message: message, data: parsed);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error parsing response: $e',
+        data: null,
+      );
     }
-    return ApiResponse(success: success, message: message, data: parsed);
   }
 }
 

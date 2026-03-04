@@ -1,3 +1,5 @@
+import '../config.dart';
+
 class Book {
   Book({
     required this.id,
@@ -35,6 +37,15 @@ class Book {
   final String? coverImageThumb;
   final int? editionNumber;
 
+  static String? _fixUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (url.startsWith('http://localhost:8000') || url.startsWith('http://127.0.0.1:8000')) {
+      final base = Uri.parse(apiBaseUrl);
+      return url.replaceFirst('localhost', base.host).replaceFirst('127.0.0.1', base.host);
+    }
+    return url;
+  }
+
   factory Book.fromJson(Map<String, dynamic> json) {
     final id = json['_id'] ?? json['id'] ?? '';
     return Book(
@@ -57,12 +68,13 @@ class Book {
       publisher: json['publisher'],
       size: json['size'],
       weight: (json['weight'] as num?)?.toDouble(),
-      coverImage: json['cover_image'],
-      coverImageThumb: json['cover_image_thumb'],
+      coverImage: _fixUrl(json['cover_image']),
+      coverImageThumb: _fixUrl(json['cover_image_thumb']),
       editionNumber: json['edition_number'],
     );
   }
 }
+
 
 class Category {
   Category({required this.id, this.deweyCode, this.subjectTitle});
