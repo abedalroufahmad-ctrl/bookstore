@@ -20,6 +20,7 @@ class EmployeeStoreRequest extends BaseFormRequest
             UserRole::Shipping->value,
             UserRole::Review->value,
             UserRole::Accounting->value,
+            UserRole::WarehouseManager->value,
         ];
 
         return [
@@ -28,7 +29,9 @@ class EmployeeStoreRequest extends BaseFormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($employeeRoles)],
-            'warehouse_id' => ['required', 'string'],
+            'warehouse_id' => ['required_unless:role,' . UserRole::WarehouseManager->value, 'nullable', 'string'],
+            'warehouse_ids' => ['required_if:role,' . UserRole::WarehouseManager->value, 'nullable', 'array', 'min:1'],
+            'warehouse_ids.*' => ['string'],
         ];
     }
 }

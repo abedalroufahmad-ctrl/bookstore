@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::connection('mongodb')->table('carts', function (Blueprint $collection) {
             $collection->index(
                 ['customer_id' => 1, 'status' => 1],
-                ['name' => 'carts_customer_status_idx']
+                'carts_customer_status_idx'
             );
         });
 
@@ -22,11 +22,11 @@ return new class extends Migration
         Schema::connection('mongodb')->table('orders', function (Blueprint $collection) {
             $collection->index(
                 ['customer_id' => 1, 'created_at' => -1],
-                ['name' => 'orders_customer_created_idx']
+                'orders_customer_created_idx'
             );
             $collection->index(
                 ['status' => 1, 'created_at' => -1],
-                ['name' => 'orders_status_created_idx']
+                'orders_status_created_idx'
             );
         });
 
@@ -34,7 +34,7 @@ return new class extends Migration
         Schema::connection('mongodb')->table('books', function (Blueprint $collection) {
             $collection->index(
                 ['stock_quantity' => 1, 'created_at' => -1],
-                ['name' => 'books_stock_created_idx']
+                'books_stock_created_idx'
             );
         });
 

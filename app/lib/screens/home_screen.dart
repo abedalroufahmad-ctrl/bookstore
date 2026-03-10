@@ -1,6 +1,10 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:provider/provider.dart';
+import '../providers/locale_provider.dart';
+import '../l10n/app_localizations.dart';
 
 import '../api/api_client.dart';
 import '../api/api_service.dart';
@@ -19,7 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Book> _books = [];
   List<Category> _categories = [];
   List<Author> _authors = [];
-  bool _loading = true;
+  double _globalDiscount = 0;
+  bool _isLoading = true;
   String? _error;
 
   @override
@@ -30,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     setState(() {
-      _loading = true;
+      _isLoading = true;
       _error = null;
     });
 
@@ -39,32 +44,42 @@ class _HomeScreenState extends State<HomeScreen> {
         ApiService.instance.getBooks(),
         ApiService.instance.getCategories(),
         ApiService.instance.getAuthors(),
+        ApiService.instance.getSettings(),
       ]);
 
       final booksRes = results[0] as ApiResponse<dynamic>;
       final categoriesRes = results[1] as ApiResponse<List<Category>>;
       final authorsRes = results[2] as ApiResponse<List<Author>>;
+      final settingsRes = results[3] as ApiResponse<Map<String, dynamic>>;
 
-      if (booksRes.success && booksRes.data != null) {
-        final d = booksRes.data;
-        List<Book> list = [];
-        if (d is Map && d['data'] != null) {
-          list = (d['data'] as List)
-              .map((e) => Book.fromJson(e as Map<String, dynamic>))
-              .toList();
-        } else if (d is List) {
-          list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
-        }
-        _books = list;
+      if (mounted) {
+        setState(() {
+          if (booksRes.success && booksRes.data != null) {
+            final d = booksRes.data;
+            List<Book> list = [];
+            if (d is Map && d['data'] != null) {
+              list = (d['data'] as List)
+                  .map((e) => Book.fromJson(e as Map<String, dynamic>))
+                  .toList();
+            } else if (d is List) {
+              list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+            }
+            _books = list;
+          }
+
+          if (categoriesRes.success) _categories = categoriesRes.data ?? [];
+          if (authorsRes.success) _authors = authorsRes.data ?? [];
+
+          if (settingsRes.success && settingsRes.data != null) {
+            _globalDiscount = (settingsRes.data!['global_discount'] ?? 0).toDouble();
+          }
+
+          _isLoading = false;
+        });
       }
-
-      if (categoriesRes.success) _categories = categoriesRes.data ?? [];
-      if (authorsRes.success) _authors = authorsRes.data ?? [];
-
-      setState(() => _loading = false);
     } catch (e) {
       setState(() {
-        _loading = false;
+        _isLoading = false;
         _error = 'حدث خطأ أثناء تحميل البيانات: $e';
       });
     }
@@ -107,45 +122,79 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+    final localeProvider = context.watch<LocaleProvider>();
     final featuredBooks = _books.take(5).toList();
     final newestBooks = _books.reversed.take(10).toList();
 
-    return Scaffold(
+    return PlatformScaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('متجر الكتب'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
+      appBar: PlatformAppBar(
+        title: Text(t.appName),
+        trailingActions: [
+          PlatformIconButton(
+            icon: Icon(context.platformIcon(material: Icons.language, cupertino: CupertinoIcons.globe)),
+            onPressed: () => localeProvider.toggleLanguage(),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.account_circle_outlined),
-            onSelected: (value) {
-              if (value == 'logout') {
-                context.read<AuthProvider>().logout();
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
-              } else if (value == 'admin') {
-                Navigator.pushNamed(context, '/admin');
-              } else if (value == 'orders') {
-                Navigator.pushNamed(context, '/orders');
+          PlatformIconButton(
+            icon: Icon(context.platformIcons.shoppingCart),
+            onPressed: () {
+              final auth = context.read<AuthProvider>();
+              if (!auth.isLoggedIn) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(t.cartLoginMsg),
+                    action: SnackBarAction(
+                      label: t.navLogin,
+                      onPressed: () => Navigator.pushNamed(context, '/login'),
+                    ),
+                  ),
+                );
+              } else {
+                Navigator.pushNamed(context, '/cart');
               }
             },
-            itemBuilder: (context) {
-              final auth = context.watch<AuthProvider>();
-              return [
-                if (auth.userType == UserType.employee)
-                  const PopupMenuItem(value: 'admin', child: Text('لوحة الإدارة')),
-                const PopupMenuItem(value: 'orders', child: Text('طلباتي')),
-                const PopupMenuItem(value: 'logout', child: Text('تسجيل الخروج')),
-              ];
+          ),
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) {
+              if (!auth.isLoggedIn) {
+                return PlatformPopupMenu(
+                  icon: Icon(context.platformIcons.accountCircle),
+                  options: [
+                    PopupMenuOption(
+                      label: t.navLogin,
+                      onTap: (_) => Navigator.pushNamed(context, '/login'),
+                    ),
+                    PopupMenuOption(
+                      label: t.navRegister,
+                      onTap: (_) => Navigator.pushNamed(context, '/register'),
+                    ),
+                  ],
+                );
+              }
+              return PlatformPopupMenu(
+                icon: Icon(context.platformIcons.accountCircle),
+                options: [
+                  PopupMenuOption(
+                    label: t.navOrders,
+                    onTap: (_) => Navigator.pushNamed(context, '/orders'),
+                  ),
+                  PopupMenuOption(
+                    label: t.navLogout,
+                    onTap: (_) {
+                      context.read<AuthProvider>().logout();
+                      Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+                    },
+                  ),
+                ],
+              );
             },
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
-        child: _loading
+        child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
                 ? Center(
@@ -154,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(_error!, style: const TextStyle(color: Colors.red)),
                         const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _loadData, child: const Text('إعادة المحاولة')),
+                        PlatformElevatedButton(onPressed: _loadData, child: const Text('إعادة المحاولة')),
                       ],
                     ),
                   )
@@ -166,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: SearchBar(
-                            hintText: 'ابحث عن الكتب، المؤلفين...',
+                            hintText: t.heroTitle,
                             leading: const Icon(Icons.search),
                             padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
                             elevation: const MaterialStatePropertyAll(1),
@@ -186,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             items: featuredBooks.map((book) {
                               return BookCard(
                                 book: book,
-                                discountPercent: 20,
+                                globalDiscount: _globalDiscount,
                                 onTap: () => Navigator.pushNamed(context, '/book/${book.id}', arguments: book),
                               );
                             }).toList(),
@@ -194,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
 
                         // Categories
-                        _buildSectionHeader('التصنيفات', '/categories'),
+                        _buildSectionHeader(t.navCategories, '/categories'),
                         SizedBox(
                           height: 110,
                           child: ListView.builder(
@@ -205,35 +254,42 @@ class _HomeScreenState extends State<HomeScreen> {
                               final cat = _categories[i];
                               return Padding(
                                 padding: const EdgeInsets.only(left: 16),
-                                child: InkWell(
-                                  onTap: () => Navigator.pushNamed(
-                                    context,
-                                    '/category/${cat.id}',
-                                    arguments: {'title': cat.subjectTitle},
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          color: _getCategoryColor(cat.deweyCode),
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            _getCategoryIcon(cat.deweyCode),
-                                            style: const TextStyle(fontSize: 28),
+                                child: SizedBox(
+                                  width: 80,
+                                  child: InkWell(
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/category/${cat.id}',
+                                      arguments: {'title': cat.subjectTitle},
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: _getCategoryColor(cat.deweyCode),
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              _getCategoryIcon(cat.deweyCode),
+                                              style: const TextStyle(fontSize: 26),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        cat.subjectTitle ?? '',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          cat.subjectTitle ?? '',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -242,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         // Authors
-                        _buildSectionHeader('المؤلفون', '/authors'),
+                        _buildSectionHeader(t.navAuthors, '/authors'),
                         SizedBox(
                           height: 110,
                           child: ListView.builder(
@@ -253,32 +309,40 @@ class _HomeScreenState extends State<HomeScreen> {
                               final author = _authors[i];
                               return Padding(
                                 padding: const EdgeInsets.only(left: 16),
-                                child: InkWell(
-                                  onTap: () => Navigator.pushNamed(
-                                    context,
-                                    '/author/${author.id}',
-                                    arguments: {'name': author.name},
-                                  ),
-                                  borderRadius: BorderRadius.circular(30),
-                                  child: Column(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 30,
-                                        backgroundColor: theme.colorScheme.primaryContainer,
-                                        child: Text(
-                                          _getInitials(author.name),
-                                          style: TextStyle(
-                                            color: theme.colorScheme.onPrimaryContainer,
-                                            fontWeight: FontWeight.bold,
+                                child: SizedBox(
+                                  width: 80,
+                                  child: InkWell(
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/author/${author.id}',
+                                      arguments: {'name': author.name},
+                                    ),
+                                    borderRadius: BorderRadius.circular(30),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 28,
+                                          backgroundColor: theme.colorScheme.primaryContainer,
+                                          child: Text(
+                                            _getInitials(author.name),
+                                            style: TextStyle(
+                                              color: theme.colorScheme.onPrimaryContainer,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        author.name ?? '',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          author.name ?? '',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -287,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         // Newest Books
-                        _buildSectionHeader('أحدث الكتب', '/books'),
+                        _buildSectionHeader(t.newestBooks, '/books'),
                         SizedBox(
                           height: 340,
                           child: ListView.builder(
@@ -316,16 +380,20 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          TextButton(
+          PlatformTextButton(
             onPressed: () => Navigator.pushNamed(context, route),
-            child: const Row(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('عرض الكل'),
-                Icon(Icons.chevron_right, size: 20),
+                Text(AppLocalizations.of(context).viewAll),
+                const Icon(Icons.chevron_right, size: 20),
               ],
             ),
           ),

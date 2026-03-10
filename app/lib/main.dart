@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:provider/provider.dart';
 
+import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
-import 'screens/admin_dashboard_screen.dart';
-import 'screens/admin_authors_screen.dart';
-import 'screens/admin_books_screen.dart';
-import 'screens/admin_categories_screen.dart';
-import 'screens/admin_orders_screen.dart';
+import 'providers/locale_provider.dart';
 import 'screens/book_detail_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/checkout_screen.dart';
@@ -15,7 +14,8 @@ import 'screens/author_books_screen.dart';
 import 'screens/author_list_screen.dart';
 import 'screens/category_books_screen.dart';
 import 'screens/category_list_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/guest_landing_screen.dart';
+import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/register_screen.dart';
@@ -29,73 +29,96 @@ class BookStoreApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
-      child: MaterialApp(
-        title: 'Book Store',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
-          useMaterial3: true,
-          fontFamily: 'Roboto', // Default, we might want a better Arabic font later
-        ),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('ar', ''),
-          Locale('en', ''),
-        ],
-        locale: const Locale('ar', ''),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const AuthWrapper(),
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/home': (context) => const HomeScreen(),
-          '/admin': (context) => const AdminDashboardScreen(),
-          '/admin/books': (context) => const AdminBooksScreen(),
-          '/admin/authors': (context) => const AdminAuthorsScreen(),
-          '/admin/categories': (context) => const AdminCategoriesScreen(),
-          '/admin/orders': (context) => const AdminOrdersScreen(),
-          '/cart': (context) => const CartScreen(),
-          '/checkout': (context) => const CheckoutScreen(),
-          '/orders': (context) => const OrdersScreen(),
-          '/authors': (context) => const AuthorListScreen(),
-          '/categories': (context) => const CategoryListScreen(),
-        },
-        onGenerateRoute: (settings) {
-          if (settings.name?.startsWith('/book/') == true) {
-            return MaterialPageRoute(
-              builder: (_) => const BookDetailScreen(),
-              settings: settings,
-            );
-          }
-          if (settings.name?.startsWith('/author/') == true) {
-            final id = settings.name!.replaceFirst('/author/', '');
-            final args = settings.arguments as Map<String, dynamic>?;
-            return MaterialPageRoute(
-              builder: (_) => AuthorBooksScreen(
-                authorId: id,
-                authorName: args?['name'],
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+      ],
+      child: Consumer<LocaleProvider>(
+        builder: (context, localeProvider, _) {
+          return MaterialApp(
+            title: 'Book Store',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.brown,
+                brightness: Brightness.light,
               ),
-              settings: settings,
-            );
-          }
-          if (settings.name?.startsWith('/category/') == true) {
-            final id = settings.name!.replaceFirst('/category/', '');
-            final args = settings.arguments as Map<String, dynamic>?;
-            return MaterialPageRoute(
-              builder: (_) => CategoryBooksScreen(
-                categoryId: id,
-                categoryTitle: args?['title'],
+              useMaterial3: true,
+              scaffoldBackgroundColor: const Color(0xFFE0E5EC),
+              cardColor: const Color(0xFFE0E5EC),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFFE0E5EC),
+                elevation: 0,
+                centerTitle: true,
               ),
-              settings: settings,
-            );
-          }
-          return null;
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                ),
+              ),
+            ),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('ar', ''),
+              Locale('en', ''),
+            ],
+            locale: Locale(localeProvider.languageCode, ''),
+            initialRoute: '/',
+            routes: {
+              '/': (context) => const AuthWrapper(),
+              '/guest': (context) => const GuestLandingScreen(),
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) => const RegisterScreen(),
+              '/home': (context) => const MainShell(),
+              '/cart': (context) => const CartScreen(),
+              '/checkout': (context) => const CheckoutScreen(),
+              '/orders': (context) => const OrdersScreen(),
+              '/authors': (context) => const AuthorListScreen(),
+              '/categories': (context) => const CategoryListScreen(),
+            },
+            onGenerateRoute: (settings) {
+              if (settings.name?.startsWith('/book/') == true) {
+                return MaterialPageRoute(
+                  builder: (_) => const BookDetailScreen(),
+                  settings: settings,
+                );
+              }
+              if (settings.name?.startsWith('/author/') == true) {
+                final id = settings.name!.replaceFirst('/author/', '');
+                final args = settings.arguments as Map<String, dynamic>?;
+                return MaterialPageRoute(
+                  builder: (_) => AuthorBooksScreen(
+                    authorId: id,
+                    authorName: args?['name'],
+                  ),
+                  settings: settings,
+                );
+              }
+              if (settings.name?.startsWith('/category/') == true) {
+                final id = settings.name!.replaceFirst('/category/', '');
+                final args = settings.arguments as Map<String, dynamic>?;
+                return MaterialPageRoute(
+                  builder: (_) => CategoryBooksScreen(
+                    categoryId: id,
+                    categoryTitle: args?['title'],
+                  ),
+                  settings: settings,
+                );
+              }
+              return null;
+            },
+          );
         },
       ),
     );
@@ -110,14 +133,15 @@ class AuthWrapper extends StatelessWidget {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         if (auth.loading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return PlatformScaffold(
+            body: Center(child: PlatformCircularProgressIndicator()),
           );
         }
         if (auth.isLoggedIn) {
-          return const HomeScreen();
+          return const MainShell();
         }
-        return const LoginScreen();
+        // Not logged in → show welcome screen so guests can browse
+        return const GuestLandingScreen();
       },
     );
   }

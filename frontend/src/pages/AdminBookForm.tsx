@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { admin, type Book, type BookFormData } from '../lib/api'
+import { resolveCoverUrl } from '../lib/utils'
+import { useSettings, gramsToDisplay, displayToGrams } from '../contexts/SettingsContext'
 
 const emptyForm: BookFormData = {
   title: '',
@@ -20,6 +23,7 @@ const emptyForm: BookFormData = {
   cover_image: '',
   cover_image_thumb: '',
   edition_number: undefined,
+  discount_percent: 0,
 }
 
 function extractList<T>(data: unknown): T[] {
@@ -33,10 +37,12 @@ function extractList<T>(data: unknown): T[] {
 }
 
 export function AdminBookForm() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const isEdit = Boolean(id)
+    const { t } = useTranslation()
+    const { id } = useParams<{ id: string }>()
+    const navigate = useNavigate()
+    const queryClient = useQueryClient()
+    const { settings } = useSettings()
+    const isEdit = Boolean(id)
 
   const [form, setForm] = useState<BookFormData>(emptyForm)
   const [error, setError] = useState('')
@@ -58,7 +64,7 @@ export function AdminBookForm() {
   const { data: authorsData } = useQuery({
     queryKey: ['admin-authors'],
     queryFn: async () => {
-      const res = await admin.authors.list()
+      const res = await admin.authors.list({ per_page: 100 })
       return res.data
     },
   })
@@ -66,7 +72,7 @@ export function AdminBookForm() {
   const { data: categoriesData } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const res = await admin.categories.list()
+      const res = await admin.categories.list({ per_page: 100 })
       return res.data
     },
   })
@@ -74,7 +80,7 @@ export function AdminBookForm() {
   const { data: warehousesData } = useQuery({
     queryKey: ['admin-warehouses'],
     queryFn: async () => {
-      const res = await admin.warehouses.list()
+      const res = await admin.warehouses.list({ per_page: 100 })
       return res.data
     },
   })
@@ -107,6 +113,7 @@ export function AdminBookForm() {
         cover_image: b.cover_image ?? '',
         cover_image_thumb: b.cover_image_thumb ?? '',
         edition_number: b.edition_number,
+        discount_percent: b.discount_percent ?? 0,
       })
     }
   }, [bookData])
@@ -118,7 +125,7 @@ export function AdminBookForm() {
       navigate('/admin/books')
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? 'Failed to create')
+      setError(err?.response?.data?.message ?? t('admin.failedCreate'))
     },
   })
 
@@ -130,24 +137,24 @@ export function AdminBookForm() {
       navigate('/admin/books')
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? 'Failed to update')
+      setError(err?.response?.data?.message ?? t('admin.failedUpdate'))
     },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-      const payload: BookFormData = {
-        ...form,
-        author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
-        category_id: (form.category_id || categoryList[0]?._id) ?? '',
-        warehouse_id: (form.warehouse_id || warehouseList[0]?._id) ?? '',
-      }
+    const payload: BookFormData = {
+      ...form,
+      author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
+      category_id: (form.category_id || categoryList[0]?._id) ?? '',
+      warehouse_id: (form.warehouse_id || warehouseList[0]?._id) ?? '',
+    }
     if (isEdit) {
       updateMutation.mutate(payload)
     } else {
       if (!payload.author_ids.length || !payload.category_id || !payload.warehouse_id) {
-        setError('Please add at least one author, category, and warehouse first')
+        setError(t('admin.addFirst'))
         return
       }
       createMutation.mutate(payload)
@@ -201,18 +208,17 @@ export function AdminBookForm() {
     return (
       <div>
         <h1 className="text-2xl font-bold text-amber-900 mb-6">
-          {isEdit ? 'Edit Book' : 'Add Book'}
+          {isEdit ? t('admin.editBook') : t('admin.addBook')}
         </h1>
         <p className="text-stone-600 mb-4">
-          Before adding books, you need at least one warehouse. Add authors and
-          categories below or in Admin → Authors / Categories.
+          {t('admin.booksNeedsWarehouse')}
         </p>
         <button
           type="button"
           onClick={() => navigate('/admin/books')}
           className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
         >
-          Back to Books
+          {t('admin.backToBooks')}
         </button>
       </div>
     )
@@ -221,12 +227,12 @@ export function AdminBookForm() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-amber-900 mb-6">
-        {isEdit ? 'Edit Book' : 'Add Book'}
+        {isEdit ? t('admin.editBook') : t('admin.addBook')}
       </h1>
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Title *
+            {t('admin.title')} *
           </label>
           <input
             type="text"
@@ -238,7 +244,7 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            ISBN *
+            {t('admin.isbn')} *
           </label>
           <input
             type="text"
@@ -250,7 +256,7 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Price *
+            {t('admin.price')} *
           </label>
           <input
             type="number"
@@ -266,7 +272,7 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Stock quantity *
+            {t('admin.stockQuantity')} *
           </label>
           <input
             type="number"
@@ -284,7 +290,24 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Category *
+            {t('admin.specialDiscount')}
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            value={form.discount_percent || ''}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, discount_percent: parseFloat(e.target.value) || 0 }))
+            }
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          />
+          <p className="mt-1 text-xs text-stone-500">{t('admin.globalDiscountHint')}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            {t('admin.categories')} *
           </label>
           <div className="flex gap-2">
             <select
@@ -295,7 +318,7 @@ export function AdminBookForm() {
               required
               className="flex-1 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
             >
-              <option value="">Select category</option>
+              <option value="">{t('admin.selectCategory')}</option>
               {categoryList.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.subject_title} ({c.dewey_code})
@@ -311,7 +334,7 @@ export function AdminBookForm() {
                 onChange={(e) =>
                   setNewCategory((p) => ({ ...p, dewey_code: e.target.value }))
                 }
-                placeholder="Dewey code"
+                placeholder={t('admin.deweyCode')}
                 className="px-3 py-1 border border-stone-300 rounded-lg text-sm w-24"
               />
               <input
@@ -320,7 +343,7 @@ export function AdminBookForm() {
                 onChange={(e) =>
                   setNewCategory((p) => ({ ...p, subject_title: e.target.value }))
                 }
-                placeholder="Subject title"
+                placeholder={t('admin.subjectTitle')}
                 className="px-3 py-1 border border-stone-300 rounded-lg text-sm flex-1 min-w-[120px]"
               />
               <button
@@ -337,7 +360,7 @@ export function AdminBookForm() {
                 }
                 className="text-sm px-3 py-1 bg-amber-100 text-amber-900 rounded-lg hover:bg-amber-200"
               >
-                Add
+                {t('admin.add')}
               </button>
               <button
                 type="button"
@@ -347,7 +370,7 @@ export function AdminBookForm() {
                 }}
                 className="text-sm text-stone-500 hover:underline"
               >
-                Cancel
+                {t('admin.cancel')}
               </button>
             </div>
           ) : (
@@ -356,13 +379,13 @@ export function AdminBookForm() {
               onClick={() => setAddingCategory(true)}
               className="mt-2 text-sm text-amber-700 hover:underline"
             >
-              + Add new category
+              {t('admin.addNewCategory')}
             </button>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Warehouse *
+            {t('admin.warehouse')} *
           </label>
           <select
             value={form.warehouse_id}
@@ -372,7 +395,7 @@ export function AdminBookForm() {
             required
             className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           >
-            <option value="">Select warehouse</option>
+            <option value="">{t('admin.selectWarehouse')}</option>
             {warehouseList.map((w) => (
               <option key={w._id} value={w._id}>
                 {w.name}
@@ -382,7 +405,7 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Authors *
+            {t('admin.authors')} *
           </label>
           <div className="flex flex-wrap gap-2">
             {authorList.map((a) => (
@@ -405,7 +428,7 @@ export function AdminBookForm() {
                 type="text"
                 value={newAuthorName}
                 onChange={(e) => setNewAuthorName(e.target.value)}
-                placeholder="Author name"
+                placeholder={t('admin.authorName')}
                 className="px-3 py-1 border border-stone-300 rounded-lg text-sm"
               />
               <button
@@ -414,14 +437,14 @@ export function AdminBookForm() {
                 disabled={addAuthorMutation.isPending || !newAuthorName.trim()}
                 className="text-sm px-3 py-1 bg-amber-100 text-amber-900 rounded-lg hover:bg-amber-200"
               >
-                Add
+                {t('admin.add')}
               </button>
               <button
                 type="button"
                 onClick={() => { setAddingAuthor(false); setNewAuthorName('') }}
                 className="text-sm text-stone-500 hover:underline"
               >
-                Cancel
+                {t('admin.cancel')}
               </button>
             </div>
           ) : (
@@ -430,13 +453,13 @@ export function AdminBookForm() {
               onClick={() => setAddingAuthor(true)}
               className="mt-2 text-sm text-amber-700 hover:underline"
             >
-              + Add new author
+              {t('admin.addNewAuthor')}
             </button>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Description
+            {t('admin.description')}
           </label>
           <textarea
             value={form.description || ''}
@@ -450,29 +473,29 @@ export function AdminBookForm() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              Size
+              {t('admin.size')}
             </label>
             <input
               type="text"
               value={form.size ?? ''}
               onChange={(e) => setForm((p) => ({ ...p, size: e.target.value }))}
-              placeholder="e.g. 8.5x11"
+              placeholder={t('common.sizePlaceholder')}
               className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              Weight (kg)
+              {t('admin.weightWithUnit', { unit: settings.weight_unit }) || `Weight (${settings.weight_unit})`}
             </label>
             <input
               type="number"
-              step="0.01"
+              step="any"
               min="0"
-              value={form.weight ?? ''}
+              value={gramsToDisplay(form.weight, settings.weight_unit)}
               onChange={(e) =>
                 setForm((p) => ({
                   ...p,
-                  weight: e.target.value ? parseFloat(e.target.value) : undefined,
+                  weight: displayToGrams(e.target.value ? parseFloat(e.target.value) : undefined, settings.weight_unit),
                 }))
               }
               className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
@@ -481,10 +504,10 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Cover image
+            {t('admin.coverImage')}
           </label>
           <p className="text-xs text-stone-500 mb-2">
-            Upload an image to create two copies: thumbnail (340×480) and original.
+            {t('admin.coverImageHint')}
           </p>
           <input
             type="file"
@@ -504,7 +527,7 @@ export function AdminBookForm() {
                   }))
                 }
               } catch {
-                setError('Failed to upload cover image')
+                setError(t('admin.failedUpload'))
               } finally {
                 setCoverUploading(false)
                 e.target.value = ''
@@ -514,15 +537,15 @@ export function AdminBookForm() {
             className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-100 file:text-amber-900 file:font-medium hover:file:bg-amber-200"
           />
           {coverUploading && (
-            <p className="mt-1 text-sm text-amber-700">Uploading and creating thumbnail...</p>
+            <p className="mt-1 text-sm text-amber-700">{t('admin.uploading')}</p>
           )}
           {(form.cover_image || form.cover_image_thumb) && (
             <div className="mt-3 flex gap-4 items-start">
               {form.cover_image_thumb && (
                 <div>
-                  <p className="text-xs text-stone-500 mb-1">Thumbnail (340×480)</p>
+                  <p className="text-xs text-stone-500 mb-1">{t('admin.thumbnail')}</p>
                   <img
-                    src={form.cover_image_thumb}
+                    src={resolveCoverUrl(form.cover_image_thumb)}
                     alt="Thumb"
                     className="h-24 w-auto rounded border border-stone-200"
                   />
@@ -530,9 +553,9 @@ export function AdminBookForm() {
               )}
               {form.cover_image && (
                 <div>
-                  <p className="text-xs text-stone-500 mb-1">Original</p>
+                  <p className="text-xs text-stone-500 mb-1">{t('admin.original')}</p>
                   <img
-                    src={form.cover_image}
+                    src={resolveCoverUrl(form.cover_image)}
                     alt="Cover"
                     className="max-h-24 w-auto rounded border border-stone-200"
                   />
@@ -545,19 +568,19 @@ export function AdminBookForm() {
                 }
                 className="px-3 py-1.5 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50"
               >
-                Remove images
+                {t('admin.removeImages')}
               </button>
             </div>
           )}
           <div className="mt-2">
-            <label className="block text-xs text-stone-500 mb-1">Or paste URL (legacy)</label>
+            <label className="block text-xs text-stone-500 mb-1">{t('admin.orPasteUrl')}</label>
             <input
               type="url"
               value={form.cover_image ?? ''}
               onChange={(e) =>
                 setForm((p) => ({ ...p, cover_image: e.target.value, cover_image_thumb: e.target.value }))
               }
-              placeholder="https://..."
+              placeholder={t('common.urlPlaceholder')}
               className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
             />
           </div>
@@ -565,7 +588,7 @@ export function AdminBookForm() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              Pages
+              {t('admin.pages')}
             </label>
             <input
               type="number"
@@ -582,7 +605,7 @@ export function AdminBookForm() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              Edition number
+              {t('admin.editionNumber')}
             </label>
             <input
               type="number"
@@ -601,7 +624,7 @@ export function AdminBookForm() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
-              Publish year
+              {t('admin.publishYear')}
             </label>
             <input
               type="number"
@@ -622,7 +645,7 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Publisher
+            {t('admin.publisher')}
           </label>
           <input
             type="text"
@@ -642,14 +665,14 @@ export function AdminBookForm() {
             disabled={loading}
             className="px-6 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
           >
-            {loading ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+            {loading ? t('common.saving') : isEdit ? t('admin.update') : t('admin.create')}
           </button>
           <button
             type="button"
             onClick={() => navigate('/admin/books')}
             className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
           >
-            Cancel
+            {t('admin.cancel')}
           </button>
         </div>
       </form>

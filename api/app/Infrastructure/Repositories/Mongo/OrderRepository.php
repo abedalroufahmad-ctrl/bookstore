@@ -53,6 +53,10 @@ class OrderRepository implements OrderRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
+        if (! empty($filters['payment_status'])) {
+            $query->where('payment_status', $filters['payment_status']);
+        }
+
         if (! empty($filters['employee_id'])) {
             $query->where('employee_id', $filters['employee_id']);
         }
@@ -63,6 +67,19 @@ class OrderRepository implements OrderRepositoryInterface
 
         if (! empty($filters['unassigned'])) {
             $query->whereNull('employee_id');
+        }
+
+        if (array_key_exists('warehouse_id', $filters) && $filters['warehouse_id'] !== null && $filters['warehouse_id'] !== '') {
+            $query->where(function ($q) use ($filters) {
+                $wid = $filters['warehouse_id'];
+                $q->where('warehouse_id', $wid)->orWhereNull('warehouse_id');
+            });
+        }
+
+        if (! empty($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->whereIn('warehouse_id', $filters['warehouse_ids'])->orWhereNull('warehouse_id');
+            });
         }
 
         return $query->orderByDesc('created_at')->paginate($perPage);

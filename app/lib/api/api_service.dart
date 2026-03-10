@@ -62,6 +62,15 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getSettings() async {
+    final res = await _client.get<Map<String, dynamic>>('/settings');
+    return res;
+  }
+
+  Future<ApiResponse<dynamic>> adminUpdateSettings(Map<String, dynamic> data) async {
+    return _client.put('/admin/settings', body: data);
+  }
+
   // Customer auth
   Future<ApiResponse<AuthResult>> customerLogin(String email, String password) async {
     final res = await _client.post<Map<String, dynamic>>(
@@ -207,12 +216,16 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
-  Future<ApiResponse<Order>> checkout(Map<String, dynamic> shippingAddress,
-      {Map<String, dynamic>? paymentInfo}) async {
+  Future<ApiResponse<Order>> checkout(
+    Map<String, dynamic> shippingAddress, {
+    required String paymentMethod,
+    Map<String, dynamic>? paymentInfo,
+  }) async {
     final res = await _client.post<Map<String, dynamic>>(
       '/customers/orders/checkout',
       body: {
         'shipping_address': shippingAddress,
+        'payment_method': paymentMethod,
         ...? (paymentInfo != null ? {'payment_info': paymentInfo} : null),
       },
     );

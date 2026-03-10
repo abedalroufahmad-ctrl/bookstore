@@ -6,19 +6,21 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\AuthorStoreRequest;
 use App\Http\Requests\Admin\AuthorUpdateRequest;
 use App\Infrastructure\Services\AuthorService;
+use App\Infrastructure\Services\CachedCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthorController extends BaseApiController
 {
     public function __construct(
-        protected AuthorService $authorService
+        protected AuthorService $authorService,
+        protected CachedCatalogService $catalogService
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         $filters = ['search' => $request->get('search')];
-        $perPage = min((int) $request->get('per_page', 15), 100);
+        $perPage = min((int) $request->get('per_page', 32), 100);
 
         $authors = $this->authorService->getAll($filters, $perPage);
 
@@ -51,6 +53,8 @@ class AuthorController extends BaseApiController
             return $this->errorResponse('Author not found', 404);
         }
 
+        $this->catalogService->forgetCatalogCache();
+
         return $this->successResponse($author, 'Author updated');
     }
 
@@ -59,6 +63,8 @@ class AuthorController extends BaseApiController
         if (! $this->authorService->delete($id)) {
             return $this->errorResponse('Author not found', 404);
         }
+
+        $this->catalogService->forgetCatalogCache();
 
         return $this->successResponse(null, 'Author deleted');
     }

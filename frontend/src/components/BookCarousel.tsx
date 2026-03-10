@@ -5,14 +5,14 @@ import type { Book } from '../lib/api'
 interface BookCarouselProps {
     title: string
     books: Book[]
-    discountPercent?: number
+    globalDiscount: number
     showAllLink?: string
 }
 
 export function BookCarousel({
     title,
     books,
-    discountPercent = 20,
+    globalDiscount,
     showAllLink,
 }: BookCarouselProps) {
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -28,7 +28,7 @@ export function BookCarousel({
     if (books.length === 0) return null
 
     return (
-        <div style={{ marginBottom: 40 }}>
+        <div className="mb-10">
             <div className="section-header">
                 <h2 className="section-title">{title}</h2>
                 {showAllLink && (
@@ -59,20 +59,20 @@ export function BookCarousel({
                         padding: '8px 4px',
                     }}
                 >
-                    {books.map((book) => {
-                        const authorName = book.authors?.map((a) => a.name).join('، ') || ''
-                        return (
-                            <BookCard
-                                key={book._id}
-                                id={book._id}
-                                title={book.title}
-                                price={book.price}
-                                coverImage={book.cover_image_thumb || book.cover_image}
-                                authorName={authorName}
-                                discountPercent={discountPercent}
-                            />
-                        )
-                    })}
+                    {books.map((book) => (
+                        <BookCard
+                            key={book._id}
+                            id={book._id}
+                            title={book.title}
+                            price={book.price}
+                            coverImage={book.cover_image}
+                            coverImageThumb={book.cover_image_thumb}
+                            authorName={book.authors?.map((a) => a.name).join('، ') || ''}
+                            authors={book.authors}
+                            discountPercent={book.discount_percent}
+                            globalDiscount={globalDiscount}
+                        />
+                    ))}
                 </div>
 
                 {/* Left arrow (scrolls backward in RTL) */}

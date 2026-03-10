@@ -10,17 +10,23 @@ import { BookDetail } from './pages/BookDetail'
 import { CartPage } from './pages/Cart'
 import { Checkout } from './pages/Checkout'
 import { Orders } from './pages/Orders'
+import { OrderDetail } from './pages/OrderDetail'
 import { AdminDashboard } from './pages/AdminDashboard'
 import { AdminBooks } from './pages/AdminBooks'
 import { AdminBookForm } from './pages/AdminBookForm'
 import { AdminOrders } from './pages/AdminOrders'
 import { AdminEmployees } from './pages/AdminEmployees'
 import { AdminAuthors } from './pages/AdminAuthors'
+import { AdminAuthorForm } from './pages/AdminAuthorForm'
 import { AdminCategories } from './pages/AdminCategories'
+import { AdminWarehouses } from './pages/AdminWarehouses'
 import { AuthorList } from './pages/AuthorList'
 import { AuthorBooks } from './pages/AuthorBooks'
 import { CategoryList } from './pages/CategoryList'
 import { CategoryBooks } from './pages/CategoryBooks'
+import { AdminSettings } from './pages/AdminSettings'
+import { AdminCountries } from './pages/AdminCountries'
+import { SettingsProvider } from './contexts/SettingsContext'
 
 const queryClient = new QueryClient()
 
@@ -72,6 +78,14 @@ function AppRoutes() {
           element={
             <CustomerRoute>
               <Orders />
+            </CustomerRoute>
+          }
+        />
+        <Route
+          path="orders/:id"
+          element={
+            <CustomerRoute>
+              <OrderDetail />
             </CustomerRoute>
           }
         />
@@ -132,10 +146,50 @@ function AppRoutes() {
           }
         />
         <Route
+          path="admin/authors/new"
+          element={
+            <AdminRoute>
+              <AdminAuthorForm />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/authors/:id/edit"
+          element={
+            <AdminRoute>
+              <AdminAuthorForm />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="admin/categories"
           element={
             <AdminRoute>
               <AdminCategories />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/warehouses"
+          element={
+            <AdminRoute>
+              <AdminWarehouses />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/settings"
+          element={
+            <AdminRoute>
+              <AdminSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/countries"
+          element={
+            <AdminRoute>
+              <AdminCountries />
             </AdminRoute>
           }
         />
@@ -150,7 +204,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <SettingsProvider>
+            <AppRoutes />
+          </SettingsProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

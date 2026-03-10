@@ -46,17 +46,19 @@ class CartItem {
 }
 
 class CartItemBook {
-  CartItemBook({this.id, this.title, this.price = 0});
+  CartItemBook({this.id, this.title, this.price = 0, this.discountPercent});
 
   final String? id;
   final String? title;
   final double price;
+  final int? discountPercent;
 
   factory CartItemBook.fromJson(Map<String, dynamic> json) {
     return CartItemBook(
       id: json['id']?.toString() ?? json['_id']?.toString(),
       title: json['title'],
       price: (json['price'] ?? 0).toDouble(),
+      discountPercent: json['discount_percent'],
     );
   }
 }

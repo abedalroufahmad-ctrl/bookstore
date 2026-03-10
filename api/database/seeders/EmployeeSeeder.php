@@ -58,5 +58,17 @@ class EmployeeSeeder extends Seeder
                 'warehouse_id' => $warehouse->getKey(),
             ]
         );
+
+        Employee::firstOrCreate(
+            ['email' => 'warehouse-manager@bookstore.test'],
+            [
+                'name' => 'Warehouse Manager',
+                'email' => 'warehouse-manager@bookstore.test',
+                'phone' => '+1234567893',
+                'password' => 'password',
+                'role' => 'warehouse_manager',
+                'warehouse_id' => $warehouse->getKey(),
+            ]
+        );
     }
 }

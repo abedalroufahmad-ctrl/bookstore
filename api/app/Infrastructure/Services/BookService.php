@@ -14,7 +14,7 @@ class BookService
 
     public function getAll(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $filters['with'] = $filters['with'] ?? ['category', 'warehouse'];
+        $filters['with'] = $filters['with'] ?? ['category', 'warehouse', 'authors'];
 
         return $this->repository->getPaginated($filters, $perPage);
     }

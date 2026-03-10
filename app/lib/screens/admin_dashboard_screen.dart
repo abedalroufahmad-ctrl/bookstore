@@ -52,6 +52,12 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.receipt_long,
             onTap: () => Navigator.pushNamed(context, '/admin/orders'),
           ),
+          _AdminTile(
+            title: 'Settings',
+            subtitle: 'Global site configurations',
+            icon: Icons.settings,
+            onTap: () => Navigator.pushNamed(context, '/admin/settings'),
+          ),
         ],
       ),
     );

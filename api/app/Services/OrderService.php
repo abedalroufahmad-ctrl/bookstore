@@ -7,8 +7,10 @@ use App\Domain\Order\Enums\OrderStatus;
 use App\Domain\Order\Interfaces\OrderRepositoryInterface;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Domain\Order\Interfaces\StockServiceInterface;
+use App\Infrastructure\Repositories\Mongo\PaymentRepository;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\Payment;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -33,10 +35,11 @@ class OrderService extends BaseService implements OrderServiceInterface
     public function __construct(
         protected CartServiceInterface $cartService,
         protected OrderRepositoryInterface $orderRepository,
-        protected StockServiceInterface $stockService
+        protected StockServiceInterface $stockService,
+        protected PaymentRepository $paymentRepository
     ) {}
 
-    public function checkout(Customer $customer, array $shippingAddress, ?array $paymentInfo = null): Order
+    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): Order
     {
         $cart = $this->cartService->getOrCreateActiveCart($customer);
 
@@ -46,7 +49,9 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $total = $this->cartService->calculateTotal($cart);
 
-        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $total) {
+        $paymentStatus = $paymentMethod === 'cod' ? Payment::statusPaid() : Payment::statusPending();
+
+        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $total, $paymentMethod, $paymentStatus) {
             $this->stockService->validateAndDeduct($cart->items);
 
             $order = $this->orderRepository->create([
@@ -55,7 +60,17 @@ class OrderService extends BaseService implements OrderServiceInterface
                 'status' => OrderStatus::PendingReview->value,
                 'total' => $total,
                 'shipping_address' => $shippingAddress,
-                'payment_info' => $paymentInfo,
+                'payment_info' => $paymentInfo ?? [],
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentStatus,
+            ]);
+
+            $this->paymentRepository->create([
+                'order_id' => $order->getKey(),
+                'user_id' => $customer->getKey(),
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentStatus,
+                'transaction_id' => null,
             ]);
 
             $this->cartService->markAsConverted($cart);
@@ -87,9 +102,13 @@ class OrderService extends BaseService implements OrderServiceInterface
         return $order->fresh();
     }
 
-    public function assignOrder(Order $order, string $employeeId): Order
+    public function assignOrder(Order $order, string $employeeId, ?string $warehouseId = null): Order
     {
-        $this->orderRepository->update($order->getKey(), ['employee_id' => $employeeId]);
+        $data = ['employee_id' => $employeeId];
+        if ($warehouseId !== null) {
+            $data['warehouse_id'] = $warehouseId;
+        }
+        $this->orderRepository->update($order->getKey(), $data);
 
         return $order->fresh(['customer', 'employee']);
     }
@@ -126,5 +145,19 @@ class OrderService extends BaseService implements OrderServiceInterface
         $filters['with'] = ['customer'];
 
         return $this->orderRepository->getPaginated($filters, $perPage);
+    }
+
+    /**
+     * Mark payment and order as paid (e.g. after successful gateway callback/webhook).
+     */
+    public function markOrderPaymentPaid(string $orderId, ?string $transactionId = null): void
+    {
+        $payment = $this->paymentRepository->findByOrderId($orderId);
+        if ($payment) {
+            $this->paymentRepository->updateStatus($payment->getKey(), Payment::statusPaid(), $transactionId);
+        }
+        $this->orderRepository->update($orderId, [
+            'payment_status' => Payment::statusPaid(),
+        ]);
     }
 }

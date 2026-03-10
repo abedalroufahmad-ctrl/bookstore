@@ -1,17 +1,21 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { admin } from '../lib/api'
+import { Pagination } from '../components/Pagination'
 import type { Book } from '../lib/api'
 
 export function AdminBooks() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-books'],
+    queryKey: ['admin-books', page],
     queryFn: async () => {
-      const res = await admin.books.list()
+      const res = await admin.books.list({ page, per_page: 32 })
       return res.data
     },
   })
@@ -25,39 +29,38 @@ export function AdminBooks() {
   })
 
   const handleDelete = (book: Book) => {
-    if (window.confirm(`Delete "${book.title}"?`)) {
+    if (window.confirm(t('admin.deleteBookConfirm', { title: book.title }))) {
       deleteMutation.mutate(book._id)
       setDeleteId(book._id)
     }
   }
 
-  if (isLoading) return <div className="text-center py-12">Loading...</div>
+  if (isLoading) return <div className="text-center py-12">{t('common.loading')}</div>
 
   const paginated = data?.data
-  const items = Array.isArray(paginated)
-    ? paginated
-    : (paginated?.data ?? [])
+  const items = paginated?.data ?? []
+  const meta = paginated && 'current_page' in paginated ? paginated : null
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-amber-900">Books</h1>
+        <h1 className="text-2xl font-bold text-amber-900">{t('admin.books')}</h1>
         <Link
           to="/admin/books/new"
           className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800"
         >
-          Add Book
+          {t('admin.addBook')}
         </Link>
       </div>
       <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
         <table className="w-full">
           <thead className="bg-stone-100">
             <tr>
-              <th className="px-4 py-2 text-left">Title</th>
-              <th className="px-4 py-2 text-left">ISBN</th>
-              <th className="px-4 py-2 text-left">Price</th>
-              <th className="px-4 py-2 text-left">Stock</th>
-              <th className="px-4 py-2 text-right">Actions</th>
+              <th className="px-4 py-2 text-left">{t('admin.title')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.isbn')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.price')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.stock')}</th>
+              <th className="px-4 py-2 text-right">{t('admin.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -72,7 +75,7 @@ export function AdminBooks() {
                     to={`/admin/books/${book._id}/edit`}
                     className="text-amber-700 hover:underline mr-3"
                   >
-                    Edit
+                    {t('admin.edit')}
                   </Link>
                   <button
                     type="button"
@@ -81,8 +84,8 @@ export function AdminBooks() {
                     className="text-red-600 hover:underline disabled:opacity-50"
                   >
                     {deleteMutation.isPending && deleteId === book._id
-                      ? 'Deleting...'
-                      : 'Delete'}
+                      ? t('admin.deleting')
+                      : t('admin.delete')}
                   </button>
                 </td>
               </tr>
@@ -92,11 +95,20 @@ export function AdminBooks() {
       </div>
       {items.length === 0 && (
         <p className="text-center text-stone-500 py-8">
-          No books yet.{' '}
+          {t('admin.noBooks')}{' '}
           <Link to="/admin/books/new" className="text-amber-700 font-medium">
-            Add your first book
+            {t('admin.addFirstBook')}
           </Link>
         </p>
+      )}
+      {meta && (
+        <Pagination
+          currentPage={meta.current_page}
+          lastPage={meta.last_page}
+          total={meta.total}
+          perPage={meta.per_page}
+          onPageChange={setPage}
+        />
       )}
     </div>
   )

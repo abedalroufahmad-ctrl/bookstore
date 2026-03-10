@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../api/api_service.dart';
 import '../config.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
+
+import '../l10n/app_localizations.dart';
+import '../providers/locale_provider.dart';
 
 String _resolveCoverUrl(String path) {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -21,6 +25,7 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   Book? _book;
+  double _globalDiscount = 0;
   bool _loading = true;
   int _qty = 1;
 
@@ -42,9 +47,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Future<void> _load(String id) async {
     setState(() => _loading = true);
     final res = await ApiService.instance.getBook(id);
+    final settingsRes = await ApiService.instance.getSettings();
     setState(() {
       _loading = false;
       _book = res.data;
+      if (settingsRes.success && settingsRes.data != null) {
+        _globalDiscount = (settingsRes.data!['global_discount'] ?? 0).toDouble();
+      }
     });
   }
 
@@ -55,11 +64,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       Navigator.pushNamed(context, '/login');
       return;
     }
+    final t = AppLocalizations.of(context);
     final res = await ApiService.instance.addToCart(_book!.id, quantity: _qty);
     if (!mounted) return;
     if (res.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Added to cart')),
+        SnackBar(content: Text(t.addToCart)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,7 +85,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+    final t = AppLocalizations.of(context);
     final b = _book!;
+    final price = b.price;
+    final bookDiscount = (b.discountPercent ?? 0).toDouble();
+    final finalDiscount = bookDiscount > 0 ? bookDiscount : _globalDiscount;
+    final discountedPrice = finalDiscount > 0 ? price * (1 - finalDiscount / 100) : price;
+
     return Scaffold(
       appBar: AppBar(title: Text(b.title)),
       body: SingleChildScrollView(
@@ -90,14 +106,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   onTap: b.coverImage != null && b.coverImage!.isNotEmpty
                       ? () => _showFullImage(context, b.coverImage!)
                       : null,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      _resolveCoverUrl(b.coverImageThumb ?? b.coverImage!),
+                  child: CachedNetworkImage(
+                    imageUrl: _resolveCoverUrl(b.coverImage ?? b.coverImageThumb ?? ''),
+                    width: 340,
+                    height: 480,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
                       width: 340,
                       height: 480,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      color: Colors.grey[100],
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 340,
+                      height: 480,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.broken_image, size: 64),
                     ),
                   ),
                 ),
@@ -108,45 +132,72 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              '\$${b.price.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+            Row(
+              children: [
+                Text(
+                  '\$${discountedPrice.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                if (finalDiscount > 0) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.grey,
+                          decoration: TextDecoration.lineThrough,
+                        ),
                   ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${finalDiscount.toInt()}% -',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
             ),
             if (b.authors != null && b.authors!.isNotEmpty)
-              _buildInfoRow('Authors', b.authors!.map((a) => a.name ?? '').join(', ')),
+              _buildInfoRow(t.bookAuthors, b.authors!.map((a) => a.name ?? '').join(', ')),
             if (b.category != null)
-              _buildInfoRow('Category', b.category!.subjectTitle ?? b.category!.deweyCode ?? ''),
+              _buildInfoRow(t.bookCategory, b.category!.subjectTitle ?? b.category!.deweyCode ?? ''),
             if (b.isbn != null && b.isbn!.isNotEmpty)
-              _buildInfoRow('ISBN', b.isbn!),
+              _buildInfoRow(t.bookIsbn, b.isbn!),
             if (b.publisher != null && b.publisher!.isNotEmpty)
-              _buildInfoRow('Publisher', b.publisher!),
+              _buildInfoRow(t.bookPublisher, b.publisher!),
             if (b.publishYear != null)
-              _buildInfoRow('Year', b.publishYear.toString()),
+              _buildInfoRow(t.bookYear, b.publishYear.toString()),
             if (b.pages != null)
-              _buildInfoRow('Pages', b.pages.toString()),
+              _buildInfoRow(t.bookPages, b.pages.toString()),
             if (b.editionNumber != null)
-              _buildInfoRow('Edition', b.editionNumber.toString()),
+              _buildInfoRow(t.bookEdition, b.editionNumber.toString()),
             if (b.size != null && b.size!.isNotEmpty)
-              _buildInfoRow('Size', b.size!),
+              _buildInfoRow(t.bookSize, b.size!),
             if (b.weight != null)
-              _buildInfoRow('Weight', '${b.weight} kg'),
+              _buildInfoRow(t.bookWeight, '${b.weight} kg'),
             if (b.stockQuantity >= 0)
               _buildInfoRow(
-                'Stock',
-                b.stockQuantity > 0 ? '${b.stockQuantity} in stock' : 'Out of stock',
+                _s(context, 'المخزون', 'Stock'),
+                b.stockQuantity > 0 ? _s(context, 'متوفر (${b.stockQuantity})', '${b.stockQuantity} in stock') : t.outOfStock,
               ),
             if (b.description != null && b.description!.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Description', style: Theme.of(context).textTheme.titleMedium),
+              Text(t.bookDescription, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(b.description!, style: Theme.of(context).textTheme.bodyMedium),
             ],
             const SizedBox(height: 24),
             Row(
               children: [
-                const Text('Quantity: '),
+                Text('${_s(context, 'الكمية: ', 'Quantity: ')}'),
                 IconButton(
                   icon: const Icon(Icons.remove),
                   onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
@@ -159,10 +210,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: b.stockQuantity > 0 ? _addToCart : null,
-              icon: const Icon(Icons.add_shopping_cart),
-              label: const Text('Add to Cart'),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: b.stockQuantity > 0 ? _addToCart : null,
+                icon: const Icon(Icons.add_shopping_cart),
+                label: Text(t.addToCart),
+              ),
             ),
           ],
         ),
@@ -221,5 +275,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         ],
       ),
     );
+  }
+
+  String _s(BuildContext context, String ar, String en) {
+    return AppLocalizations.of(context).isAr ? ar : en;
   }
 }

@@ -34,6 +34,7 @@ class BookStoreRequest extends BaseFormRequest
             'publisher' => ['nullable', 'string', 'max:255'],
             'warehouse_id' => ['required', 'string'],
             'stock_quantity' => ['required', 'integer', 'min:0'],
+            'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 }

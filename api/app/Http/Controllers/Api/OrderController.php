@@ -21,6 +21,7 @@ class OrderController extends BaseApiController
             $order = $this->orderService->checkout(
                 $customer,
                 $request->validated('shipping_address'),
+                $request->validated('payment_method'),
                 $request->validated('payment_info')
             );
 
@@ -35,10 +36,11 @@ class OrderController extends BaseApiController
         }
     }
 
-    public function index(): JsonResponse
+    public function index(\Illuminate\Http\Request $request): JsonResponse
     {
         $customer = auth('customer')->user();
-        $orders = $this->orderService->getOrdersForCustomer($customer, 15);
+        $perPage = min((int) $request->get('per_page', 15), 100);
+        $orders = $this->orderService->getOrdersForCustomer($customer, $perPage);
 
         return $this->successResponse($orders);
     }

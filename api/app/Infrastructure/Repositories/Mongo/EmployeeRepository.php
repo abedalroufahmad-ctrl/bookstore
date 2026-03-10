@@ -39,8 +39,16 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             $query->where('role', $filters['role']);
         }
 
-        if (! empty($filters['warehouse_id'])) {
-            $query->where('warehouse_id', $filters['warehouse_id']);
+        if (array_key_exists('warehouse_id', $filters) && $filters['warehouse_id'] !== null && $filters['warehouse_id'] !== '') {
+            if ($filters['warehouse_id'] === '__none__') {
+                $query->whereIn('warehouse_id', []);
+            } else {
+                $query->where('warehouse_id', $filters['warehouse_id']);
+            }
+        }
+
+        if (! empty($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
+            $query->whereIn('warehouse_id', $filters['warehouse_ids']);
         }
 
         return $query->orderBy('name')->paginate($perPage);
@@ -49,6 +57,16 @@ class EmployeeRepository implements EmployeeRepositoryInterface
     public function create(array $data): Employee
     {
         return $this->model->create($data);
+    }
+
+    public function update(string $id, array $data): ?Employee
+    {
+        $employee = $this->model->find($id);
+        if (! $employee) {
+            return null;
+        }
+        $employee->update($data);
+        return $employee->fresh(['warehouse']);
     }
 
     public function exists(string $id): bool

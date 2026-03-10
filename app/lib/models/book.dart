@@ -18,6 +18,7 @@ class Book {
     this.coverImage,
     this.coverImageThumb,
     this.editionNumber,
+    this.discountPercent,
   });
 
   final String id;
@@ -36,6 +37,7 @@ class Book {
   final String? coverImage;
   final String? coverImageThumb;
   final int? editionNumber;
+  final int? discountPercent;
 
   static String? _fixUrl(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -47,21 +49,14 @@ class Book {
   }
 
   factory Book.fromJson(Map<String, dynamic> json) {
-    final id = json['_id'] ?? json['id'] ?? '';
     return Book(
-      id: id.toString(),
+      id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
       stockQuantity: json['stock_quantity'] ?? 0,
       isbn: json['isbn'],
-      category: json['category'] != null
-          ? Category.fromJson(json['category'] as Map<String, dynamic>)
-          : null,
-      authors: json['authors'] != null
-          ? (json['authors'] as List)
-              .map((a) => Author.fromJson(a as Map<String, dynamic>))
-              .toList()
-          : null,
+      category: json['category'] != null ? Category.fromJson(json['category']) : null,
+      authors: (json['authors'] as List?)?.map((e) => Author.fromJson(e)).toList(),
       description: json['description'],
       pages: json['pages'],
       publishYear: json['publish_year'],
@@ -71,7 +66,30 @@ class Book {
       coverImage: _fixUrl(json['cover_image']),
       coverImageThumb: _fixUrl(json['cover_image_thumb']),
       editionNumber: json['edition_number'],
+      discountPercent: json['discount_percent'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'title': title,
+      'price': price,
+      'stock_quantity': stockQuantity,
+      'isbn': isbn,
+      'author_ids': authors?.map((a) => a.id).toList(),
+      'category_id': category?.id,
+      'description': description,
+      'pages': pages,
+      'publish_year': publishYear,
+      'publisher': publisher,
+      'size': size,
+      'weight': weight,
+      'cover_image': coverImage,
+      'cover_image_thumb': coverImageThumb,
+      'edition_number': editionNumber,
+      'discount_percent': discountPercent,
+    };
   }
 }
 

@@ -36,7 +36,7 @@ class BookController extends BaseApiController
         if ($request->has('in_stock')) {
             $filters['in_stock'] = $request->boolean('in_stock');
         }
-        $perPage = min((int) $request->get('per_page', 15), 100);
+        $perPage = min((int) $request->get('per_page', 32), 100);
 
         $books = $this->bookService->getAll($filters, $perPage);
 

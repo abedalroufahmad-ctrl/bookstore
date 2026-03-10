@@ -1,43 +1,56 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { authors as authorsApi } from '../lib/api'
+import { resolveCoverUrl } from '../lib/utils'
+import { Pagination } from '../components/Pagination'
 import type { Author } from '../lib/api'
 
 export function AuthorList() {
+    const { t } = useTranslation()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const search = searchParams.get('search') ?? ''
+    const page = parseInt(searchParams.get('page') ?? '1', 10)
+    const setPage = (p: number) => {
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(p))
+        setSearchParams(params)
+    }
     const { data, isLoading, error } = useQuery({
-        queryKey: ['authors'],
+        queryKey: ['authors', page, search],
         queryFn: async () => {
-            const res = await authorsApi.list()
+            const queryParams: Record<string, string | number> = { page, per_page: 32 }
+            if (search) queryParams.search = search
+            const res = await authorsApi.list(queryParams)
             return res.data
         },
     })
 
-    const items: Author[] = data?.data?.data ?? []
+    const paginated = data?.data
+    const items: Author[] = paginated?.data ?? []
+    const meta = paginated && 'current_page' in paginated ? paginated : null
 
     if (isLoading) {
         return (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+            <div className="text-center py-20" style={{ color: 'var(--color-text-muted)' }}>
                 <div
+                    className="mx-auto mb-4 rounded-full border-2 animate-spin"
                     style={{
-                        width: 40,
-                        height: 40,
-                        border: '3px solid #e7e5e4',
-                        borderTopColor: '#92400e',
-                        borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite',
-                        margin: '0 auto 16px',
+                        width: 44,
+                        height: 44,
+                        borderColor: 'var(--color-border)',
+                        borderTopColor: 'var(--color-primary)',
                     }}
                 />
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                جاري التحميل...
+                {t('common.loading')}
             </div>
         )
     }
 
     if (error) {
         return (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#dc2626' }}>
-                فشل تحميل المؤلفين. يرجى المحاولة لاحقاً.
+            <div className="text-center py-20" style={{ color: 'var(--color-discount)' }}>
+                {t('authors.loadError')}
             </div>
         )
     }
@@ -64,100 +77,105 @@ export function AuthorList() {
     return (
         <div>
             {/* Header */}
-            <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: 28, fontWeight: 700, color: '#292524', marginBottom: 8 }}>
-                    المؤلفون
+            <div className="mb-8">
+                <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
+                    {t('authors.title')}
                 </h1>
-                <p style={{ fontSize: 15, color: '#78716c' }}>
-                    تصفح مؤلفينا واكتشف كتبهم
-                </p>
             </div>
 
             {/* Authors Grid */}
             <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                    gap: 20,
-                }}
+                className="grid gap-4"
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
             >
                 {items.map((author) => (
                     <Link
                         key={author._id}
                         to={`/authors/${author._id}`}
-                        style={{
-                            textDecoration: 'none',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            padding: '28px 20px',
-                            background: '#fff',
-                            borderRadius: 12,
-                            border: '1px solid #e7e5e4',
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)'
-                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)'
-                            e.currentTarget.style.boxShadow = 'none'
-                        }}
+                        className="category-card flex flex-col items-center"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
                     >
-                        {/* Avatar */}
+                        {/* Circular author photo - always try to show image when photo exists, fallback to initials */}
                         <div
                             style={{
-                                width: 72,
-                                height: 72,
+                                width: 100,
+                                height: 100,
                                 borderRadius: '50%',
-                                background: getColor(author.name),
-                                color: '#fff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 22,
-                                fontWeight: 700,
-                                marginBottom: 14,
+                                marginBottom: 12,
                                 flexShrink: 0,
+                                position: 'relative',
+                                overflow: 'hidden',
                             }}
                         >
-                            {getInitials(author.name)}
+                            {author.photo && (
+                                <img
+                                    src={resolveCoverUrl(author.photo)}
+                                    alt={author.name}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        position: 'absolute',
+                                        inset: 0,
+                                    }}
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                                        if (fallback) fallback.style.display = 'flex'
+                                    }}
+                                />
+                            )}
+                            <div
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    background: getColor(author.name),
+                                    color: '#fff',
+                                    display: author.photo ? 'none' : 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 28,
+                                    fontWeight: 700,
+                                    position: 'absolute',
+                                    inset: 0,
+                                }}
+                            >
+                                {getInitials(author.name)}
+                            </div>
                         </div>
 
-                        {/* Name */}
+                        {/* Author name */}
                         <div
                             style={{
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontWeight: 600,
-                                color: '#292524',
+                                color: 'var(--color-primary)',
                                 textAlign: 'center',
-                                lineHeight: 1.4,
+                                lineHeight: 1.5,
                             }}
                         >
                             {author.name}
-                        </div>
-
-                        {/* CTA */}
-                        <div
-                            style={{
-                                marginTop: 12,
-                                fontSize: 13,
-                                color: '#92400e',
-                                fontWeight: 500,
-                            }}
-                        >
-                            عرض الكتب ←
                         </div>
                     </Link>
                 ))}
             </div>
 
             {items.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>✍️</div>
-                    <p style={{ fontSize: 16 }}>لا يوجد مؤلفون حالياً.</p>
+                <div className="text-center py-20" style={{ color: 'var(--color-text-muted)' }}>
+                    <div className="text-5xl mb-4">✍️</div>
+                    <p className="text-lg">{t('authors.noAuthors')}</p>
+                </div>
+            )}
+            {meta && (
+                <div style={{ marginTop: 24 }}>
+                    <Pagination
+                        currentPage={meta.current_page}
+                        lastPage={meta.last_page}
+                        total={meta.total}
+                        perPage={meta.per_page}
+                        onPageChange={setPage}
+                    />
                 </div>
             )}
         </div>

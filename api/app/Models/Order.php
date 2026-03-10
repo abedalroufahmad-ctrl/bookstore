@@ -17,11 +17,14 @@ class Order extends Model
     protected $fillable = [
         'customer_id',
         'employee_id',
+        'warehouse_id',
         'items',
         'status',
         'total',
         'shipping_address',
         'payment_info',
+        'payment_method',
+        'payment_status',
     ];
 
     protected function casts(): array

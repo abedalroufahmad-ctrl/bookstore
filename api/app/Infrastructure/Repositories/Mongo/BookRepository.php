@@ -25,7 +25,7 @@ class BookRepository implements BookRepositoryInterface
 
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->newQuery()->with($filters['with'] ?? ['category', 'warehouse']);
+        $query = $this->model->newQuery()->with($filters['with'] ?? ['category', 'warehouse', 'authors']);
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
@@ -64,7 +64,7 @@ class BookRepository implements BookRepositoryInterface
             }
         }
 
-        return $query->orderByDesc('created_at')->paginate($perPage);
+        return $query->orderByDesc('created_at')->orderByDesc('_id')->paginate($perPage);
     }
 
     public function create(array $data): Book

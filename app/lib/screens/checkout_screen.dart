@@ -19,6 +19,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _postalController = TextEditingController();
   bool _loading = false;
   String? _error;
+  List<Map<String, dynamic>> _paymentMethods = [];
+  String _selectedPaymentMethod = 'cod';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPaymentMethods();
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final list = res.data!['payment_methods'];
+      if (list is List) {
+        final methods = <Map<String, dynamic>>[];
+        for (final e in list) {
+          if (e is Map && e['enabled'] == true && e['id'] != null) {
+            methods.add(Map<String, dynamic>.from(e));
+          }
+        }
+        setState(() {
+          _paymentMethods = methods;
+          if (methods.isNotEmpty && !methods.any((m) => m['id'] == _selectedPaymentMethod)) {
+            _selectedPaymentMethod = methods.first['id'] as String;
+          }
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -35,12 +65,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _error = null;
       _loading = true;
     });
-    final res = await ApiService.instance.checkout({
-      'address': _addressController.text,
-      'city': _cityController.text,
-      'country': _countryController.text,
-      'postal_code': _postalController.text,
-    });
+    final res = await ApiService.instance.checkout(
+      {
+        'address': _addressController.text.trim(),
+        'city': _cityController.text.trim(),
+        'country': _countryController.text.trim(),
+        'postal_code': _postalController.text.trim(),
+      },
+      paymentMethod: _selectedPaymentMethod,
+    );
     setState(() => _loading = false);
     if (!mounted) return;
     if (res.success && res.data != null) {
@@ -103,7 +136,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               TextFormField(
                 controller: _postalController,
                 decoration: const InputDecoration(labelText: 'Postal code'),
+                keyboardType: TextInputType.streetAddress,
               ),
+              if (_paymentMethods.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text('Payment method', style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _paymentMethods.any((m) => m['id'] == _selectedPaymentMethod)
+                      ? _selectedPaymentMethod
+                      : _paymentMethods.first['id'] as String,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: _paymentMethods
+                      .map((m) => DropdownMenuItem<String>(
+                            value: m['id'] as String,
+                            child: Text(m['name'] as String? ?? m['id'] as String),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedPaymentMethod = v!),
+                ),
+              ] else if (_paymentMethods.isEmpty && !_loading) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'No payment method available. Please try again later.',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -113,7 +174,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ],
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: _loading
+                onPressed: (_loading || _paymentMethods.isEmpty)
                     ? null
                     : () {
                         if (_formKey.currentState!.validate()) _checkout();

@@ -27,6 +27,11 @@ class EmployeeService
         return $this->repository->create($data);
     }
 
+    public function update(string $id, array $data): ?Employee
+    {
+        return $this->repository->update($id, $data);
+    }
+
     public function exists(string $id): bool
     {
         return $this->repository->exists($id);

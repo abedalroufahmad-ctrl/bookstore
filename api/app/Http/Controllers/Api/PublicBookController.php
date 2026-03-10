@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Author;
 use App\Infrastructure\Services\BookService;
 use App\Infrastructure\Services\CachedCatalogService;
 use Illuminate\Http\JsonResponse;
@@ -39,7 +40,7 @@ class PublicBookController extends BaseApiController
         }
         $filters['in_stock'] = $request->boolean('in_stock', true);
 
-        $perPage = min((int) $request->get('per_page', 15), 100);
+        $perPage = min((int) $request->get('per_page', 32), 100);
 
         $books = $this->catalogService->getCachedBooks($filters, $perPage);
 
@@ -52,6 +53,16 @@ class PublicBookController extends BaseApiController
 
         if (! $book) {
             return $this->errorResponse('Book not found', 404);
+        }
+
+        $book->loadMissing(['authors', 'category']);
+
+        // Fallback: if authors relation is empty but author_ids exists, fetch authors manually
+        $authorIds = $book->author_ids ?? [];
+        $hasAuthors = $book->relationLoaded('authors') && $book->authors->isNotEmpty();
+        if (! $hasAuthors && ! empty($authorIds)) {
+            $authors = Author::whereIn('_id', $authorIds)->get();
+            $book->setRelation('authors', $authors);
         }
 
         return $this->successResponse($book);

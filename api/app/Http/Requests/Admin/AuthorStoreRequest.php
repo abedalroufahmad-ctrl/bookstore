@@ -16,6 +16,9 @@ class AuthorStoreRequest extends BaseFormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'biography' => ['nullable', 'string'],
+            'date_of_birth' => ['nullable', 'date'],
+            'date_of_death' => ['nullable', 'date'],
+            'photo' => ['nullable', 'string', 'url'],
         ];
     }
 }

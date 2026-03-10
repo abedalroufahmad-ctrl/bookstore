@@ -12,6 +12,8 @@ class Book extends Model
 
     protected $collection = 'books';
 
+    public $timestamps = true;
+
     protected $fillable = [
         'title',
         'author_ids',
@@ -31,6 +33,7 @@ class Book extends Model
         'publisher',
         'warehouse_id',
         'stock_quantity',
+        'discount_percent',
     ];
 
     protected function casts(): array
@@ -41,6 +44,7 @@ class Book extends Model
             'stock_quantity' => 'integer',
             'publish_year' => 'integer',
             'edition_number' => 'integer',
+            'discount_percent' => 'float',
         ];
     }
 

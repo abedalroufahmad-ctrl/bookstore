@@ -8,6 +8,7 @@ use App\Domain\Cart\Interfaces\CartServiceInterface;
 use App\Models\Book;
 use App\Models\Cart;
 use App\Models\Customer;
+use App\Models\Setting;
 use Illuminate\Support\Collection;
 
 class CartService extends BaseService implements CartServiceInterface
@@ -51,12 +52,12 @@ class CartService extends BaseService implements CartServiceInterface
                 throw new \InvalidArgumentException("Insufficient stock. Available: {$book->stock_quantity}");
             }
             $items[$existingIndex]['quantity'] = $newQty;
-            $items[$existingIndex]['price'] = $book->price;
+            $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book);
         } else {
             $items->push([
                 'book_id' => $bookId,
                 'quantity' => $quantity,
-                'price' => $book->price,
+                'price' => $this->calculateDiscountedPrice($book),
             ]);
         }
 
@@ -100,7 +101,7 @@ class CartService extends BaseService implements CartServiceInterface
         }
 
         $items[$existingIndex]['quantity'] = $quantity;
-        $items[$existingIndex]['price'] = $book->price;
+        $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book);
 
         $this->cartRepository->update($cart->getKey(), ['items' => $items->values()->all()]);
 
@@ -127,18 +128,30 @@ class CartService extends BaseService implements CartServiceInterface
 
         return $items->map(function (array $item) {
             $book = Book::find($item['book_id'] ?? null);
+            $currentPrice = $book ? $this->calculateDiscountedPrice($book) : ($item['price'] ?? 0);
 
             return [
                 'book_id' => $item['book_id'],
                 'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'subtotal' => ($item['price'] ?? 0) * ($item['quantity'] ?? 0),
+                'price' => $currentPrice,
+                'subtotal' => round($currentPrice * ($item['quantity'] ?? 0), 2),
                 'book' => $book ? [
                     'id' => $book->getKey(),
                     'title' => $book->title,
                     'price' => $book->price,
+                    'discount_percent' => $book->discount_percent,
                 ] : null,
             ];
         });
+    }
+
+    protected function calculateDiscountedPrice(Book $book): float
+    {
+        $discount = $book->discount_percent;
+        if (!$discount || $discount <= 0) {
+            $discount = Setting::get('global_discount', 0);
+        }
+
+        return round($book->price * (1 - $discount / 100), 2);
     }
 }

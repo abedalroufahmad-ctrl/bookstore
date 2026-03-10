@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { auth } from '../lib/api'
 
 type UserType = 'customer' | 'employee' | null
 
 interface AuthContextType {
-  user: { id: string; name: string; email: string } | null
+  user: { id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[] } | null
   userType: UserType
   token: string | null
   login: (type: 'customer' | 'employee', email: string, password: string) => Promise<void>
@@ -41,8 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         auth.employeeMe()
           .then((r) => {
-            const d = r.data.data
-            setUser({ id: d._id, name: d.name, email: d.email })
+            const d = r.data.data as { _id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[] }
+            setUser({
+              id: d._id,
+              name: d.name,
+              email: d.email,
+              role: d.role,
+              warehouse_id: d.warehouse_id,
+              warehouse_ids: d.warehouse_ids,
+            })
           })
           .catch(() => {
             localStorage.removeItem('token')
@@ -65,12 +73,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const t = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string }; token: string }).token
       : (data as { employee: { _id: string; name: string; email: string }; token: string }).token
     const u = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string } }).customer
-      : (data as { employee: { _id: string; name: string; email: string } }).employee
+      : (data as { employee: { _id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[] } }).employee
     localStorage.setItem('token', t)
     localStorage.setItem('userType', type)
     setToken(t)
     setUserType(type)
-    setUser({ id: u._id, name: u.name, email: u.email })
+    setUser(
+      type === 'customer'
+        ? { id: u._id, name: u.name, email: u.email }
+        : { id: u._id, name: u.name, email: u.email, role: u.role, warehouse_id: u.warehouse_id, warehouse_ids: u.warehouse_ids }
+    )
   }
 
   const register = async (name: string, email: string, password: string, passwordConfirmation: string) => {

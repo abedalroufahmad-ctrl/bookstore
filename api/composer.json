@@ -10,6 +10,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "mongodb/laravel-mongodb": "^4.0",
+        "phpoffice/phpspreadsheet": "^5.5",
         "tymon/jwt-auth": "^2.0"
     },
     "require-dev": {

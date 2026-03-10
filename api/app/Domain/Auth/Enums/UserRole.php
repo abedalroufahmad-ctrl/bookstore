@@ -9,6 +9,7 @@ enum UserRole: string
     case Review = 'review';
     case Accounting = 'accounting';
     case Driver = 'driver';
+    case WarehouseManager = 'warehouse_manager';
     case Customer = 'customer';
 
     public function label(): string
@@ -19,6 +20,7 @@ enum UserRole: string
             self::Review => 'Review',
             self::Accounting => 'Accounting',
             self::Driver => 'Driver',
+            self::WarehouseManager => 'Warehouse Manager',
             self::Customer => 'Customer',
         };
     }
@@ -33,6 +35,7 @@ enum UserRole: string
             self::Shipping->value,
             self::Review->value,
             self::Accounting->value,
+            self::WarehouseManager->value,
         ];
     }
 
@@ -45,6 +48,15 @@ enum UserRole: string
             self::Manager->value,
             self::Shipping->value,
             self::Accounting->value,
+            self::WarehouseManager->value,
         ];
+    }
+
+    /**
+     * Role that is scoped to a single warehouse (no cross-warehouse access).
+     */
+    public static function isWarehouseScoped(string $role): bool
+    {
+        return $role === self::WarehouseManager->value;
     }
 }

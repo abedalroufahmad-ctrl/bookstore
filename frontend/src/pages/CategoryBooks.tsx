@@ -1,11 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { categories as categoriesApi, books as booksApi } from '../lib/api'
 import { BookCard } from '../components/BookCard'
+import { useSettings } from '../contexts/SettingsContext'
+import { Pagination } from '../components/Pagination'
 import type { Category, Book } from '../lib/api'
 
 export function CategoryBooks() {
     const { id } = useParams<{ id: string }>()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const search = searchParams.get('search') ?? ''
+    const page = parseInt(searchParams.get('page') ?? '1', 10)
+    const setPage = (p: number) => {
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(p))
+        setSearchParams(params)
+    }
 
     const { data: categoryData, isLoading: categoryLoading } = useQuery({
         queryKey: ['category', id],
@@ -17,9 +28,11 @@ export function CategoryBooks() {
     })
 
     const { data: booksData, isLoading: booksLoading } = useQuery({
-        queryKey: ['books', 'category', id],
+        queryKey: ['books', 'category', id, page, search],
         queryFn: async () => {
-            const res = await booksApi.list({ category_id: id! })
+            const params: Record<string, string | number> = { category_id: id!, page, per_page: 32 }
+            if (search) params.search = search
+            const res = await booksApi.list(params)
             return res.data
         },
         enabled: !!id,
@@ -27,11 +40,12 @@ export function CategoryBooks() {
 
     const category: Category | undefined = categoryData?.data
     const paginated = booksData?.data
-    const bookItems: Book[] = Array.isArray(paginated)
-        ? paginated
-        : (paginated?.data ?? [])
+    const bookItems: Book[] = paginated?.data ?? []
+    const meta = paginated && 'current_page' in paginated ? paginated : null
 
     const isLoading = categoryLoading || booksLoading
+    const { t } = useTranslation()
+    const { settings } = useSettings()
 
     if (isLoading) {
         return (
@@ -48,7 +62,7 @@ export function CategoryBooks() {
                     }}
                 />
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                جاري التحميل...
+                {t('common.loading')}
             </div>
         )
     }
@@ -73,12 +87,12 @@ export function CategoryBooks() {
             {/* Breadcrumb */}
             <div style={{ marginBottom: 24, fontSize: 14, color: '#78716c' }}>
                 <Link to="/" style={{ color: '#92400e', textDecoration: 'none' }}>
-                    الرئيسية
+                    {t('nav.bookStore')}
                 </Link>
                 {' '}
                 /{' '}
                 <Link to="/categories" style={{ color: '#92400e', textDecoration: 'none' }}>
-                    التصنيفات
+                    {t('categories.title')}
                 </Link>
                 {' '}
                 / {category?.subject_title}
@@ -130,10 +144,10 @@ export function CategoryBooks() {
                                 borderRadius: 4,
                             }}
                         >
-                            رمز ديوي: {category.dewey_code}
+                            {t('categories.deweyCode', { code: category.dewey_code })}
                         </div>
                         <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 8 }}>
-                            {bookItems.length} {bookItems.length === 1 ? 'كتاب' : 'كتب'}
+                            {meta?.total ?? bookItems.length}
                         </p>
                     </div>
                 </div>
@@ -154,16 +168,30 @@ export function CategoryBooks() {
                             id={book._id}
                             title={book.title}
                             price={book.price}
-                            coverImage={book.cover_image_thumb || book.cover_image}
+                            coverImage={book.cover_image}
+                            coverImageThumb={book.cover_image_thumb}
                             authorName={book.authors?.map((a) => a.name).join('، ')}
-                            discountPercent={20}
+                            authors={book.authors}
+                            discountPercent={book.discount_percent ?? 0}
+                            globalDiscount={settings.global_discount ?? 0}
                         />
                     ))}
                 </div>
             ) : (
                 <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
                     <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
-                    <p style={{ fontSize: 16 }}>لا توجد كتب في هذا التصنيف حالياً.</p>
+                    <p style={{ fontSize: 16 }}>{t('categories.noBooksInCategory')}</p>
+                </div>
+            )}
+            {meta && (
+                <div style={{ marginTop: 24 }}>
+                    <Pagination
+                        currentPage={meta.current_page}
+                        lastPage={meta.last_page}
+                        total={meta.total}
+                        perPage={meta.per_page}
+                        onPageChange={setPage}
+                    />
                 </div>
             )}
         </div>

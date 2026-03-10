@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { admin, type Order, type Employee } from '../lib/api'
+import { Pagination } from '../components/Pagination'
 
 const ORDER_STATUSES = [
   'pending_review',
@@ -31,16 +33,20 @@ function formatDate(s?: string) {
 }
 
 export function AdminOrders() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-orders', statusFilter],
+    queryKey: ['admin-orders', statusFilter, paymentStatusFilter, page],
     queryFn: async () => {
-      const res = await admin.orders.list(
-        statusFilter ? { status: statusFilter } : undefined
-      )
+      const params: Record<string, string | number> = { page, per_page: 15 }
+      if (statusFilter) params.status = statusFilter
+      if (paymentStatusFilter) params.payment_status = paymentStatusFilter
+      const res = await admin.orders.list(params)
       return res.data
     },
   })
@@ -48,7 +54,7 @@ export function AdminOrders() {
   const { data: employeesData } = useQuery({
     queryKey: ['admin-employees'],
     queryFn: async () => {
-      const res = await admin.employees.list()
+      const res = await admin.employees.list({ per_page: 100 })
       return res.data
     },
   })
@@ -81,43 +87,61 @@ export function AdminOrders() {
     },
   })
 
-  const orders = extractList<Order>(data)
+  const ordersPaginated = data?.data
+  const orders = ordersPaginated?.data ?? extractList<Order>(data)
+  const ordersMeta = ordersPaginated && 'current_page' in ordersPaginated ? ordersPaginated : null
   const employees = extractList<Employee>(employeesData)
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">Orders</h1>
+      <h1 className="text-2xl font-bold text-amber-900 mb-6">{t('admin.orders')}</h1>
 
-      <div className="mb-4 flex gap-4 items-center">
-        <label className="text-sm font-medium text-stone-700">Filter by status:</label>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-        >
-          <option value="">All</option>
-          {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s.replace(/_/g, ' ')}
-            </option>
-          ))}
-        </select>
+      <div className="mb-4 flex flex-wrap gap-4 items-center">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-stone-700">{t('admin.filterByStatus')}</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="">{t('admin.all')}</option>
+            {ORDER_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {t(`admin.orderStatus.${s}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-stone-700">{t('admin.filterByPaymentStatus')}</label>
+          <select
+            value={paymentStatusFilter}
+            onChange={(e) => setPaymentStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="">{t('admin.all')}</option>
+            <option value="pending">{t('admin.paymentPending')}</option>
+            <option value="paid">{t('admin.paymentPaid')}</option>
+            <option value="failed">{t('admin.paymentFailed')}</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12">Loading...</div>
+        <div className="text-center py-12">{t('common.loading')}</div>
       ) : (
         <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
           <table className="w-full">
             <thead className="bg-stone-100">
               <tr>
-                <th className="px-4 py-2 text-left">Order</th>
-                <th className="px-4 py-2 text-left">Customer</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Total</th>
-                <th className="px-4 py-2 text-left">Assigned to</th>
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-right">Actions</th>
+                <th className="px-4 py-2 text-left">{t('admin.order')}</th>
+                <th className="px-4 py-2 text-left">{t('admin.customer')}</th>
+                <th className="px-4 py-2 text-left">{t('admin.status')}</th>
+                <th className="px-4 py-2 text-left">{t('admin.paymentStatus')}</th>
+                <th className="px-4 py-2 text-left">{t('admin.total')}</th>
+                <th className="px-4 py-2 text-left">{t('admin.assignedTo')}</th>
+                <th className="px-4 py-2 text-left">{t('admin.date')}</th>
+                <th className="px-4 py-2 text-right">{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -143,15 +167,16 @@ export function AdminOrders() {
                     >
                       {ORDER_STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s.replace(/_/g, ' ')}
+                          {t(`admin.orderStatus.${s}`)}
                         </option>
                       ))}
                     </select>
                   </td>
+                  <td className="px-4 py-2">{order.payment_status ?? '-'}</td>
                   <td className="px-4 py-2">${order.total?.toFixed(2)}</td>
                   <td className="px-4 py-2">
                     {order.employee?.name ?? order.employee_id ?? (
-                      <span className="text-stone-500">Unassigned</span>
+                      <span className="text-stone-500">{t('admin.unassigned')}</span>
                     )}
                   </td>
                   <td className="px-4 py-2">{formatDate(order.created_at)}</td>
@@ -161,7 +186,7 @@ export function AdminOrders() {
                       onClick={() => setSelectedOrder(order)}
                       className="text-amber-700 hover:underline text-sm"
                     >
-                      View
+                      {t('admin.view')}
                     </button>
                   </td>
                 </tr>
@@ -172,7 +197,16 @@ export function AdminOrders() {
       )}
 
       {orders.length === 0 && !isLoading && (
-        <p className="text-center text-stone-500 py-8">No orders yet</p>
+        <p className="text-center text-stone-500 py-8">{t('admin.noOrders')}</p>
+      )}
+      {ordersMeta && (
+        <Pagination
+          currentPage={ordersMeta.current_page}
+          lastPage={ordersMeta.last_page}
+          total={ordersMeta.total}
+          perPage={ordersMeta.per_page}
+          onPageChange={setPage}
+        />
       )}
 
       {selectedOrder && (
@@ -217,6 +251,7 @@ function OrderDetailModal({
   isAssigning: boolean
   isUpdating: boolean
 }) {
+  const { t } = useTranslation()
   const [assignTo, setAssignTo] = useState(order.employee_id ?? '')
   useEffect(() => {
     setAssignTo(order.employee_id ?? '')
@@ -242,14 +277,14 @@ function OrderDetailModal({
           <div className="space-y-4">
             <div>
               <span className="text-sm font-medium text-stone-600">
-                Customer:
+                {t('admin.customer')}:
               </span>{' '}
               {order.customer?.name ?? order.customer_id ?? '-'}
             </div>
 
             <div>
               <span className="text-sm font-medium text-stone-600">
-                Status:
+                {t('admin.status')}:
               </span>{' '}
               <select
                 value={order.status}
@@ -259,7 +294,7 @@ function OrderDetailModal({
               >
                 {ORDER_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s.replace(/_/g, ' ')}
+                    {t(`admin.orderStatus.${s}`)}
                   </option>
                 ))}
               </select>
@@ -267,14 +302,24 @@ function OrderDetailModal({
 
             <div>
               <span className="text-sm font-medium text-stone-600">
-                Total:
+                {t('admin.total')}:
               </span>{' '}
               ${order.total?.toFixed(2)}
             </div>
 
             <div>
               <span className="text-sm font-medium text-stone-600">
-                Shipping address:
+                {t('admin.paymentStatus')}:
+              </span>{' '}
+              {order.payment_status ?? '-'}
+              {order.payment_method && (
+                <span className="text-stone-500"> ({order.payment_method})</span>
+              )}
+            </div>
+
+            <div>
+              <span className="text-sm font-medium text-stone-600">
+                {t('checkout.shippingAddress')}:
               </span>
               <p className="mt-1 text-stone-700">
                 {order.shipping_address
@@ -292,7 +337,7 @@ function OrderDetailModal({
 
             <div>
               <span className="text-sm font-medium text-stone-600">
-                Assign to:
+                {t('admin.assignTo')}:
               </span>
               <div className="mt-2 flex gap-2">
                 <select
@@ -300,7 +345,7 @@ function OrderDetailModal({
                   onChange={(e) => setAssignTo(e.target.value)}
                   className="flex-1 px-3 py-2 border border-stone-300 rounded-lg"
                 >
-                  <option value="">Select employee</option>
+                  <option value="">{t('admin.selectEmployee')}</option>
                   {employees.map((e) => (
                     <option key={e._id} value={e._id}>
                       {e.name} ({e.role})
@@ -313,14 +358,14 @@ function OrderDetailModal({
                   disabled={!assignTo || isAssigning}
                   className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
                 >
-                  Assign
+                  {t('admin.assign')}
                 </button>
               </div>
             </div>
 
             <div>
               <span className="text-sm font-medium text-stone-600">
-                Items:
+                {t('admin.items')}:
               </span>
               <ul className="mt-2 space-y-1">
                 {order.items?.map((item, i) => (
@@ -338,7 +383,7 @@ function OrderDetailModal({
               onClick={onClose}
               className="px-4 py-2 border border-stone-300 rounded-lg"
             >
-              Close
+              {t('admin.close')}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/cart.dart';
 import '../providers/auth_provider.dart';
 
@@ -48,32 +49,33 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final t = AppLocalizations.of(context);
+    final auth = context.read<AuthProvider>();
     if (auth.userType != UserType.customer) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
       });
-      return const Scaffold(
+      return Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
     if (_items.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cart')),
+        appBar: AppBar(title: Text(t.cartTitle)),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Your cart is empty'),
+              Text(t.cartEmpty),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => Navigator.pushReplacementNamed(context, '/'),
-                child: const Text('Browse books'),
+                child: Text(t.viewAll),
               ),
             ],
           ),
@@ -81,7 +83,7 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Cart')),
+      appBar: AppBar(title: Text(t.cartTitle)),
       body: Column(
         children: [
           Expanded(
@@ -95,8 +97,29 @@ class _CartScreenState extends State<CartScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     title: Text(title),
-                    subtitle: Text(
-                      '\$${item.price.toStringAsFixed(2)} × ${item.quantity}',
+                    subtitle: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '\$${item.price.toStringAsFixed(2)} × ${item.quantity}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (item.book?.discountPercent != null && item.book!.discountPercent! > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.amber[100],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              ' خصم ${item.book!.discountPercent}%',
+                              style: const TextStyle(fontSize: 10, color: Colors.brown, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -132,13 +155,17 @@ class _CartScreenState extends State<CartScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Total: \$${_total.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.titleLarge,
+                Expanded(
+                  child: Text(
+                    t.totalStr(_total),
+                    style: Theme.of(context).textTheme.titleLarge,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 FilledButton(
                   onPressed: () => Navigator.pushNamed(context, '/checkout'),
-                  child: const Text('Checkout'),
+                  child: Text(t.checkout),
                 ),
               ],
             ),

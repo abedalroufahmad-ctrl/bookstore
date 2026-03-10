@@ -1,12 +1,36 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { calculateDiscountedPrice, resolveCoverUrl } from '../lib/utils'
+
+interface AuthorRef {
+  _id?: string
+  name?: string
+  photo?: string
+}
 
 interface BookCardProps {
   id: string
   title: string
   price: number
   coverImage?: string
+  coverImageThumb?: string
   authorName?: string
+  authors?: AuthorRef[]
   discountPercent?: number
+  globalDiscount: number
+}
+
+function getAuthorColor(name: string) {
+  const colors = ['#cd071e', '#1d4ed8', '#0e7490', '#4d7c0f', '#6d28d9', '#be123c']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return colors[Math.abs(hash) % colors.length]
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return parts[0][0] + parts[parts.length - 1][0]
+  return name.substring(0, 2)
 }
 
 export function BookCard({
@@ -14,24 +38,26 @@ export function BookCard({
   title,
   price,
   coverImage,
+  coverImageThumb,
   authorName,
-  discountPercent = 20,
+  authors,
+  discountPercent,
+  globalDiscount,
 }: BookCardProps) {
-  const apiBase = import.meta.env.VITE_API_URL || '/api/v1'
-  const resolveCoverUrl = (path: string) =>
-    path.startsWith('http://') || path.startsWith('https://')
-      ? path
-      : `${apiBase.replace(/\/api\/v1$/, '')}${path.startsWith('/') ? path : `/${path}`}`
+  const { t } = useTranslation()
 
-  const originalPrice = price
-  const discountedPrice = +(price * (1 - discountPercent / 100)).toFixed(2)
+  const { finalPrice, discountUsed, isSpecial } = calculateDiscountedPrice(
+    price,
+    discountPercent,
+    globalDiscount
+  )
 
   return (
     <Link to={`/books/${id}`} className="book-card" style={{ textDecoration: 'none' }}>
       <div className="book-cover-wrapper">
-        {coverImage ? (
+        {(coverImageThumb || coverImage) ? (
           <img
-            src={resolveCoverUrl(coverImage)}
+            src={resolveCoverUrl(coverImageThumb || coverImage)}
             alt={title}
             loading="lazy"
             onError={(e) => {
@@ -69,21 +95,73 @@ export function BookCard({
           </div>
         )}
 
-        {discountPercent > 0 && (
-          <div className="discount-badge">خصم {discountPercent}%</div>
+        {isSpecial && discountUsed > 0 && (
+          <div className="discount-badge">{t('discount.special', { percent: discountUsed })}</div>
+        )}
+
+        {!isSpecial && discountUsed > 0 && (
+          <div className="global-discount-badge">{t('discount.save', { percent: discountUsed })}</div>
         )}
       </div>
 
       <div className="book-price-row">
-        {discountPercent > 0 && (
-          <span className="original-price">${originalPrice.toFixed(2)}</span>
+        {discountUsed > 0 && (
+          <span className="original-price">${price.toFixed(2)}</span>
         )}
         <span className="discounted-price">
-          ${discountPercent > 0 ? discountedPrice.toFixed(2) : originalPrice.toFixed(2)}
+          ${finalPrice.toFixed(2)}
         </span>
       </div>
 
       <div className="book-title-text">{title}</div>
+      {(authors?.length || authorName) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+          {authors && authors.length > 0
+            ? authors.slice(0, 3).map((a) => (
+                <div key={a._id ?? a.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ position: 'relative', width: 24, height: 24, flexShrink: 0 }}>
+                    {a.photo && (
+                      <img
+                        src={resolveCoverUrl(a.photo)}
+                        alt={a.name ?? ''}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          position: 'absolute',
+                          inset: 0,
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                          if (fallback) fallback.style.display = 'flex'
+                        }}
+                      />
+                    )}
+                    <div
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        background: getAuthorColor(a.name ?? ''),
+                        color: '#fff',
+                        fontSize: 10,
+                        display: a.photo ? 'none' : 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {getInitials(a.name ?? '?')}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{a.name}</span>
+                </div>
+              ))
+                : authorName && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{authorName}</span>}
+        </div>
+      )}
     </Link>
   )
 }

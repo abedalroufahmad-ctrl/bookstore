@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { cart } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -7,6 +8,7 @@ export function CartPage() {
   const { userType } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const { data, isLoading } = useQuery({
     queryKey: ['cart'],
@@ -33,7 +35,7 @@ export function CartPage() {
     return null
   }
 
-  if (isLoading) return <div className="text-center py-12">Loading...</div>
+  if (isLoading) return <div className="text-center py-12">{t('cart.loading')}</div>
 
   const items = data?.data?.items ?? []
   const total = data?.data?.total ?? 0
@@ -41,24 +43,31 @@ export function CartPage() {
   if (items.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-stone-600 mb-4">Your cart is empty</p>
-        <Link to="/" className="text-amber-700 font-medium">Browse books</Link>
+        <p className="text-stone-600 mb-4">{t('cart.empty')}</p>
+        <Link to="/books" className="text-[var(--color-primary)] font-medium">{t('cart.browseBooks')}</Link>
       </div>
     )
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">Your Cart</h1>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">{t('cart.title')}</h1>
       <div className="space-y-4">
-        {items.map((item: { book_id: string; quantity: number; price: number; book?: { title: string } }) => (
+        {items.map((item: { book_id: string; quantity: number; price: number; book?: { title: string; discount_percent?: number } }) => (
           <div
             key={item.book_id}
             className="flex items-center justify-between bg-white p-4 rounded-lg border border-stone-200"
           >
             <div>
-              <p className="font-medium">{item.book?.title ?? 'Book'}</p>
-              <p className="text-sm text-stone-500">${item.price?.toFixed(2)} × {item.quantity}</p>
+              <p className="font-medium">{item.book?.title ?? t('common.book')}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-stone-500">${item.price?.toFixed(2)} × {item.quantity}</p>
+                {item.book?.discount_percent && item.book.discount_percent > 0 ? (
+                  <span className="text-[10px] bg-[var(--color-primary-light)] text-[var(--color-primary)] px-1 rounded font-bold">
+                    {t('discount.special', { percent: item.book.discount_percent })}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -77,21 +86,22 @@ export function CartPage() {
               </button>
               <button
                 onClick={() => removeItem.mutate(item.book_id)}
-                className="ml-2 text-red-600 text-sm hover:underline"
+                className="ms-2 text-red-600 text-sm hover:underline"
               >
-                Remove
+                {t('cart.remove')}
               </button>
             </div>
           </div>
         ))}
       </div>
       <div className="mt-6 flex justify-between items-center">
-        <p className="text-lg font-bold">Total: ${total.toFixed(2)}</p>
+        <p className="text-lg font-bold">{t('cart.total', { amount: total.toFixed(2) })}</p>
         <Link
           to="/checkout"
-          className="px-6 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800"
+          className="px-6 py-2.5 rounded-lg font-medium text-white hover:opacity-90 transition-opacity"
+          style={{ background: 'var(--color-primary)' }}
         >
-          Checkout
+          {t('cart.checkout')}
         </Link>
       </div>
     </div>

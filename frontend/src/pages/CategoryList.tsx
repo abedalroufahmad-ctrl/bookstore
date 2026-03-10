@@ -1,43 +1,55 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { categories as categoriesApi } from '../lib/api'
+import { Pagination } from '../components/Pagination'
 import type { Category } from '../lib/api'
 
 export function CategoryList() {
+    const { t } = useTranslation()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const search = searchParams.get('search') ?? ''
+    const page = parseInt(searchParams.get('page') ?? '1', 10)
+    const setPage = (p: number) => {
+        const params = new URLSearchParams(searchParams)
+        params.set('page', String(p))
+        setSearchParams(params)
+    }
     const { data, isLoading, error } = useQuery({
-        queryKey: ['categories'],
+        queryKey: ['categories', page, search],
         queryFn: async () => {
-            const res = await categoriesApi.list()
+            const queryParams: Record<string, string | number> = { page, per_page: 32 }
+            if (search) queryParams.search = search
+            const res = await categoriesApi.list(queryParams)
             return res.data
         },
     })
 
-    const items: Category[] = data?.data?.data ?? []
+    const paginated = data?.data
+    const items: Category[] = paginated?.data ?? []
+    const meta = paginated && 'current_page' in paginated ? paginated : null
 
     if (isLoading) {
         return (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+            <div className="text-center py-20" style={{ color: 'var(--color-text-muted)' }}>
                 <div
+                    className="mx-auto mb-4 rounded-full border-2 animate-spin"
                     style={{
-                        width: 40,
-                        height: 40,
-                        border: '3px solid #e7e5e4',
-                        borderTopColor: '#92400e',
-                        borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite',
-                        margin: '0 auto 16px',
+                        width: 44,
+                        height: 44,
+                        borderColor: 'var(--color-border)',
+                        borderTopColor: 'var(--color-primary)',
                     }}
                 />
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                جاري التحميل...
+                {t('common.loading')}
             </div>
         )
     }
 
     if (error) {
         return (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#dc2626' }}>
-                فشل تحميل التصنيفات. يرجى المحاولة لاحقاً.
+            <div className="text-center py-20" style={{ color: 'var(--color-discount)' }}>
+                {t('categories.loadError')}
             </div>
         )
     }
@@ -59,16 +71,14 @@ export function CategoryList() {
 
     const getColor = (code: string) => {
         const colors = [
-            ['#fef3c7', '#92400e'],
-            ['#dbeafe', '#1d4ed8'],
-            ['#d1fae5', '#065f46'],
-            ['#fce7f3', '#9d174d'],
-            ['#e0e7ff', '#4338ca'],
-            ['#fef9c3', '#854d0e'],
-            ['#f3e8ff', '#6d28d9'],
-            ['#ffedd5', '#9a3412'],
-            ['#ecfccb', '#3f6212'],
-            ['#cffafe', '#0e7490'],
+            ['#fff0f2'],
+            ['#eff6ff'],
+            ['#ecfdf5'],
+            ['#fdf2f8'],
+            ['#eef2ff'],
+            ['#fefce8'],
+            ['#faf5ff'],
+            ['#fff7ed'],
         ]
         let hash = 0
         for (let i = 0; i < code.length; i++) hash = code.charCodeAt(i) + ((hash << 5) - hash)
@@ -78,49 +88,25 @@ export function CategoryList() {
     return (
         <div>
             {/* Header */}
-            <div style={{ marginBottom: 32 }}>
-                <h1 style={{ fontSize: 28, fontWeight: 700, color: '#292524', marginBottom: 8 }}>
-                    التصنيفات
+            <div className="mb-8">
+                <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
+                    {t('categories.title')}
                 </h1>
-                <p style={{ fontSize: 15, color: '#78716c' }}>
-                    تصفح الكتب حسب التصنيف
-                </p>
             </div>
 
             {/* Categories Grid */}
             <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-                    gap: 20,
-                }}
+                className="grid gap-4"
+                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
             >
                 {items.map((cat) => {
-                    const [bgColor, textColor] = getColor(cat.dewey_code)
+                    const [bgColor] = getColor(cat.dewey_code)
                     return (
                         <Link
                             key={cat._id}
                             to={`/categories/${cat._id}`}
-                            style={{
-                                textDecoration: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 16,
-                                padding: '20px 24px',
-                                background: '#fff',
-                                borderRadius: 12,
-                                border: '1px solid #e7e5e4',
-                                transition: 'all 0.2s ease',
-                                cursor: 'pointer',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-4px)'
-                                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)'
-                                e.currentTarget.style.boxShadow = 'none'
-                            }}
+                            className="category-card flex items-center gap-4"
+                            style={{ textDecoration: 'none', color: 'inherit' }}
                         >
                             {/* Icon */}
                             <div
@@ -144,7 +130,7 @@ export function CategoryList() {
                                     style={{
                                         fontSize: 16,
                                         fontWeight: 600,
-                                        color: '#292524',
+                                        color: 'var(--color-text)',
                                         lineHeight: 1.4,
                                     }}
                                 >
@@ -153,20 +139,15 @@ export function CategoryList() {
                                 <div
                                     style={{
                                         fontSize: 12,
-                                        color: textColor,
-                                        fontWeight: 500,
+                                        color: 'var(--color-text-muted)',
                                         marginTop: 4,
-                                        background: bgColor,
-                                        display: 'inline-block',
-                                        padding: '2px 8px',
-                                        borderRadius: 4,
                                     }}
                                 >
-                                    {cat.dewey_code}
+                                    Dewey: {cat.dewey_code}
                                 </div>
                             </div>
 
-                            <div style={{ fontSize: 13, color: '#92400e', fontWeight: 500, flexShrink: 0 }}>
+                            <div style={{ fontSize: 18, color: 'var(--color-primary)', fontWeight: 500, flexShrink: 0 }}>
                                 ←
                             </div>
                         </Link>
@@ -175,9 +156,20 @@ export function CategoryList() {
             </div>
 
             {items.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
-                    <p style={{ fontSize: 16 }}>لا توجد تصنيفات حالياً.</p>
+                <div className="text-center py-20" style={{ color: 'var(--color-text-muted)' }}>
+                    <div className="text-5xl mb-4">📂</div>
+                    <p className="text-lg">{t('categories.noCategories')}</p>
+                </div>
+            )}
+            {meta && (
+                <div style={{ marginTop: 24 }}>
+                    <Pagination
+                        currentPage={meta.current_page}
+                        lastPage={meta.last_page}
+                        total={meta.total}
+                        perPage={meta.per_page}
+                        onPageChange={setPage}
+                    />
                 </div>
             )}
         </div>

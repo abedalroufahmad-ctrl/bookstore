@@ -21,7 +21,7 @@ class PublicCategoryController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $filters = $request->filled('search') ? ['search' => $request->get('search')] : [];
-        $perPage = min((int) $request->get('per_page', 50), 100);
+        $perPage = min((int) $request->get('per_page', 32), 100);
 
         $categories = $this->catalogService->getCachedCategories($filters, $perPage);
 
