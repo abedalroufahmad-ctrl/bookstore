@@ -8,6 +8,7 @@ import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
 import 'screens/book_detail_screen.dart';
+import 'screens/book_list_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/checkout_screen.dart';
 import 'screens/author_books_screen.dart';
@@ -81,6 +82,7 @@ class BookStoreApp extends StatelessWidget {
               '/login': (context) => const LoginScreen(),
               '/register': (context) => const RegisterScreen(),
               '/home': (context) => const MainShell(),
+              '/books': (context) => const BookListScreen(),
               '/cart': (context) => const CartScreen(),
               '/checkout': (context) => const CheckoutScreen(),
               '/orders': (context) => const OrdersScreen(),
@@ -137,11 +139,8 @@ class AuthWrapper extends StatelessWidget {
             body: Center(child: PlatformCircularProgressIndicator()),
           );
         }
-        if (auth.isLoggedIn) {
-          return const MainShell();
-        }
-        // Not logged in → show welcome screen so guests can browse
-        return const GuestLandingScreen();
+        // Always show MainShell so navigation (Home / Books / Cart / Profile) is visible
+        return const MainShell();
       },
     );
   }

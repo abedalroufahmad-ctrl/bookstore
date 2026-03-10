@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../widgets/book_card.dart';
 
 class BookListScreen extends StatefulWidget {
   const BookListScreen({super.key});
@@ -27,85 +29,75 @@ class _BookListScreenState extends State<BookListScreen> {
       _error = null;
     });
     final res = await ApiService.instance.getBooks();
-    setState(() => _loading = false);
-    if (res.success && res.data != null) {
-      final d = res.data;
-      List<Book> list = [];
-      if (d is Map && d['data'] != null) {
-        list = (d['data'] as List)
-            .map((e) => Book.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } else if (d is List) {
-        list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+    setState(() {
+      _loading = false;
+      if (res.success && res.data != null) {
+        final d = res.data;
+        List<Book> list = [];
+        if (d is Map && d['data'] != null) {
+          list = (d['data'] as List)
+              .map((e) => Book.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } else if (d is List) {
+          list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+        }
+        _books = list;
+      } else {
+        _error = res.message;
       }
-      setState(() => _books = list);
-    } else {
-      setState(() => _error = res.message);
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _load,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Browse Books'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _books.isEmpty
-            ? const Center(child: Text('No books found'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _books.length,
-                itemBuilder: (context, i) {
-                  final b = _books[i];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      title: Text(b.title),
-                      subtitle: Text(
-                        '\$${b.price.toStringAsFixed(2)}'
-                        '${b.stockQuantity >= 0 ? " • ${b.stockQuantity} in stock" : ""}',
+      appBar: AppBar(title: Text(t.booksTitle)),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _error!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        textAlign: TextAlign.center,
                       ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/book/${b.id}',
-                        arguments: b,
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _load,
+                        child: Text(t.retry),
+                      ),
+                    ],
+                  ),
+                )
+              : _books.isEmpty
+                  ? Center(child: Text(t.noBooks))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.6,
+                        ),
+                        itemCount: _books.length,
+                        itemBuilder: (context, i) {
+                          return BookCard(
+                            book: _books[i],
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/book/${_books[i].id}',
+                              arguments: _books[i],
+                            ),
+                          );
+                        },
                       ),
                     ),
-                  );
-                },
-              ),
-      ),
     );
   }
 }
