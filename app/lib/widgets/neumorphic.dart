@@ -20,8 +20,8 @@ class NeumorphicContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = color ?? const Color(0xFFE0E5EC);
-    final d = depth.clamp(1, 12).toDouble();
+    final baseColor = color ?? Theme.of(context).cardColor;
+    final d = depth.clamp(1, 10).toDouble();
     return Container(
       margin: margin,
       padding: padding,
@@ -30,14 +30,14 @@ class NeumorphicContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withOpacity(0.08),
             offset: Offset(d, d),
-            blurRadius: d * 3,
+            blurRadius: d * 2.5,
           ),
           BoxShadow(
-            color: Colors.white.withOpacity(0.9),
-            offset: Offset(-d, -d),
-            blurRadius: d * 3,
+            color: Colors.white.withOpacity(0.85),
+            offset: Offset(-d * 0.8, -d * 0.8),
+            blurRadius: d * 2.5,
           ),
         ],
       ),

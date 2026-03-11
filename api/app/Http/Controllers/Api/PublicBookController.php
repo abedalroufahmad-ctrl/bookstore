@@ -39,6 +39,7 @@ class PublicBookController extends BaseApiController
             $filters['max_price'] = $request->get('max_price');
         }
         $filters['in_stock'] = $request->boolean('in_stock', true);
+        $filters['has_cover'] = true;
 
         $perPage = min((int) $request->get('per_page', 32), 100);
 

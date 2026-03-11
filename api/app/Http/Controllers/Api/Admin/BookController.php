@@ -36,6 +36,9 @@ class BookController extends BaseApiController
         if ($request->has('in_stock')) {
             $filters['in_stock'] = $request->boolean('in_stock');
         }
+        if ($request->boolean('no_cover')) {
+            $filters['no_cover'] = true;
+        }
         $perPage = min((int) $request->get('per_page', 32), 100);
 
         $books = $this->bookService->getAll($filters, $perPage);
@@ -57,6 +60,8 @@ class BookController extends BaseApiController
         if (! $book) {
             return $this->errorResponse('Book not found', 404);
         }
+
+        $book->loadMissing('authors');
 
         return $this->successResponse($book);
     }

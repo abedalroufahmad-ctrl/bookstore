@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Book, type BookFormData } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
@@ -36,6 +36,14 @@ function extractList<T>(data: unknown): T[] {
   return Array.isArray(d) ? d : []
 }
 
+/** Normalize ID from API (may be _id, id, or { $oid: string }) */
+function normalizeId(value: unknown): string | null {
+  if (typeof value === 'string') return value
+  if (value && typeof value === 'object' && '$oid' in value) return (value as { $oid: string }).$oid
+  if (value && typeof value === 'object' && 'id' in value) return String((value as { id: string }).id)
+  return null
+}
+
 export function AdminBookForm() {
     const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
@@ -46,11 +54,27 @@ export function AdminBookForm() {
 
   const [form, setForm] = useState<BookFormData>(emptyForm)
   const [error, setError] = useState('')
+  const [authorSearch, setAuthorSearch] = useState('')
+  const [authorSearchDebounced, setAuthorSearchDebounced] = useState('')
+  const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setAuthorSearchDebounced(authorSearch.trim()), 300)
+    return () => clearTimeout(t)
+  }, [authorSearch])
   const [newAuthorName, setNewAuthorName] = useState('')
+  const [categorySearch, setCategorySearch] = useState('')
+  const [categorySearchDebounced, setCategorySearchDebounced] = useState('')
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
   const [newCategory, setNewCategory] = useState({ dewey_code: '', subject_title: '' })
   const [addingAuthor, setAddingAuthor] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setCategorySearchDebounced(categorySearch.trim()), 300)
+    return () => clearTimeout(t)
+  }, [categorySearch])
 
   const { data: bookData } = useQuery({
     queryKey: ['admin-book', id],
@@ -69,12 +93,36 @@ export function AdminBookForm() {
     },
   })
 
+  const { data: authorsSearchData, isFetching: authorsSearchLoading } = useQuery({
+    queryKey: ['admin-authors-search', authorSearchDebounced],
+    queryFn: async () => {
+      const params = authorSearchDebounced
+        ? { search: authorSearchDebounced, per_page: 50 }
+        : { per_page: 50 }
+      const res = await admin.authors.list(params)
+      return res.data
+    },
+    enabled: authorDropdownOpen,
+  })
+
   const { data: categoriesData } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
       const res = await admin.categories.list({ per_page: 100 })
       return res.data
     },
+  })
+
+  const { data: categoriesSearchData, isFetching: categoriesSearchLoading } = useQuery({
+    queryKey: ['admin-categories-search', categorySearchDebounced],
+    queryFn: async () => {
+      const params = categorySearchDebounced
+        ? { search: categorySearchDebounced, per_page: 50 }
+        : { per_page: 50 }
+      const res = await admin.categories.list(params)
+      return res.data
+    },
+    enabled: categoryDropdownOpen,
   })
 
   const { data: warehousesData } = useQuery({
@@ -86,21 +134,83 @@ export function AdminBookForm() {
   })
 
   const authorList = extractList<{ _id: string; name: string }>(authorsData)
+  const searchAuthorList = extractList<{ _id: string; name: string }>(authorsSearchData)
+  const rawBook = bookData?.data as (Book & { authors?: Array<Record<string, unknown>> }) | undefined
+  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a) => {
+    const id = normalizeId(a._id ?? a.id) ?? ''
+    const name = (a.name ?? a.title) as string | undefined
+    return { _id: id, name: name ?? '' }
+  }).filter((a) => a._id)
+
+  const authorIdsNeedingFetch = form.author_ids.filter(
+    (authorId) =>
+      !authorList.some((a) => a._id === authorId) &&
+      !bookAuthors.some((a) => a._id === authorId && a.name)
+  )
+  const fetchedAuthors = useQueries({
+    queries: authorIdsNeedingFetch.map((authorId) => ({
+      queryKey: ['admin-author', authorId],
+      queryFn: async () => {
+        const res = await admin.authors.get(authorId)
+        const data = (res.data as { data?: { _id?: string; id?: string; name?: string } })?.data
+        const id = normalizeId(data?._id ?? data?.id) ?? authorId
+        const name = data?.name ?? ''
+        return { _id: id, name }
+      },
+      enabled: Boolean(authorId),
+    })),
+  })
+  const fetchedAuthorMap = Object.fromEntries(
+    fetchedAuthors
+      .filter((r) => r.data)
+      .map((r) => [r.data!._id, r.data!.name])
+  )
+
   const categoryList = extractList<{
     _id: string
     subject_title: string
     dewey_code: string
   }>(categoriesData)
+  const searchCategoryList = extractList<{
+    _id: string
+    subject_title: string
+    dewey_code: string
+  }>(categoriesSearchData)
+  const rawBookCategory = rawBook?.category as { _id?: string; id?: string; subject_title?: string; dewey_code?: string } | undefined
+  const selectedCategoryLabel =
+    (form.category_id && (() => {
+      const fromList = categoryList.find((c) => c._id === form.category_id)
+      if (fromList) return `${fromList.subject_title} (${fromList.dewey_code})`
+      const fromSearch = searchCategoryList.find((c) => c._id === form.category_id)
+      if (fromSearch) return `${fromSearch.subject_title} (${fromSearch.dewey_code})`
+      if (rawBookCategory && normalizeId(rawBookCategory._id ?? rawBookCategory.id) === form.category_id) {
+        return `${rawBookCategory.subject_title ?? ''} (${rawBookCategory.dewey_code ?? ''})`
+      }
+      return null
+    })()) ?? null
+  const categorySearchLower = categorySearch.trim().toLowerCase()
+  const filteredCategories = searchCategoryList.filter(
+    (c) => c._id !== form.category_id
+  )
+  const exactMatchCategory = searchCategoryList.some(
+    (c) =>
+      c.subject_title.toLowerCase() === categorySearchLower ||
+      c.dewey_code.toLowerCase() === categorySearchLower
+  )
+  const showCreateCategory =
+    categorySearch.trim().length > 0 && !exactMatchCategory && !addingCategory
   const warehouseList = extractList<{ _id: string; name: string }>(warehousesData)
 
   useEffect(() => {
     if (bookData?.data) {
-      const b = bookData.data as Book
+      const b = bookData.data as Book & { authors?: Array<{ _id?: string; id?: string; name?: string }> }
+      const rawAuthorIds = b.author_ids ?? b.authors?.map((a) => a._id ?? a.id) ?? []
+      const authorIds = (Array.isArray(rawAuthorIds) ? rawAuthorIds : []).map((id) => normalizeId(id)).filter((id): id is string => id != null)
       setForm({
         title: b.title ?? '',
-        author_ids: b.author_ids ?? (b.authors?.map((a) => a._id) ?? []),
-        category_id: b.category_id ?? b.category?._id ?? '',
-        warehouse_id: b.warehouse_id ?? b.warehouse?._id ?? '',
+        author_ids: authorIds,
+        category_id: normalizeId(b.category_id) ?? (b.category as { _id?: string } | undefined)?._id ?? '',
+        warehouse_id: normalizeId(b.warehouse_id) ?? (b.warehouse as { _id?: string } | undefined)?._id ?? '',
         price: b.price ?? 0,
         isbn: b.isbn ?? '',
         stock_quantity: b.stock_quantity ?? 0,
@@ -144,16 +254,20 @@ export function AdminBookForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!form.category_id) {
+      setError(t('admin.selectCategory'))
+      return
+    }
     const payload: BookFormData = {
       ...form,
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
-      category_id: (form.category_id || categoryList[0]?._id) ?? '',
+      category_id: form.category_id,
       warehouse_id: (form.warehouse_id || warehouseList[0]?._id) ?? '',
     }
     if (isEdit) {
       updateMutation.mutate(payload)
     } else {
-      if (!payload.author_ids.length || !payload.category_id || !payload.warehouse_id) {
+      if (!payload.author_ids.length || !payload.warehouse_id) {
         setError(t('admin.addFirst'))
         return
       }
@@ -161,12 +275,43 @@ export function AdminBookForm() {
     }
   }
 
-  const toggleAuthor = (authorId: string) => {
+  const selectedAuthors = form.author_ids
+    .map((authorId) => {
+      const fromList = authorList.find((a) => a._id === authorId)
+      if (fromList) return fromList
+      const fromSearch = searchAuthorList.find((a) => a._id === authorId)
+      if (fromSearch) return fromSearch
+      const fromBook = bookAuthors.find((a) => a._id === authorId)
+      if (fromBook && fromBook.name) return { _id: fromBook._id, name: fromBook.name }
+      const fetchedName = fetchedAuthorMap[authorId]
+      if (fetchedName) return { _id: authorId, name: fetchedName }
+      return { _id: authorId, name: '' }
+    })
+    .filter((a): a is { _id: string; name: string } => Boolean(a._id))
+  const authorSearchLower = authorSearch.trim().toLowerCase()
+  const filteredAuthors = searchAuthorList.filter(
+    (a) => !form.author_ids.includes(a._id)
+  )
+  const exactMatch = searchAuthorList.some(
+    (a) => a.name.toLowerCase() === authorSearchLower
+  )
+  const showCreateAuthor =
+    authorSearch.trim().length > 0 && !exactMatch && !addingAuthor
+
+  const addAuthorToBook = (authorId: string) => {
+    if (form.author_ids.includes(authorId)) return
     setForm((prev) => ({
       ...prev,
-      author_ids: prev.author_ids.includes(authorId)
-        ? prev.author_ids.filter((id) => id !== authorId)
-        : [...prev.author_ids, authorId],
+      author_ids: [...prev.author_ids, authorId],
+    }))
+    setAuthorSearch('')
+    setAuthorDropdownOpen(false)
+  }
+
+  const removeAuthorFromBook = (authorId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      author_ids: prev.author_ids.filter((id) => id !== authorId),
     }))
   }
 
@@ -180,11 +325,24 @@ export function AdminBookForm() {
           author_ids: [...prev.author_ids, data._id],
         }))
         queryClient.invalidateQueries({ queryKey: ['admin-authors'] })
+        queryClient.invalidateQueries({ queryKey: ['admin-authors-search'] })
         setNewAuthorName('')
         setAddingAuthor(false)
+        setAuthorSearch('')
+        setAuthorDropdownOpen(false)
       }
     },
   })
+
+  const selectCategory = (categoryId: string) => {
+    setForm((prev) => ({ ...prev, category_id: categoryId }))
+    setCategorySearch('')
+    setCategoryDropdownOpen(false)
+  }
+
+  const clearCategory = () => {
+    setForm((prev) => ({ ...prev, category_id: '' }))
+  }
 
   const addCategoryMutation = useMutation({
     mutationFn: (data: { dewey_code: string; subject_title: string }) =>
@@ -194,8 +352,11 @@ export function AdminBookForm() {
       if (data) {
         setForm((prev) => ({ ...prev, category_id: data._id }))
         queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+        queryClient.invalidateQueries({ queryKey: ['admin-categories-search'] })
         setNewCategory({ dewey_code: '', subject_title: '' })
         setAddingCategory(false)
+        setCategorySearch('')
+        setCategoryDropdownOpen(false)
       }
     },
   })
@@ -309,24 +470,68 @@ export function AdminBookForm() {
           <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.categories')} *
           </label>
-          <div className="flex gap-2">
-            <select
-              value={form.category_id}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, category_id: e.target.value }))
-              }
-              required
-              className="flex-1 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">{t('admin.selectCategory')}</option>
-              {categoryList.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.subject_title} ({c.dewey_code})
-                </option>
-              ))}
-            </select>
+          <div className="relative">
+            <input
+              type="text"
+              value={categorySearch}
+              onChange={(e) => {
+                setCategorySearch(e.target.value)
+                setCategoryDropdownOpen(true)
+              }}
+              onFocus={() => setCategoryDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 180)}
+              placeholder={t('admin.searchCategory') ?? 'Search or add category...'}
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+            {categoryDropdownOpen && (
+              <ul
+                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-stone-200 rounded-lg shadow-lg py-1"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                {categoriesSearchLoading ? (
+                  <li className="px-4 py-3 text-sm text-stone-500">
+                    {t('common.loading')}
+                  </li>
+                ) : (
+                  <>
+                    {filteredCategories.slice(0, 25).map((c) => (
+                      <li key={c._id}>
+                        <button
+                          type="button"
+                          onClick={() => selectCategory(c._id)}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-amber-50"
+                        >
+                          {c.subject_title} ({c.dewey_code})
+                        </button>
+                      </li>
+                    ))}
+                    {!categoriesSearchLoading && filteredCategories.length === 0 && !showCreateCategory && (
+                      <li className="px-4 py-2 text-sm text-stone-500">
+                        {categorySearchDebounced ? (t('admin.noCategoriesMatch') ?? 'No categories match.') : (t('admin.typeToSearchCategories') ?? 'Type to search all categories.')}
+                      </li>
+                    )}
+                    {showCreateCategory && (
+                      <li className="border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddingCategory(true)
+                            setNewCategory((p) => ({ ...p, subject_title: categorySearch.trim() }))
+                            setCategoryDropdownOpen(false)
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 font-medium"
+                        >
+                          {t('admin.createNewCategoryNamed', { name: categorySearch.trim() }) ??
+                            `Add new category "${categorySearch.trim()}"`}
+                        </button>
+                      </li>
+                    )}
+                  </>
+                )}
+              </ul>
+            )}
           </div>
-          {addingCategory ? (
+          {addingCategory && (
             <div className="mt-2 flex gap-2 items-center flex-wrap">
               <input
                 type="text"
@@ -373,14 +578,26 @@ export function AdminBookForm() {
                 {t('admin.cancel')}
               </button>
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setAddingCategory(true)}
-              className="mt-2 text-sm text-amber-700 hover:underline"
-            >
-              {t('admin.addNewCategory')}
-            </button>
+          )}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {selectedCategoryLabel && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm">
+                {selectedCategoryLabel}
+                <button
+                  type="button"
+                  onClick={clearCategory}
+                  className="text-amber-700 hover:text-amber-900 font-medium"
+                  aria-label={t('admin.remove') ?? 'Remove'}
+                >
+                  ×
+                </button>
+              </span>
+            )}
+          </div>
+          {!selectedCategoryLabel && (
+            <p className="mt-1 text-xs text-stone-500">
+              {t('admin.searchCategoryHint') ?? 'Type to search and select a category, or create a new one.'}
+            </p>
           )}
         </div>
         <div>
@@ -407,54 +624,92 @@ export function AdminBookForm() {
           <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.authors')} *
           </label>
-          <div className="flex flex-wrap gap-2">
-            {authorList.map((a) => (
-              <label
-                key={a._id}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-stone-100 border border-stone-200 cursor-pointer"
+          <div className="relative">
+            <input
+              type="text"
+              value={authorSearch}
+              onChange={(e) => {
+                setAuthorSearch(e.target.value)
+                setAuthorDropdownOpen(true)
+              }}
+              onFocus={() => setAuthorDropdownOpen(true)}
+              onBlur={() =>
+                setTimeout(() => setAuthorDropdownOpen(false), 180)
+              }
+              placeholder={t('admin.searchAuthor') ?? 'Search or add author...'}
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+            {authorDropdownOpen && (
+              <ul
+                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-stone-200 rounded-lg shadow-lg py-1"
+                onMouseDown={(e) => e.preventDefault()}
               >
-                <input
-                  type="checkbox"
-                  checked={form.author_ids.includes(a._id)}
-                  onChange={() => toggleAuthor(a._id)}
-                />
-                <span>{a.name}</span>
-              </label>
+                {authorsSearchLoading ? (
+                  <li className="px-4 py-3 text-sm text-stone-500">
+                    {t('common.loading')}
+                  </li>
+                ) : (
+                  <>
+                    {filteredAuthors.slice(0, 25).map((a) => (
+                      <li key={a._id}>
+                        <button
+                          type="button"
+                          onClick={() => addAuthorToBook(a._id)}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-amber-50"
+                        >
+                          {a.name}
+                        </button>
+                      </li>
+                    ))}
+                    {!authorsSearchLoading && filteredAuthors.length === 0 && !showCreateAuthor && (
+                      <li className="px-4 py-2 text-sm text-stone-500">
+                        {authorSearchDebounced ? (t('admin.noAuthorsMatch') ?? 'No authors match.') : (t('admin.typeToSearchAuthors') ?? 'Type to search all authors.')}
+                      </li>
+                    )}
+                    {showCreateAuthor && (
+                      <li className="border-t border-stone-100">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            addAuthorMutation.mutate(authorSearch.trim())
+                          }
+                          disabled={addAuthorMutation.isPending}
+                          className="w-full px-4 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 font-medium"
+                        >
+                          {addAuthorMutation.isPending
+                            ? t('common.loading')
+                            : (t('admin.createNewAuthorNamed', { name: authorSearch.trim() }) ??
+                              `Add new author "${authorSearch.trim()}"`)}
+                        </button>
+                      </li>
+                    )}
+                  </>
+                )}
+              </ul>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {selectedAuthors.map((a) => (
+              <span
+                key={a._id}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm"
+              >
+                {a.name || t('admin.authorName')}
+                <button
+                  type="button"
+                  onClick={() => removeAuthorFromBook(a._id)}
+                  className="text-amber-700 hover:text-amber-900 font-medium"
+                  aria-label={t('admin.remove') ?? 'Remove'}
+                >
+                  ×
+                </button>
+              </span>
             ))}
           </div>
-          {addingAuthor ? (
-            <div className="mt-2 flex gap-2 items-center">
-              <input
-                type="text"
-                value={newAuthorName}
-                onChange={(e) => setNewAuthorName(e.target.value)}
-                placeholder={t('admin.authorName')}
-                className="px-3 py-1 border border-stone-300 rounded-lg text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => newAuthorName.trim() && addAuthorMutation.mutate(newAuthorName.trim())}
-                disabled={addAuthorMutation.isPending || !newAuthorName.trim()}
-                className="text-sm px-3 py-1 bg-amber-100 text-amber-900 rounded-lg hover:bg-amber-200"
-              >
-                {t('admin.add')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAddingAuthor(false); setNewAuthorName('') }}
-                className="text-sm text-stone-500 hover:underline"
-              >
-                {t('admin.cancel')}
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setAddingAuthor(true)}
-              className="mt-2 text-sm text-amber-700 hover:underline"
-            >
-              {t('admin.addNewAuthor')}
-            </button>
+          {selectedAuthors.length === 0 && (
+            <p className="mt-1 text-xs text-stone-500">
+              {t('admin.searchAuthorHint') ?? 'Type to search and select authors, or create a new one.'}
+            </p>
           )}
         </div>
         <div>

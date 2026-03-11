@@ -18,6 +18,9 @@ export function CategoryBooks() {
         setSearchParams(params)
     }
 
+    const { t } = useTranslation()
+    const { settings } = useSettings()
+
     const { data: categoryData, isLoading: categoryLoading } = useQuery({
         queryKey: ['category', id],
         queryFn: async () => {
@@ -28,9 +31,9 @@ export function CategoryBooks() {
     })
 
     const { data: booksData, isLoading: booksLoading } = useQuery({
-        queryKey: ['books', 'category', id, page, search],
+        queryKey: ['books', 'category', id, page, search, settings.catalog_items_per_page],
         queryFn: async () => {
-            const params: Record<string, string | number> = { category_id: id!, page, per_page: 32 }
+            const params: Record<string, string | number> = { category_id: id!, page, per_page: settings.catalog_items_per_page }
             if (search) params.search = search
             const res = await booksApi.list(params)
             return res.data
@@ -44,8 +47,6 @@ export function CategoryBooks() {
     const meta = paginated && 'current_page' in paginated ? paginated : null
 
     const isLoading = categoryLoading || booksLoading
-    const { t } = useTranslation()
-    const { settings } = useSettings()
 
     if (isLoading) {
         return (

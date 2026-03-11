@@ -26,6 +26,7 @@ import { CategoryList } from './pages/CategoryList'
 import { CategoryBooks } from './pages/CategoryBooks'
 import { AdminSettings } from './pages/AdminSettings'
 import { AdminCountries } from './pages/AdminCountries'
+import { AdminReportsBooksWithoutCover } from './pages/AdminReportsBooksWithoutCover'
 import { SettingsProvider } from './contexts/SettingsContext'
 
 const queryClient = new QueryClient()
@@ -182,6 +183,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/reports/books-without-cover"
+          element={
+            <AdminRoute>
+              <AdminReportsBooksWithoutCover />
             </AdminRoute>
           }
         />

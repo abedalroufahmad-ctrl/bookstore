@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/profile_provider.dart';
 import 'screens/book_detail_screen.dart';
 import 'screens/book_list_screen.dart';
 import 'screens/cart_screen.dart';
@@ -25,6 +26,116 @@ void main() {
   runApp(const BookStoreApp());
 }
 
+ThemeData _buildBookStoreTheme() {
+  const surface = Color(0xFFF5F0E8);
+  const surfaceVariant = Color(0xFFEBE4DA);
+  const primary = Color(0xFF8B6914);
+  const onPrimary = Color(0xFFFFFFFF);
+  const onSurface = Color(0xFF2C2416);
+  const outline = Color(0xFFC4B8A4);
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.light(
+      primary: primary,
+      onPrimary: onPrimary,
+      secondary: const Color(0xFF6B5B45),
+      onSecondary: Colors.white,
+      surface: surface,
+      onSurface: onSurface,
+      surfaceContainerHighest: surfaceVariant,
+      outline: outline,
+      error: const Color(0xFFB3261E),
+      onError: Colors.white,
+    ),
+    scaffoldBackgroundColor: surface,
+    cardColor: surfaceVariant,
+    cardTheme: CardThemeData(
+      color: surfaceVariant,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: surface,
+      foregroundColor: onSurface,
+      elevation: 0,
+      centerTitle: true,
+      scrolledUnderElevation: 1,
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: const TextStyle(
+        color: Color(0xFF2C2416),
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    textTheme: const TextTheme(
+      headlineMedium: TextStyle(
+        color: Color(0xFF2C2416),
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+      ),
+      titleLarge: TextStyle(
+        color: Color(0xFF2C2416),
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+      ),
+      titleMedium: TextStyle(
+        color: Color(0xFF2C2416),
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+      titleSmall: TextStyle(
+        color: Color(0xFF2C2416),
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: TextStyle(color: Color(0xFF2C2416), fontSize: 16),
+      bodyMedium: TextStyle(color: Color(0xFF4A4238), fontSize: 14),
+      bodySmall: TextStyle(color: Color(0xFF6B5B45), fontSize: 12),
+      labelLarge: TextStyle(
+        color: Color(0xFF2C2416),
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primary,
+        foregroundColor: onPrimary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: primary, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: surfaceVariant,
+      selectedItemColor: primary,
+      unselectedItemColor: outline,
+      type: BottomNavigationBarType.fixed,
+      elevation: 0,
+    ),
+  );
+}
+
 class BookStoreApp extends StatelessWidget {
   const BookStoreApp({super.key});
 
@@ -34,36 +145,14 @@ class BookStoreApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, _) {
           return MaterialApp(
             title: 'Book Store',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.brown,
-                brightness: Brightness.light,
-              ),
-              useMaterial3: true,
-              scaffoldBackgroundColor: const Color(0xFFE0E5EC),
-              cardColor: const Color(0xFFE0E5EC),
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Color(0xFFE0E5EC),
-                elevation: 0,
-                centerTitle: true,
-              ),
-              elevatedButtonTheme: ElevatedButtonThemeData(
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
-                ),
-              ),
-            ),
+            theme: _buildBookStoreTheme(),
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,

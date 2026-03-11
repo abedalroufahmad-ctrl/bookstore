@@ -31,6 +31,10 @@ class SettingController extends BaseApiController
             $settings['weight_unit'] = 'kg';
         }
 
+        if (! isset($settings['catalog_items_per_page'])) {
+            $settings['catalog_items_per_page'] = 35;
+        }
+
         $raw = $settings['payment_methods'] ?? null;
         if (is_array($raw) && isset($raw[0]) && is_array($raw[0])) {
             $settings['payment_methods'] = array_values(array_map(function ($item) {
@@ -65,6 +69,7 @@ class SettingController extends BaseApiController
         $validated = $request->validate([
             'global_discount' => ['sometimes', 'numeric', 'min:0', 'max:100'],
             'weight_unit' => ['sometimes', 'string', 'in:kg,g,lb,oz'],
+            'catalog_items_per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'payment_methods' => ['sometimes', 'array'],
             'payment_methods.*.id' => ['required', 'string', 'max:50'],
             'payment_methods.*.name' => ['required', 'string', 'max:255'],

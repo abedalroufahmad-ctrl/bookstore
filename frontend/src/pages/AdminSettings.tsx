@@ -37,6 +37,7 @@ export function AdminSettings() {
   const queryClient = useQueryClient()
   const [globalDiscount, setGlobalDiscount] = useState<number>(0)
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg')
+  const [catalogItemsPerPage, setCatalogItemsPerPage] = useState<number>(35)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>(DEFAULT_PAYMENT_METHODS)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -58,6 +59,8 @@ export function AdminSettings() {
       const d = data.data as Record<string, unknown>
       setGlobalDiscount(Number(d.global_discount) ?? 0)
       setWeightUnit((d.weight_unit as WeightUnit) || 'kg')
+      const perPage = Number(d.catalog_items_per_page)
+      setCatalogItemsPerPage(perPage >= 1 && perPage <= 100 ? Math.round(perPage) : 35)
       setPaymentMethods(normalizePaymentMethods(d.payment_methods))
     }
   }, [data])
@@ -66,6 +69,7 @@ export function AdminSettings() {
     mutationFn: (payload: {
       global_discount?: number
       weight_unit?: WeightUnit
+      catalog_items_per_page?: number
       payment_methods?: PaymentMethodItem[]
     }) => admin.settings.update(payload),
     onSuccess: () => {
@@ -88,6 +92,7 @@ export function AdminSettings() {
     updateMutation.mutate({
       global_discount: globalDiscount,
       weight_unit: weightUnit,
+      catalog_items_per_page: catalogItemsPerPage,
       payment_methods: paymentMethods,
     })
   }
@@ -156,6 +161,25 @@ export function AdminSettings() {
           </div>
           <p className="mt-2 text-xs text-stone-500">
             {t('admin.settings.globalDiscountHint') || 'This discount applies to all books that do not have a special discount set.'}
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">
+            {t('admin.settings.catalogItemsPerPage') || 'Catalog items per page'}
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={catalogItemsPerPage}
+              onChange={(e) => setCatalogItemsPerPage(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 35)))}
+              className="w-32 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <p className="mt-2 text-xs text-stone-500">
+            {t('admin.settings.catalogItemsPerPageHint') || 'Number of books, categories, or authors per page on the public books list, category list, author list, and home page.'}
           </p>
         </div>
 

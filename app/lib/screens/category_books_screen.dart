@@ -64,12 +64,12 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
               : _books.isEmpty
                   ? const Center(child: Text('لا توجد كتب في هذا التصنيف'))
                   : GridView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 0.6,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 0.64,
                       ),
                       itemCount: _books.length,
                       itemBuilder: (context, i) {

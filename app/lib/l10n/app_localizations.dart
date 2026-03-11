@@ -55,6 +55,13 @@ class AppLocalizations {
   String get newestBooks => _s('أحدث الكتب', 'Newest Books');
   String get viewAll => _s('عرض الكل', 'View All');
 
+  // ── Search ───────────────────────────────────────────────────────────────────
+  String get searchHint => _s('بحث...', 'Search...');
+  String get searchBooksHint => _s('بحث عن كتاب أو مؤلف...', 'Search books or authors...');
+  String get searchAuthorsHint => _s('بحث عن مؤلف...', 'Search authors...');
+  String get searchCategoriesHint => _s('بحث عن تصنيف...', 'Search categories...');
+  String get noSearchResults => _s('لا توجد نتائج', 'No results found');
+
   // ── Books ───────────────────────────────────────────────────────────────────
   String get booksTitle => _s('تصفح الكتب', 'Browse Books');
   String get noBooks => _s('لا توجد كتب', 'No books found');
@@ -117,6 +124,20 @@ class AppLocalizations {
   String get loginRequired => _s('سجّل دخولك للمتابعة', 'Login required to continue');
   String get cartLoginMsg => _s('سجّل دخولك للوصول إلى السلة', 'Login to access cart');
   String get loginAction => _s('تسجيل الدخول', 'Login');
+
+  // ── Profile ───────────────────────────────────────────────────────────────
+  String get myProfile => _s('الملف الشخصي', 'My Profile');
+  String get editProfile => _s('تعديل الملف', 'Edit profile');
+  String get personalInformation => _s('المعلومات الشخصية', 'Personal Information');
+  String get phoneLabel => _s('الهاتف', 'Phone');
+  String get shippingAddressSection => _s('عنوان الشحن', 'Shipping Address');
+  String get preferences => _s('التفضيلات', 'Preferences');
+  String get language => _s('اللغة', 'Language');
+  String get myOrders => _s('طلباتي', 'My Orders');
+  String get viewAndManageOrders => _s('عرض وإدارة طلباتك', 'View and manage your orders');
+  String get appVersion => _s('الإصدار', 'Version');
+  String get notSet => _s('—', '—');
+  String get save => _s('حفظ', 'Save');
 
   // Helper for dynamic access
   String get(String key) {

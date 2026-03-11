@@ -4,6 +4,7 @@ import { calculateDiscountedPrice, resolveCoverUrl } from '../lib/utils'
 
 interface AuthorRef {
   _id?: string
+  id?: string
   name?: string
   photo?: string
 }
@@ -52,116 +53,135 @@ export function BookCard({
     globalDiscount
   )
 
+  const authorId = (a: AuthorRef) => a._id ?? a.id
+
   return (
-    <Link to={`/books/${id}`} className="book-card" style={{ textDecoration: 'none' }}>
-      <div className="book-cover-wrapper">
-        {(coverImageThumb || coverImage) ? (
-          <img
-            src={resolveCoverUrl(coverImageThumb || coverImage)}
-            alt={title}
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-              const placeholder = e.currentTarget.nextElementSibling as HTMLElement
-              if (placeholder) placeholder.style.display = 'flex'
-            }}
-          />
-        ) : null}
-        <div
-          className="placeholder-cover"
-          style={{ display: coverImage ? 'none' : 'flex' }}
-        >
-          {title}
+    <div className="book-card">
+      <Link to={`/books/${id}`} style={{ textDecoration: 'none' }}>
+        <div className="book-cover-wrapper">
+          {(coverImageThumb || coverImage) ? (
+            <img
+              src={resolveCoverUrl(coverImageThumb || coverImage)}
+              alt={title}
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                const placeholder = e.currentTarget.nextElementSibling as HTMLElement
+                if (placeholder) placeholder.style.display = 'flex'
+              }}
+            />
+          ) : null}
+          <div
+            className="placeholder-cover"
+            style={{ display: coverImage ? 'none' : 'flex' }}
+          >
+            {title}
+          </div>
+
+          {authorName && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                background: 'rgba(0,0,0,0.55)',
+                color: '#fff',
+                fontSize: 10,
+                padding: '2px 8px',
+                borderRadius: 3,
+                maxWidth: '80%',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {authorName}
+            </div>
+          )}
+
+          {isSpecial && discountUsed > 0 && (
+            <div className="discount-badge">{t('discount.special', { percent: discountUsed })}</div>
+          )}
+
+          {!isSpecial && discountUsed > 0 && (
+            <div className="global-discount-badge">{t('discount.save', { percent: discountUsed })}</div>
+          )}
         </div>
 
-        {authorName && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              background: 'rgba(0,0,0,0.55)',
-              color: '#fff',
-              fontSize: 10,
-              padding: '2px 8px',
-              borderRadius: 3,
-              maxWidth: '80%',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {authorName}
-          </div>
-        )}
+        <div className="book-price-row">
+          {discountUsed > 0 && (
+            <span className="original-price">${price.toFixed(2)}</span>
+          )}
+          <span className="discounted-price">
+            ${finalPrice.toFixed(2)}
+          </span>
+        </div>
 
-        {isSpecial && discountUsed > 0 && (
-          <div className="discount-badge">{t('discount.special', { percent: discountUsed })}</div>
-        )}
-
-        {!isSpecial && discountUsed > 0 && (
-          <div className="global-discount-badge">{t('discount.save', { percent: discountUsed })}</div>
-        )}
-      </div>
-
-      <div className="book-price-row">
-        {discountUsed > 0 && (
-          <span className="original-price">${price.toFixed(2)}</span>
-        )}
-        <span className="discounted-price">
-          ${finalPrice.toFixed(2)}
-        </span>
-      </div>
-
-      <div className="book-title-text">{title}</div>
+        <div className="book-title-text">{title}</div>
+      </Link>
       {(authors?.length || authorName) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           {authors && authors.length > 0
-            ? authors.slice(0, 3).map((a) => (
-                <div key={a._id ?? a.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <div style={{ position: 'relative', width: 24, height: 24, flexShrink: 0 }}>
-                    {a.photo && (
-                      <img
-                        src={resolveCoverUrl(a.photo)}
-                        alt={a.name ?? ''}
+            ? authors.slice(0, 3).map((a) => {
+                const id = authorId(a)
+                const name = a.name ?? 'Unknown'
+                return (
+                  <div key={id ?? name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ position: 'relative', width: 24, height: 24, flexShrink: 0 }}>
+                      {a.photo && (
+                        <img
+                          src={resolveCoverUrl(a.photo)}
+                          alt={name}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            position: 'absolute',
+                            inset: 0,
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                            if (fallback) fallback.style.display = 'flex'
+                          }}
+                        />
+                      )}
+                      <div
                         style={{
                           width: 24,
                           height: 24,
                           borderRadius: '50%',
-                          objectFit: 'cover',
-                          position: 'absolute',
-                          inset: 0,
+                          background: getAuthorColor(name),
+                          color: '#fff',
+                          fontSize: 10,
+                          display: a.photo ? 'none' : 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600,
                         }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                          if (fallback) fallback.style.display = 'flex'
-                        }}
-                      />
-                    )}
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        background: getAuthorColor(a.name ?? ''),
-                        color: '#fff',
-                        fontSize: 10,
-                        display: a.photo ? 'none' : 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {getInitials(a.name ?? '?')}
+                      >
+                        {getInitials(name)}
+                      </div>
                     </div>
+                    {id ? (
+                      <Link
+                        to={`/authors/${id}`}
+                        style={{ fontSize: 12, color: 'var(--color-primary)' }}
+                        className="hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {name}
+                      </Link>
+                    ) : (
+                      <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{name}</span>
+                    )}
                   </div>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{a.name}</span>
-                </div>
-              ))
-                : authorName && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{authorName}</span>}
+                )
+              })
+            : authorName && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{authorName}</span>}
         </div>
       )}
-    </Link>
+    </div>
   )
 }

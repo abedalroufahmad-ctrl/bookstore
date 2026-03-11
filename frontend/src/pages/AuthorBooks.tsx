@@ -19,6 +19,9 @@ export function AuthorBooks() {
         setSearchParams(params)
     }
 
+    const { t } = useTranslation()
+    const { settings } = useSettings()
+
     const { data: authorData, isLoading: authorLoading } = useQuery({
         queryKey: ['author', id],
         queryFn: async () => {
@@ -29,9 +32,9 @@ export function AuthorBooks() {
     })
 
     const { data: booksData, isLoading: booksLoading } = useQuery({
-        queryKey: ['books', 'author', id, page, search],
+        queryKey: ['books', 'author', id, page, search, settings.catalog_items_per_page],
         queryFn: async () => {
-            const params: Record<string, string | number> = { author_id: id!, page, per_page: 32 }
+            const params: Record<string, string | number> = { author_id: id!, page, per_page: settings.catalog_items_per_page }
             if (search) params.search = search
             const res = await booksApi.list(params)
             return res.data
@@ -45,8 +48,6 @@ export function AuthorBooks() {
     const meta = paginated && 'current_page' in paginated ? paginated : null
 
     const isLoading = authorLoading || booksLoading
-    const { t } = useTranslation()
-    const { settings } = useSettings()
 
     if (isLoading) {
         return (

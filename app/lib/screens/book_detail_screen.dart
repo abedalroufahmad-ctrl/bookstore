@@ -28,16 +28,26 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   double _globalDiscount = 0;
   bool _loading = true;
   int _qty = 1;
+  bool _authorsLoadRequested = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Book) {
-      setState(() {
-        _book = args;
-        _loading = false;
-      });
+      // Only use args for initial display; do not overwrite when navigating back (would replace refetched book with list book that has no authors)
+      if (_book == null) {
+        setState(() {
+          _book = args;
+          _loading = false;
+        });
+      }
+      // If book was passed from list/carousel without authors, fetch full book to get author names
+      final hasAuthors = args.authors != null && args.authors!.isNotEmpty;
+      if (!hasAuthors && !_authorsLoadRequested) {
+        _authorsLoadRequested = true;
+        _load(args.id);
+      }
     } else {
       final id = ModalRoute.of(context)?.settings.arguments as String?;
       if (id != null) _load(id);
@@ -165,10 +175,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ],
               ],
             ),
-            if (b.authors != null && b.authors!.isNotEmpty)
-              _buildInfoRow(t.bookAuthors, b.authors!.map((a) => a.name ?? '').join(', ')),
+            _buildAuthorsRow(t.bookAuthors, b.authors, t.notSet),
             if (b.category != null)
-              _buildInfoRow(t.bookCategory, b.category!.subjectTitle ?? b.category!.deweyCode ?? ''),
+              _buildCategoryRow(t.bookCategory, b.category!),
             if (b.isbn != null && b.isbn!.isNotEmpty)
               _buildInfoRow(t.bookIsbn, b.isbn!),
             if (b.publisher != null && b.publisher!.isNotEmpty)
@@ -272,6 +281,101 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ),
           ),
           Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthorsRow(String label, List<Author>? authors, String emptyValue) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: (authors != null && authors.isNotEmpty)
+                ? Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (int i = 0; i < authors.length; i++) ...[
+                        if (i > 0) Text(', ', style: TextStyle(color: Colors.grey.shade700)),
+                        InkWell(
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/author/${authors[i].id}',
+                            arguments: {'name': authors[i].name},
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                            child: Text(
+                              authors[i].name ?? '',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : Text(emptyValue),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryRow(String label, Category category) {
+    final value = category.subjectTitle ?? category.deweyCode ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/category/${category.id}',
+                arguments: {'title': category.subjectTitle},
+              ),
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

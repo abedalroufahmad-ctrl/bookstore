@@ -7,6 +7,7 @@ export type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
 interface Settings {
     global_discount: number
     weight_unit: WeightUnit
+    catalog_items_per_page: number
 }
 
 interface SettingsContextType {
@@ -68,6 +69,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const settings: Settings = {
         global_discount: typeof raw?.global_discount === 'number' ? raw.global_discount : 0,
         weight_unit: (raw?.weight_unit as WeightUnit) || 'kg',
+        catalog_items_per_page: typeof raw?.catalog_items_per_page === 'number' && raw.catalog_items_per_page >= 1
+            ? Math.min(100, Math.round(raw.catalog_items_per_page))
+            : 35,
     }
 
     return (

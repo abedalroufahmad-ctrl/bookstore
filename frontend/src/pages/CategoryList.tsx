@@ -3,10 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { categories as categoriesApi } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { useSettings } from '../contexts/SettingsContext'
 import type { Category } from '../lib/api'
 
 export function CategoryList() {
     const { t } = useTranslation()
+    const { settings } = useSettings()
     const [searchParams, setSearchParams] = useSearchParams()
     const search = searchParams.get('search') ?? ''
     const page = parseInt(searchParams.get('page') ?? '1', 10)
@@ -16,9 +18,9 @@ export function CategoryList() {
         setSearchParams(params)
     }
     const { data, isLoading, error } = useQuery({
-        queryKey: ['categories', page, search],
+        queryKey: ['categories', page, search, settings.catalog_items_per_page],
         queryFn: async () => {
-            const queryParams: Record<string, string | number> = { page, per_page: 32 }
+            const queryParams: Record<string, string | number> = { page, per_page: settings.catalog_items_per_page }
             if (search) queryParams.search = search
             const res = await categoriesApi.list(queryParams)
             return res.data

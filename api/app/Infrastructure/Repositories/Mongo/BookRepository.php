@@ -64,6 +64,24 @@ class BookRepository implements BookRepositoryInterface
             }
         }
 
+        if (! empty($filters['has_cover'])) {
+            $query->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->whereNotNull('cover_image')->where('cover_image', '!=', '');
+                })->orWhere(function ($q2) {
+                    $q2->whereNotNull('cover_image_thumb')->where('cover_image_thumb', '!=', '');
+                });
+            });
+        }
+
+        if (! empty($filters['no_cover'])) {
+            $query->where(function ($q) {
+                $q->whereNull('cover_image')->orWhere('cover_image', '');
+            })->where(function ($q) {
+                $q->whereNull('cover_image_thumb')->orWhere('cover_image_thumb', '');
+            });
+        }
+
         return $query->orderByDesc('created_at')->orderByDesc('_id')->paginate($perPage);
     }
 

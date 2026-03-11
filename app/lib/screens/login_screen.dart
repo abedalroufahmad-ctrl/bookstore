@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -56,18 +57,14 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFFE0E5EC),
-                borderRadius: BorderRadius.circular(24),
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    offset: const Offset(6, 6),
-                    blurRadius: 18,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.9),
-                    offset: const Offset(-6, -6),
-                    blurRadius: 18,
+                    color: Colors.black.withOpacity(0.06),
+                    offset: const Offset(0, 4),
+                    blurRadius: 12,
                   ),
                 ],
               ),
@@ -79,10 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       'Book Store',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.brown.shade800,
-                          ),
+                      style: theme.textTheme.headlineMedium,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -115,29 +109,34 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    FilledButton(
+                    GFButton(
                       onPressed: _loading
                           ? null
                           : () {
                               if (_formKey.currentState!.validate()) _login();
                             },
+                      fullWidthButton: true,
+                      size: GFSize.LARGE,
+                      color: theme.colorScheme.primary,
                       child: _loading
                           ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              height: 24,
+                              width: 24,
+                              child: GFLoader(type: GFLoaderType.android, size: GFSize.SMALL),
                             )
                           : const Text('Login'),
                     ),
                     const SizedBox(height: 16),
-                    TextButton(
+                    GFButton(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const RegisterScreen(),
                         ),
                       ).then((_) => _formKey.currentState?.reset()),
-                      child: const Text('Register'),
+                      text: 'Register',
+                      type: GFButtonType.outline,
+                      fullWidthButton: true,
                     ),
                   ],
                 ),

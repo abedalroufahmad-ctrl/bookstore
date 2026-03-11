@@ -11,17 +11,17 @@ export function HomePage() {
     const { t } = useTranslation()
     const { settings } = useSettings()
     const { data, isLoading, error } = useQuery({
-        queryKey: ['books'],
+        queryKey: ['books', settings.catalog_items_per_page],
         queryFn: async () => {
-            const res = await booksApi.list({ per_page: 32 })
+            const res = await booksApi.list({ per_page: settings.catalog_items_per_page })
             return res.data
         },
     })
 
     const { data: categoriesData } = useQuery({
-        queryKey: ['categories'],
+        queryKey: ['categories', settings.catalog_items_per_page],
         queryFn: async () => {
-            const res = await categoriesApi.list({ per_page: 32 })
+            const res = await categoriesApi.list({ per_page: settings.catalog_items_per_page })
             return res.data
         },
     })

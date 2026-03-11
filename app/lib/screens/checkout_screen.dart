@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/profile_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -19,6 +22,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _postalController = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _profilePrefilled = false;
   List<Map<String, dynamic>> _paymentMethods = [];
   String _selectedPaymentMethod = 'cod';
 
@@ -26,6 +30,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _loadPaymentMethods();
+  }
+
+  void _prefillFromProfile(BuildContext context) {
+    if (_profilePrefilled || !context.mounted) return;
+    _profilePrefilled = true;
+    final p = context.read<ProfileProvider>();
+    if (p.address != null && p.address!.isNotEmpty) _addressController.text = p.address!;
+    if (p.city != null && p.city!.isNotEmpty) _cityController.text = p.city!;
+    if (p.country != null && p.country!.isNotEmpty) _countryController.text = p.country!;
+    if (p.postalCode != null && p.postalCode!.isNotEmpty) _postalController.text = p.postalCode!;
   }
 
   Future<void> _loadPaymentMethods() async {
@@ -92,6 +106,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_profilePrefilled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _prefillFromProfile(context));
+    }
     final auth = context.watch<AuthProvider>();
     if (auth.userType != UserType.customer) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -173,19 +190,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              FilledButton(
+              GFButton(
                 onPressed: (_loading || _paymentMethods.isEmpty)
                     ? null
                     : () {
                         if (_formKey.currentState!.validate()) _checkout();
                       },
+                fullWidthButton: true,
+                size: GFSize.LARGE,
+                color: Theme.of(context).colorScheme.primary,
                 child: _loading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        height: 24,
+                        width: 24,
+                        child: GFLoader(type: GFLoaderType.android, size: GFSize.SMALL),
                       )
-                    : const Text('Place order'),
+                    : Text(AppLocalizations.of(context).placeOrder),
               ),
             ],
           ),

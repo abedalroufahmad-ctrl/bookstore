@@ -59,16 +59,25 @@ class _MainShellState extends State<MainShell> {
       ],
     );
 
+    final theme = Theme.of(context);
     return Scaffold(
       body: body,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (int index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        items: navItems,
-        iconSize: 26,
-        selectedFontSize: 12,
-        unselectedFontSize: 11,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: theme.bottomNavigationBarTheme.backgroundColor,
+          border: Border(
+            top: BorderSide(color: theme.colorScheme.outline.withOpacity(0.2)),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (int index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
+          items: navItems,
+          iconSize: 26,
+          selectedFontSize: 12,
+          unselectedFontSize: 11,
+        ),
       ),
     );
   }

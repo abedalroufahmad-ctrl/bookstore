@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
@@ -47,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ApiService.instance.getSettings(),
       ]);
 
-      final booksRes = results[0] as ApiResponse<dynamic>;
+      final booksRes = results[0];
       final categoriesRes = results[1] as ApiResponse<List<Category>>;
       final authorsRes = results[2] as ApiResponse<List<Author>>;
       final settingsRes = results[3] as ApiResponse<Map<String, dynamic>>;
@@ -128,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final newestBooks = _books.reversed.take(10).toList();
 
     return PlatformScaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PlatformAppBar(
         title: Text(t.appName),
         trailingActions: [
@@ -195,15 +196,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: GFLoader(type: GFLoaderType.android, size: GFSize.LARGE))
             : _error != null
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_error!, style: const TextStyle(color: Colors.red)),
+                        Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
                         const SizedBox(height: 16),
-                        PlatformElevatedButton(onPressed: _loadData, child: const Text('إعادة المحاولة')),
+                        GFButton(
+                          onPressed: _loadData,
+                          text: 'إعادة المحاولة',
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ],
                     ),
                   )
@@ -216,10 +221,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.all(16.0),
                           child: SearchBar(
                             hintText: t.heroTitle,
-                            leading: const Icon(Icons.search),
-                            padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(horizontal: 16)),
-                            elevation: const MaterialStatePropertyAll(1),
-                            backgroundColor: MaterialStatePropertyAll(Colors.white),
+                            leading: Icon(Icons.search, color: theme.colorScheme.outline),
+                            padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                            elevation: const MaterialStatePropertyAll(0),
+                            backgroundColor: WidgetStatePropertyAll(theme.cardColor),
+                            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                           ),
                         ),
 
@@ -264,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     borderRadius: BorderRadius.circular(16),
                                     child: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisSize: MainAxisSize.max,
                                       children: [
                                         Container(
                                           width: 56,
@@ -281,12 +287,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ),
                                         const SizedBox(height: 6),
-                                        Text(
-                                          cat.subjectTitle ?? '',
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
+                                        Flexible(
+                                          child: Text(
+                                            cat.subjectTitle ?? '',
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -319,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     borderRadius: BorderRadius.circular(30),
                                     child: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisSize: MainAxisSize.max,
                                       children: [
                                         CircleAvatar(
                                           radius: 28,
@@ -334,12 +342,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ),
                                         const SizedBox(height: 6),
-                                        Text(
-                                          author.name ?? '',
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
+                                        Flexible(
+                                          child: Text(
+                                            author.name ?? '',
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -359,9 +369,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: newestBooks.length,
                             itemBuilder: (context, i) {
-                              return BookCard(
-                                book: newestBooks[i],
-                                onTap: () => Navigator.pushNamed(context, '/book/${newestBooks[i].id}', arguments: newestBooks[i]),
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: SizedBox(
+                                  width: 160,
+                                  child: BookCard(
+                                    book: newestBooks[i],
+                                    onTap: () => Navigator.pushNamed(context, '/book/${newestBooks[i].id}', arguments: newestBooks[i]),
+                                  ),
+                                ),
                               );
                             },
                           ),
@@ -375,6 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSectionHeader(String title, String route) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
@@ -383,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -393,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(AppLocalizations.of(context).viewAll),
-                const Icon(Icons.chevron_right, size: 20),
+                Icon(Icons.chevron_right, size: 20, color: theme.colorScheme.primary),
               ],
             ),
           ),

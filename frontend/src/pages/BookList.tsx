@@ -18,9 +18,9 @@ export function BookList() {
     setSearchParams(params)
   }
   const { data, isLoading, error } = useQuery({
-    queryKey: ['books', page, search],
+    queryKey: ['books', page, search, settings.catalog_items_per_page],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page, per_page: 32 }
+      const params: Record<string, string | number> = { page, per_page: settings.catalog_items_per_page }
       if (search) params.search = search
       const res = await books.list(params)
       return res.data

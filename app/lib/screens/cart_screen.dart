@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
 import '../api/api_service.dart';
@@ -73,9 +74,10 @@ class _CartScreenState extends State<CartScreen> {
             children: [
               Text(t.cartEmpty),
               const SizedBox(height: 16),
-              FilledButton(
+              GFButton(
                 onPressed: () => Navigator.pushReplacementNamed(context, '/'),
-                child: Text(t.viewAll),
+                text: t.viewAll,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ],
           ),
@@ -93,9 +95,10 @@ class _CartScreenState extends State<CartScreen> {
               itemBuilder: (context, i) {
                 final item = _items[i];
                 final title = item.book?.title ?? 'Book';
-                return Card(
+                return GFCard(
                   margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
+                  padding: EdgeInsets.zero,
+                  content: ListTile(
                     title: Text(title),
                     subtitle: Row(
                       children: [
@@ -163,9 +166,10 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(
+                GFButton(
                   onPressed: () => Navigator.pushNamed(context, '/checkout'),
-                  child: Text(t.checkout),
+                  text: t.checkout,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ],
             ),

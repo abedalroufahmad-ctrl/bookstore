@@ -25,69 +25,71 @@ class BookCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 150,
-        child: NeumorphicContainer(
-          margin: const EdgeInsets.only(left: 16, bottom: 8, top: 4),
-          padding: const EdgeInsets.all(10),
-          borderRadius: 18,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 3 / 4,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: book.coverImageThumb ?? book.coverImage ?? '',
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.book, size: 40, color: Colors.grey),
-                        ),
+      child: NeumorphicContainer(
+        margin: const EdgeInsets.only(left: 2, right: 2, bottom: 4, top: 2),
+        padding: const EdgeInsets.all(8),
+        borderRadius: 18,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final hasBoundedHeight = constraints.maxHeight < double.infinity;
+            final cover = AspectRatio(
+              aspectRatio: 3 / 4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: book.coverImageThumb ?? book.coverImage ?? '',
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
                       ),
-                      if (finalDiscount > 0)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: bookDiscount > 0 ? Colors.red : Colors.green[600],
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              bookDiscount > 0
-                                  ? '${finalDiscount.toInt()}% -'
-                                  : 'وفر ${finalDiscount.toInt()}%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                      errorWidget: (context, url, error) => Container(
+                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                        child: Icon(Icons.menu_book_outlined, size: 40, color: theme.colorScheme.outline),
+                      ),
+                    ),
+                    if (finalDiscount > 0)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withOpacity(0.35),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
                               ),
+                            ],
+                          ),
+                          child: Text(
+                            bookDiscount > 0
+                                ? '${finalDiscount.toInt()}%'
+                                : '−${finalDiscount.toInt()}%',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
+            );
+            return Column(
+              mainAxisSize: hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasBoundedHeight) Flexible(child: cover) else cover,
+                const SizedBox(height: 6),
+                Text(
                 book.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -97,13 +99,25 @@ class BookCard extends StatelessWidget {
                 ),
               ),
               if (book.authors != null && book.authors!.isNotEmpty)
-                Text(
-                  book.authors!.first.name ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontSize: 11,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    final author = book.authors!.first;
+                    Navigator.of(context).pushNamed(
+                      '/author/${author.id}',
+                      arguments: {'name': author.name},
+                    );
+                  },
+                  child: Text(
+                    book.authors!.first.name ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontSize: 11,
+                      decoration: TextDecoration.underline,
+                      decorationColor: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
               const SizedBox(height: 2),
@@ -126,7 +140,7 @@ class BookCard extends StatelessWidget {
                       child: Text(
                         '\$${price.toStringAsFixed(2)}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
                           decoration: TextDecoration.lineThrough,
                           fontSize: 11,
                         ),
@@ -137,7 +151,8 @@ class BookCard extends StatelessWidget {
                 ],
               ),
             ],
-          ),
+            );
+          },
         ),
       ),
     );
