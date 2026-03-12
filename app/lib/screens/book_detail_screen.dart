@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../api/api_service.dart';
 import '../config.dart';
@@ -8,7 +7,6 @@ import '../models/book.dart';
 import '../providers/auth_provider.dart';
 
 import '../l10n/app_localizations.dart';
-import '../providers/locale_provider.dart';
 
 String _resolveCoverUrl(String path) {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -55,9 +53,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _load(String id) async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.getBook(id);
     final settingsRes = await ApiService.instance.getSettings();
+    if (!mounted) return;
     setState(() {
       _loading = false;
       _book = res.data;
@@ -109,25 +109,29 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if ((b.coverImageThumb ?? b.coverImage) != null) ...[
+            if ((b.coverImageThumb ?? b.coverImage) != null &&
+                (b.coverImageThumb ?? b.coverImage)!.trim().isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: GestureDetector(
-                  onTap: b.coverImage != null && b.coverImage!.isNotEmpty
+                  onTap: b.coverImage != null && b.coverImage!.trim().isNotEmpty
                       ? () => _showFullImage(context, b.coverImage!)
                       : null,
-                  child: CachedNetworkImage(
-                    imageUrl: _resolveCoverUrl(b.coverImage ?? b.coverImageThumb ?? ''),
+                  child: Image.network(
+                    _resolveCoverUrl(b.coverImage ?? b.coverImageThumb ?? ''),
                     width: 340,
                     height: 480,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      width: 340,
-                      height: 480,
-                      color: Colors.grey[100],
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (context, url, error) => Container(
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 340,
+                        height: 480,
+                        color: Colors.grey[100],
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => Container(
                       width: 340,
                       height: 480,
                       color: Colors.grey[200],

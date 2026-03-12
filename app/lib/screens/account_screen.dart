@@ -303,6 +303,7 @@ class AccountScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 GFButton(
                   onPressed: () async {
+                    final navigator = Navigator.of(ctx);
                     final phone = phoneController.text.trim();
                     final address = addressController.text.trim();
                     final city = cityController.text.trim();
@@ -324,7 +325,8 @@ class AccountScreen extends StatelessWidget {
                         country: country.isEmpty ? null : country,
                         postalCode: postalCode.isEmpty ? null : postalCode,
                       );
-                      Navigator.of(ctx).pop();
+                      if (!ctx.mounted) return;
+                      navigator.pop();
                     }
                   },
                   text: t.save,

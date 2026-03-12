@@ -29,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
+    if (!mounted) return;
     setState(() {
       _error = null;
       _loading = true;
@@ -40,10 +41,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       'password': _passwordController.text,
       'password_confirmation': _confirmController.text,
     });
-    setState(() => _loading = false);
     if (!mounted) return;
+    setState(() => _loading = false);
     if (err != null) {
-      setState(() => _error = err);
+      if (mounted) setState(() => _error = err);
     } else {
       Navigator.pushReplacementNamed(context, '/');
     }

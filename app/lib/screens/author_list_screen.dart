@@ -151,7 +151,7 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(_error!),
+                            Text(_error ?? ''),
                             const SizedBox(height: 16),
                             TextButton(
                               onPressed: () => _loadFirst(search: _lastSearchQuery),

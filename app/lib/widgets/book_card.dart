@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
+import '../config.dart';
 import '../models/book.dart';
 import 'neumorphic.dart';
+
+String _resolveCoverUrl(String path) {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  final origin = Uri.parse(apiBaseUrl).origin;
+  return path.startsWith('/') ? '$origin$path' : '$origin/$path';
+}
 
 class BookCard extends StatelessWidget {
   final Book book;
@@ -14,6 +21,31 @@ class BookCard extends StatelessWidget {
     this.globalDiscount,
     this.onTap,
   });
+
+  static Widget _buildCoverImage(BuildContext context, String? imageUrl, ThemeData theme) {
+    final url = imageUrl?.trim();
+    if (url == null || url.isEmpty) {
+      return Container(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        child: Icon(Icons.menu_book_outlined, size: 40, color: theme.colorScheme.outline),
+      );
+    }
+    return Image.network(
+      _resolveCoverUrl(url),
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+          child: child,
+        );
+      },
+      errorBuilder: (_, __, ___) => Container(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        child: Icon(Icons.menu_book_outlined, size: 40, color: theme.colorScheme.outline),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +71,10 @@ class BookCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: book.coverImageThumb ?? book.coverImage ?? '',
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-                        child: Icon(Icons.menu_book_outlined, size: 40, color: theme.colorScheme.outline),
-                      ),
+                    _buildCoverImage(
+                      context,
+                      book.coverImageThumb ?? book.coverImage,
+                      theme,
                     ),
                     if (finalDiscount > 0)
                       Positioned(

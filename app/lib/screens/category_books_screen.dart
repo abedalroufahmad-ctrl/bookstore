@@ -29,11 +29,13 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     final res = await ApiService.instance.getBooks(params: {'category_id': widget.categoryId});
+    if (!mounted) return;
     setState(() {
       _loading = false;
       if (res.success && res.data != null) {
@@ -60,7 +62,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
+              ? Center(child: Text(_error ?? ''))
               : _books.isEmpty
                   ? const Center(child: Text('لا توجد كتب في هذا التصنيف'))
                   : GridView.builder(

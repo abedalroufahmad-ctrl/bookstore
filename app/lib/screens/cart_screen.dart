@@ -26,8 +26,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.getCart();
+    if (!mounted) return;
     setState(() {
       _loading = false;
       if (res.success && res.data != null) {
@@ -108,7 +110,7 @@ class _CartScreenState extends State<CartScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (item.book?.discountPercent != null && item.book!.discountPercent! > 0) ...[
+                        if (item.book != null && (item.book!.discountPercent ?? 0) > 0) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),

@@ -87,7 +87,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _checkout() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_formKey.currentState?.validate() != true) return;
+    if (!mounted) return;
     setState(() {
       _error = null;
       _loading = true;
@@ -101,8 +102,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       },
       paymentMethod: _selectedPaymentMethod,
     );
-    setState(() => _loading = false);
     if (!mounted) return;
+    setState(() => _loading = false);
     if (res.success && res.data != null) {
       Navigator.pushNamedAndRemoveUntil(
         context,
@@ -113,7 +114,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         const SnackBar(content: Text('Order placed successfully')),
       );
     } else {
-      setState(() => _error = res.message);
+      if (mounted) setState(() => _error = res.message);
     }
   }
 
@@ -189,7 +190,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: Text(m['name'] as String? ?? m['id'] as String),
                           ))
                       .toList(),
-                  onChanged: (v) => setState(() => _selectedPaymentMethod = v!),
+                  onChanged: (v) => setState(() => _selectedPaymentMethod = v ?? _selectedPaymentMethod),
                 ),
               ] else if (_paymentMethods.isEmpty && !_loading) ...[
                 const SizedBox(height: 12),
@@ -198,10 +199,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
                 ),
               ],
-              if (_error != null) ...[
+              if ((_error ?? '').isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  _error!,
+                  _error ?? '',
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
@@ -210,7 +211,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 onPressed: (_loading || _paymentMethods.isEmpty)
                     ? null
                     : () {
-                        if (_formKey.currentState!.validate()) _checkout();
+                        if (_formKey.currentState?.validate() == true) _checkout();
                       },
                 fullWidthButton: true,
                 size: GFSize.LARGE,

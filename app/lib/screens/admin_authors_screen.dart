@@ -21,12 +21,14 @@ class _AdminAuthorsScreenState extends State<AdminAuthorsScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.adminAuthorsList();
-    setState(() => _loading = false);
-    if (res.success && res.data != null) {
-      setState(() => _authors = res.data!);
-    }
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (res.success && res.data != null) _authors = res.data!;
+    });
   }
 
   Future<void> _addAuthor() async {

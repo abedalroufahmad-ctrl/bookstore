@@ -28,16 +28,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    if (!mounted) return;
     setState(() {
       _error = null;
       _loading = true;
     });
     final auth = context.read<AuthProvider>();
     final err = await auth.loginAsCustomer(_emailController.text, _passwordController.text);
-    setState(() => _loading = false);
     if (!mounted) return;
+    setState(() => _loading = false);
     if (err != null) {
-      setState(() => _error = err);
+      if (mounted) setState(() => _error = err);
     } else {
       final customer = context.read<AuthProvider>().customer;
       if (customer != null) {

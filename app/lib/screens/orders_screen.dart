@@ -23,8 +23,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.getOrders();
+    if (!mounted) return;
     setState(() {
       _loading = false;
       _orders = res.success && res.data != null ? res.data! : [];

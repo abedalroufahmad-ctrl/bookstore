@@ -21,12 +21,13 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.adminBooksList();
-    setState(() => _loading = false);
+    if (!mounted) return;
+    List<Book> list = [];
     if (res.success && res.data != null) {
       final d = res.data;
-      List<Book> list = [];
       if (d is Map && d['data'] != null) {
         list = (d['data'] as List)
             .map((e) => Book.fromJson(e as Map<String, dynamic>))
@@ -34,8 +35,11 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
       } else if (d is List) {
         list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
       }
-      setState(() => _books = list);
     }
+    setState(() {
+      _loading = false;
+      _books = list;
+    });
   }
 
   Future<void> _delete(Book book) async {

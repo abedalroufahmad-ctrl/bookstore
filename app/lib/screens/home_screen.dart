@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -48,41 +49,42 @@ class _HomeScreenState extends State<HomeScreen> {
         ApiService.instance.getSettings(),
       ]);
 
+      if (!mounted) return;
       final booksRes = results[0];
       final categoriesRes = results[1] as ApiResponse<List<Category>>;
       final authorsRes = results[2] as ApiResponse<List<Author>>;
       final settingsRes = results[3] as ApiResponse<Map<String, dynamic>>;
 
+      setState(() {
+        if (booksRes.success && booksRes.data != null) {
+          final d = booksRes.data;
+          List<Book> list = [];
+          if (d is Map && d['data'] != null) {
+            list = (d['data'] as List)
+                .map((e) => Book.fromJson(e as Map<String, dynamic>))
+                .toList();
+          } else if (d is List) {
+            list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+          }
+          _books = list;
+        }
+
+        if (categoriesRes.success) _categories = categoriesRes.data ?? [];
+        if (authorsRes.success) _authors = authorsRes.data ?? [];
+
+        if (settingsRes.success && settingsRes.data != null) {
+          _globalDiscount = (settingsRes.data!['global_discount'] ?? 0).toDouble();
+        }
+
+        _isLoading = false;
+      });
+    } catch (e) {
       if (mounted) {
         setState(() {
-          if (booksRes.success && booksRes.data != null) {
-            final d = booksRes.data;
-            List<Book> list = [];
-            if (d is Map && d['data'] != null) {
-              list = (d['data'] as List)
-                  .map((e) => Book.fromJson(e as Map<String, dynamic>))
-                  .toList();
-            } else if (d is List) {
-              list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
-            }
-            _books = list;
-          }
-
-          if (categoriesRes.success) _categories = categoriesRes.data ?? [];
-          if (authorsRes.success) _authors = authorsRes.data ?? [];
-
-          if (settingsRes.success && settingsRes.data != null) {
-            _globalDiscount = (settingsRes.data!['global_discount'] ?? 0).toDouble();
-          }
-
           _isLoading = false;
+          _error = 'حدث خطأ أثناء تحميل البيانات: $e';
         });
       }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'حدث خطأ أثناء تحميل البيانات: $e';
-      });
     }
   }
 

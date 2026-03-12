@@ -21,12 +21,14 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.adminCategoriesList();
-    setState(() => _loading = false);
-    if (res.success && res.data != null) {
-      setState(() => _categories = res.data!);
-    }
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (res.success && res.data != null) _categories = res.data!;
+    });
   }
 
   Future<void> _addCategory() async {
@@ -67,13 +69,10 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
         );
       },
     );
-    if (result != null &&
-        result['code']!.isNotEmpty &&
-        result['title']!.isNotEmpty) {
-      await ApiService.instance.adminCategoriesCreate(
-        result['code']!,
-        result['title']!,
-      );
+    final code = result?['code']?.toString().trim();
+    final title = result?['title']?.toString().trim();
+    if (code != null && code.isNotEmpty && title != null && title.isNotEmpty) {
+      await ApiService.instance.adminCategoriesCreate(code, title);
       _load();
     }
   }

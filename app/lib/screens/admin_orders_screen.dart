@@ -34,16 +34,19 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.adminOrdersList(status: _statusFilter);
-    setState(() => _loading = false);
-    if (res.success && res.data != null) {
-      setState(() => _orders = res.data!);
-    }
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (res.success && res.data != null) _orders = res.data!;
+    });
   }
 
   Future<void> _loadEmployees() async {
     final res = await ApiService.instance.adminEmployeesList();
+    if (!mounted) return;
     if (res.success && res.data != null) {
       setState(() => _employees = res.data!);
     }
@@ -136,7 +139,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                 ),
                                 if (o.employee != null)
                                   Text(
-                                    'Assigned: ${o.employee!.name}',
+                                    'Assigned: ${o.employee?.name ?? ""}',
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
                               ],

@@ -147,7 +147,7 @@ class _BookListScreenState extends State<BookListScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              _error!,
+                              _error ?? '',
                               style: TextStyle(color: theme.colorScheme.error),
                               textAlign: TextAlign.center,
                             ),

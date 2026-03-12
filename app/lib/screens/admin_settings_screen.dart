@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../api/api_service.dart';
-import '../l10n/app_localizations.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -22,8 +21,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
       if (res.success && res.data != null) {
@@ -33,8 +34,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
+    if (_formKey.currentState?.validate() != true) return;
+    _formKey.currentState?.save();
 
     setState(() => _isSaving = true);
     // Note: This endpoint is protected, ApiClient handles token from AuthProvider/secure storage
@@ -50,8 +51,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    
     return Scaffold(
       appBar: AppBar(title: const Text('Admin Settings')),
       body: _isLoading
@@ -83,7 +82,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                         if (val < 0 || val > 100) return 'Must be between 0 and 100';
                         return null;
                       },
-                      onSaved: (value) => _globalDiscount = double.parse(value!),
+                      onSaved: (value) => _globalDiscount = double.tryParse(value ?? '') ?? 0,
                     ),
                     const SizedBox(height: 24),
                     SizedBox(

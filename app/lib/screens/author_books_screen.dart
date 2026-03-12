@@ -29,11 +29,13 @@ class _AuthorBooksScreenState extends State<AuthorBooksScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     final res = await ApiService.instance.getBooks(params: {'author_id': widget.authorId});
+    if (!mounted) return;
     setState(() {
       _loading = false;
       if (res.success && res.data != null) {
@@ -60,7 +62,7 @@ class _AuthorBooksScreenState extends State<AuthorBooksScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
+              ? Center(child: Text(_error ?? ''))
               : _books.isEmpty
                   ? const Center(child: Text('لا توجد كتب لهذا المؤلف'))
                   : GridView.builder(
