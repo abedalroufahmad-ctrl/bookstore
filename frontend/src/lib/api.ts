@@ -344,6 +344,11 @@ export interface Customer {
   _id: string
   name: string
   email: string
+  address?: string
+  city?: string
+  country?: string
+  postal_code?: string
+  phone?: string
 }
 
 export interface Employee {

@@ -23,6 +23,7 @@ class CustomerProfileUpdateRequest extends BaseFormRequest
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
             'country' => ['sometimes', 'nullable', 'string', 'max:100'],
             'city' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'postal_code' => ['sometimes', 'nullable', 'string', 'max:20'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'payment_info' => ['sometimes', 'nullable', 'array'],
         ];

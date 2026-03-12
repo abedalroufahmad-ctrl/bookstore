@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
+import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
@@ -302,14 +303,29 @@ class AccountScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 GFButton(
                   onPressed: () async {
-                    await profile.save(
-                      phone: phoneController.text.trim(),
-                      address: addressController.text.trim(),
-                      city: cityController.text.trim(),
-                      country: countryController.text.trim(),
-                      postalCode: postalController.text.trim(),
+                    final phone = phoneController.text.trim();
+                    final address = addressController.text.trim();
+                    final city = cityController.text.trim();
+                    final country = countryController.text.trim();
+                    final postalCode = postalController.text.trim();
+                    final res = await ApiService.instance.updateCustomerProfile(
+                      address: address.isEmpty ? null : address,
+                      city: city.isEmpty ? null : city,
+                      country: country.isEmpty ? null : country,
+                      postalCode: postalCode.isEmpty ? null : postalCode,
+                      phone: phone.isEmpty ? null : phone,
                     );
-                    if (ctx.mounted) Navigator.of(ctx).pop();
+                    if (!ctx.mounted) return;
+                    if (res.success) {
+                      await profile.save(
+                        phone: phone.isEmpty ? null : phone,
+                        address: address.isEmpty ? null : address,
+                        city: city.isEmpty ? null : city,
+                        country: country.isEmpty ? null : country,
+                        postalCode: postalCode.isEmpty ? null : postalCode,
+                      );
+                      Navigator.of(ctx).pop();
+                    }
                   },
                   text: t.save,
                   fullWidthButton: true,

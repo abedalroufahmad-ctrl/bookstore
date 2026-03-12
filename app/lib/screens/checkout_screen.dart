@@ -23,6 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _loading = false;
   String? _error;
   bool _profilePrefilled = false;
+  bool _profileFetchedFromApi = false;
   List<Map<String, dynamic>> _paymentMethods = [];
   String _selectedPaymentMethod = 'cod';
 
@@ -30,6 +31,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _loadPaymentMethods();
+  }
+
+  Future<void> _loadProfileFromApi(BuildContext context) async {
+    if (_profileFetchedFromApi || !context.mounted) return;
+    _profileFetchedFromApi = true;
+    final res = await ApiService.instance.customerMe();
+    if (!context.mounted) return;
+    if (res.success && res.data != null) {
+      await context.read<ProfileProvider>().loadFromCustomer(res.data);
+      if (!mounted) return;
+      setState(() => _profilePrefilled = false);
+    }
   }
 
   void _prefillFromProfile(BuildContext context) {
@@ -106,6 +119,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_profileFetchedFromApi) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfileFromApi(context));
+    }
     if (!_profilePrefilled) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _prefillFromProfile(context));
     }

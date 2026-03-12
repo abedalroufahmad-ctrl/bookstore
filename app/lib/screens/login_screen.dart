@@ -3,6 +3,7 @@ import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/profile_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -38,6 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (err != null) {
       setState(() => _error = err);
     } else {
+      final customer = context.read<AuthProvider>().customer;
+      if (customer != null) {
+        await context.read<ProfileProvider>().loadFromCustomer(customer);
+      }
+      if (!mounted) return;
       // Only navigate when at /login route (e.g. from cart redirect).
       // When at / (AuthWrapper), it rebuilds and shows HomeScreen automatically.
       if (ModalRoute.of(context)?.settings.name == '/login') {

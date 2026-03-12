@@ -279,6 +279,37 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
+  Future<ApiResponse<Customer>> updateCustomerProfile({
+    String? name,
+    String? email,
+    String? address,
+    String? city,
+    String? country,
+    String? postalCode,
+    String? phone,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (email != null) body['email'] = email;
+    if (address != null) body['address'] = address;
+    if (city != null) body['city'] = city;
+    if (country != null) body['country'] = country;
+    if (postalCode != null) body['postal_code'] = postalCode;
+    if (phone != null) body['phone'] = phone;
+    final res = await _client.put<Map<String, dynamic>>(
+      '/customers/profile',
+      body: body.isNotEmpty ? body : null,
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Customer.fromJson(res.data as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
   Future<ApiResponse<Employee>> employeeMe() async {
     final res = await _client.get<Map<String, dynamic>>('/employees/me');
     if (res.success && res.data != null) {

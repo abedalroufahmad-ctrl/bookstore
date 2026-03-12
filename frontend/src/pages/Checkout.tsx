@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { orders, settings } from '../lib/api'
+import { orders, settings, auth } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
 type PaymentMethodOption = { id: string; name: string; enabled: boolean }
@@ -28,6 +28,24 @@ export function Checkout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+
+  const { data: profileData } = useQuery({
+    queryKey: ['customer-me'],
+    queryFn: async () => {
+      const res = await auth.customerMe()
+      return res.data
+    },
+    enabled: userType === 'customer',
+  })
+
+  const customer = (profileData?.data as { address?: string; city?: string; country?: string; postal_code?: string } | undefined) | undefined
+  useEffect(() => {
+    if (!customer) return
+    setAddress((prev) => (prev === '' && customer.address != null ? customer.address : prev))
+    setCity((prev) => (prev === '' && customer.city != null ? customer.city : prev))
+    setCountry((prev) => (prev === '' && customer.country != null ? customer.country : prev))
+    setPostalCode((prev) => (prev === '' && customer.postal_code != null ? customer.postal_code : prev))
+  }, [customer])
 
   const { data: settingsData } = useQuery({
     queryKey: ['settings'],

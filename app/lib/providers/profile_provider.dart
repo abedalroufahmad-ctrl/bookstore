@@ -1,10 +1,29 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Holds customer profile data for shipping and communication (stored locally).
+import '../models/user.dart';
+
+/// Holds customer profile data for shipping and communication (from API + stored locally).
 class ProfileProvider with ChangeNotifier {
   ProfileProvider() {
     _load();
+  }
+
+  /// Sync profile from API customer (e.g. after customerMe()) and persist locally.
+  Future<void> loadFromCustomer(Customer? c) async {
+    if (c == null) return;
+    _address = c.address?.isNotEmpty == true ? c.address : null;
+    _city = c.city?.isNotEmpty == true ? c.city : null;
+    _country = c.country?.isNotEmpty == true ? c.country : null;
+    _postalCode = c.postalCode?.isNotEmpty == true ? c.postalCode : null;
+    _phone = c.phone?.isNotEmpty == true ? c.phone : null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('${_keyPrefix}phone', _phone ?? '');
+    await prefs.setString('${_keyPrefix}address', _address ?? '');
+    await prefs.setString('${_keyPrefix}city', _city ?? '');
+    await prefs.setString('${_keyPrefix}country', _country ?? '');
+    await prefs.setString('${_keyPrefix}postalCode', _postalCode ?? '');
+    notifyListeners();
   }
 
   static const _keyPrefix = 'profile_';
