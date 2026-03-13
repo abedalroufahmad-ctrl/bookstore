@@ -14,6 +14,16 @@ String _resolveCoverUrl(String path) {
   return path.startsWith('/') ? '$origin$path' : '$origin/$path';
 }
 
+Widget _buildLogoPlaceholder({double? width, double? height}) {
+  return Image.asset(
+    'assets/app_icon.png',
+    width: width,
+    height: height,
+    fit: BoxFit.cover,
+    errorBuilder: (_, __, ___) => Icon(Icons.menu_book_outlined, size: width != null ? 64 : 40),
+  );
+}
+
 class BookDetailScreen extends StatefulWidget {
   const BookDetailScreen({super.key});
 
@@ -109,38 +119,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if ((b.coverImageThumb ?? b.coverImage) != null &&
-                (b.coverImageThumb ?? b.coverImage)!.trim().isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: GestureDetector(
-                  onTap: b.coverImage != null && b.coverImage!.trim().isNotEmpty
-                      ? () => _showFullImage(context, b.coverImage!)
-                      : null,
-                  child: Image.network(
-                    _resolveCoverUrl(b.coverImage ?? b.coverImageThumb ?? ''),
-                    width: 340,
-                    height: 480,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        width: 340,
-                        height: 480,
-                        color: Colors.grey[100],
-                        child: const Center(child: CircularProgressIndicator()),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 340,
-                      height: 480,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.broken_image, size: 64),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildDetailCover(context, b),
+            ),
             Text(
               b.title,
               style: Theme.of(context).textTheme.headlineSmall,
@@ -232,6 +214,45 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailCover(BuildContext context, Book b) {
+    const w = 340.0;
+    const h = 480.0;
+    final url = (b.coverImageThumb ?? b.coverImage)?.trim();
+    final valid = url != null &&
+        url.isNotEmpty &&
+        url.toLowerCase() != 'null' &&
+        url.toLowerCase() != 'undefined';
+    if (!valid) {
+      return SizedBox(
+        width: w,
+        height: h,
+        child: _buildLogoPlaceholder(width: w, height: h),
+      );
+    }
+    return GestureDetector(
+      onTap: () => _showFullImage(context, b.coverImage ?? b.coverImageThumb ?? ''),
+      child: Image.network(
+        _resolveCoverUrl(url),
+        width: w,
+        height: h,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return SizedBox(
+            width: w,
+            height: h,
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        },
+        errorBuilder: (_, __, ___) => SizedBox(
+          width: w,
+          height: h,
+          child: _buildLogoPlaceholder(width: w, height: h),
         ),
       ),
     );

@@ -39,6 +39,14 @@ class Book {
   final int? editionNumber;
   final int? discountPercent;
 
+  /// True when the book has at least one cover image URL (thumb or full).
+  bool get hasCover {
+    final c = (coverImageThumb ?? coverImage)?.trim();
+    if (c == null || c.isEmpty) return false;
+    final lowered = c.toLowerCase();
+    return lowered != "null" && lowered != "undefined";
+  }
+
   static String? _fixUrl(String? url) {
     if (url == null || url.isEmpty) return null;
     if (url.startsWith('http://localhost:8000') || url.startsWith('http://127.0.0.1:8000')) {

@@ -7,7 +7,8 @@ return [
     |--------------------------------------------------------------------------
     | Enable caching for public catalog endpoints. Uses CACHE_STORE (file/redis).
     */
-    'cache_enabled' => filter_var(env('CACHE_CATALOG_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    // Disabled by default in this environment to avoid filesystem permission issues with file cache.
+    'cache_enabled' => filter_var(env('CACHE_CATALOG_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
 
     /*
     |--------------------------------------------------------------------------

@@ -24,26 +24,27 @@ class BookCard extends StatelessWidget {
 
   static Widget _buildCoverImage(BuildContext context, String? imageUrl, ThemeData theme) {
     final url = imageUrl?.trim();
-    if (url == null || url.isEmpty) {
-      return Container(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-        child: Icon(Icons.menu_book_outlined, size: 40, color: theme.colorScheme.outline),
-      );
+    final isNullLike = url != null && url.isNotEmpty &&
+        (url.toLowerCase() == 'null' || url.toLowerCase() == 'undefined');
+    if (url == null || url.isEmpty || isNullLike) {
+      return _buildLogoPlaceholder();
     }
     return Image.network(
       _resolveCoverUrl(url),
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        return Container(
-          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-          child: child,
-        );
+        return _buildLogoPlaceholder();
       },
-      errorBuilder: (_, __, ___) => Container(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-        child: Icon(Icons.menu_book_outlined, size: 40, color: theme.colorScheme.outline),
-      ),
+      errorBuilder: (_, __, ___) => _buildLogoPlaceholder(),
+    );
+  }
+
+  static Widget _buildLogoPlaceholder() {
+    return Image.asset(
+      'assets/app_icon.png',
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Icon(Icons.menu_book_outlined, size: 40),
     );
   }
 

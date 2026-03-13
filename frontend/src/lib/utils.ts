@@ -1,3 +1,11 @@
+/** True when the book has at least one cover image URL (thumb or full). */
+export function hasCover(book: { cover_image?: string; cover_image_thumb?: string }): boolean {
+  const c = (book.cover_image_thumb || book.cover_image || '').trim()
+  if (!c) return false
+  const lowered = c.toLowerCase()
+  return lowered !== 'null' && lowered !== 'undefined'
+}
+
 /**
  * Resolves cover image URL to work when accessed from network (e.g. 192.168.1.109).
  * Converts full URLs with localhost/127.0.0.1 to relative paths so they go through

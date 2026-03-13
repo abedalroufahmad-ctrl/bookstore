@@ -208,35 +208,37 @@ export function HomePage() {
                             style={{ textDecoration: 'none', color: 'inherit' }}
                         >
                             <div
-                                className="shrink-0 rounded overflow-hidden"
-                                style={{
-                                    width: 56,
-                                    height: 80,
-                                    background: '#f0f0f0',
-                                }}
+                                className="shrink-0 rounded overflow-hidden relative"
+                                style={{ width: 56, height: 80, background: '#f0f0f0' }}
                             >
-                                {(book.cover_image_thumb || book.cover_image) ? (
-                                    <img
-                                        src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)}
-                                        alt={book.title}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.style.display = 'none'
-                                            const next = e.currentTarget.nextElementSibling as HTMLElement
-                                            if (next) next.style.display = 'flex'
-                                        }}
-                                    />
-                                ) : null}
-                                <div
-                                    className="w-full h-full flex items-center justify-center text-xs text-center p-1"
+                                {(() => {
+                                    const c = (book.cover_image_thumb || book.cover_image)?.trim()
+                                    const valid = c && c.toLowerCase() !== 'null' && c.toLowerCase() !== 'undefined'
+                                    return valid ? (
+                                        <img
+                                            src={resolveCoverUrl(c)}
+                                            alt={book.title}
+                                            className="w-full h-full object-cover absolute inset-0"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none'
+                                                const next = e.currentTarget.nextElementSibling as HTMLElement
+                                                if (next) next.style.display = 'block'
+                                            }}
+                                        />
+                                    ) : null
+                                })()}
+                                <img
+                                    src="/favicon.png"
+                                    alt=""
+                                    className="w-full h-full object-cover absolute inset-0"
                                     style={{
-                                        display: (book.cover_image_thumb || book.cover_image) ? 'none' : 'flex',
-                                        background: getCategoryBg(book.category_id || '0'),
-                                        color: 'var(--color-text-muted)',
+                                        display: (book.cover_image_thumb || book.cover_image)?.trim() &&
+                                            (book.cover_image_thumb || book.cover_image)?.toLowerCase() !== 'null' &&
+                                            (book.cover_image_thumb || book.cover_image)?.toLowerCase() !== 'undefined'
+                                            ? 'none'
+                                            : 'block',
                                     }}
-                                >
-                                    {book.title?.slice(0, 2) || '📖'}
-                                </div>
+                                />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div

@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { calculateDiscountedPrice, resolveCoverUrl } from '../lib/utils'
+
+const FALLBACK_COVER_URL = '/favicon.png'
 
 interface AuthorRef {
   _id?: string
@@ -46,6 +49,7 @@ export function BookCard({
   globalDiscount,
 }: BookCardProps) {
   const { t } = useTranslation()
+  const [useFallbackCover, setUseFallbackCover] = useState(false)
 
   const { finalPrice, discountUsed, isSpecial } = calculateDiscountedPrice(
     price,
@@ -54,29 +58,29 @@ export function BookCard({
   )
 
   const authorId = (a: AuthorRef) => a._id ?? a.id
+  const coverUrl = useMemo(() => (coverImageThumb || coverImage || '').trim(), [coverImageThumb, coverImage])
+  const isNullLike = coverUrl && (coverUrl.toLowerCase() === 'null' || coverUrl.toLowerCase() === 'undefined')
+  const showRealCover = coverUrl && !isNullLike && !useFallbackCover
 
   return (
     <div className="book-card">
       <Link to={`/books/${id}`} style={{ textDecoration: 'none' }}>
         <div className="book-cover-wrapper">
-          {(coverImageThumb || coverImage) ? (
+          {showRealCover ? (
             <img
-              src={resolveCoverUrl(coverImageThumb || coverImage)}
+              src={resolveCoverUrl(coverUrl)}
               alt={title}
               loading="lazy"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-                const placeholder = e.currentTarget.nextElementSibling as HTMLElement
-                if (placeholder) placeholder.style.display = 'flex'
-              }}
+              onError={() => setUseFallbackCover(true)}
             />
-          ) : null}
-          <div
-            className="placeholder-cover"
-            style={{ display: coverImage ? 'none' : 'flex' }}
-          >
-            {title}
-          </div>
+          ) : (
+            <img
+              src={FALLBACK_COVER_URL}
+              alt=""
+              className="w-full h-full object-cover"
+              style={{ objectFit: 'cover' }}
+            />
+          )}
 
           {authorName && (
             <div

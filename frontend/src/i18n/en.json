@@ -181,6 +181,7 @@
     "viewManageOrders": "View and manage orders",
     "manageStaff": "Manage staff",
     "globalSettings": "Global site settings",
+    "booksCount": "Books",
     "reports": {
       "booksWithoutCover": "Books without cover image",
       "booksWithoutCoverHint": "List books missing cover image",

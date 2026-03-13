@@ -327,6 +327,7 @@ export interface Category {
   _id: string
   dewey_code: string
   subject_title: string
+  books_count?: number
 }
 
 export interface Author {
