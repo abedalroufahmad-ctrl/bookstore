@@ -233,6 +233,7 @@ export function AdminCountries() {
                     >
                       {t('admin.edit')}
                     </button>
+                    &nbsp;&nbsp;
                     <button
                       type="button"
                       onClick={() =>

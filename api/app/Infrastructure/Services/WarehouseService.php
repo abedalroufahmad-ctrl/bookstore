@@ -28,7 +28,8 @@ class WarehouseService
     {
         $managerId = $data['manager_id'] ?? null;
         $employeeIds = $data['employee_ids'] ?? null;
-        unset($data['manager_id'], $data['employee_ids']);
+        // Keep manager_id on the warehouse document; only strip the helper employee_ids array
+        unset($data['employee_ids']);
         $warehouse = $this->repository->create($data);
         if ($managerId) {
             $this->syncManagerToWarehouse($managerId, $warehouse->getKey());
@@ -43,7 +44,9 @@ class WarehouseService
     {
         $managerId = array_key_exists('manager_id', $data) ? $data['manager_id'] : null;
         $employeeIds = $data['employee_ids'] ?? null;
-        unset($data['manager_id'], $data['employee_ids']);
+        // Keep manager_id so the warehouse document stores the selected manager;
+        // only remove the helper employee_ids array.
+        unset($data['employee_ids']);
         $updated = $this->repository->update($id, $data);
         if ($updated && $managerId) {
             $this->syncManagerToWarehouse($managerId, $id);

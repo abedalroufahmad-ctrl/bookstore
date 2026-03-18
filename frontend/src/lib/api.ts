@@ -80,6 +80,8 @@ export const auth = {
   customerLogout: () => api.post<ApiResponse<null>>('/customers/logout'),
   employeeLogout: () => api.post<ApiResponse<null>>('/employees/logout'),
   customerMe: () => api.get<ApiResponse<Customer>>('/customers/me'),
+  updateProfile: (data: CustomerProfileUpdateData) =>
+    api.put<ApiResponse<Customer>>('/customers/profile', data),
   employeeMe: () => api.get<ApiResponse<Employee>>('/employees/me'),
 }
 
@@ -397,6 +399,18 @@ export interface RegisterData {
   address?: string
   city?: string
   country?: string
+}
+
+export interface CustomerProfileUpdateData {
+  name?: string
+  email?: string
+  password?: string
+  password_confirmation?: string
+  address?: string | null
+  city?: string | null
+  country?: string | null
+  postal_code?: string | null
+  phone?: string | null
 }
 
 export interface ShippingAddress {

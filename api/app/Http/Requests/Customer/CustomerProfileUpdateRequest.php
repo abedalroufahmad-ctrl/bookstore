@@ -14,11 +14,12 @@ class CustomerProfileUpdateRequest extends BaseFormRequest
 
     public function rules(): array
     {
-        $customerId = auth('customer')->id();
+        $customer = auth('customer')->user();
+        $customerId = $customer ? $customer->getKey() : null;
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('customers', 'email')->ignore($customerId)],
+            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('customers', 'email')->ignore($customerId, '_id')],
             'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
             'address' => ['sometimes', 'nullable', 'string', 'max:500'],
             'country' => ['sometimes', 'nullable', 'string', 'max:100'],

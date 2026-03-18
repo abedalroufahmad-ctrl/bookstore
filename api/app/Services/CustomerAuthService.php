@@ -27,11 +27,15 @@ class CustomerAuthService extends BaseService implements CustomerAuthServiceInte
 
     public function updateProfile(Customer $customer, array $data): Customer
     {
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
+        // Only update allowed fields; do not create a new customer.
+        $fillable = array_flip($customer->getFillable());
+        $payload = array_intersect_key($data, $fillable);
+        // Password is hashed by the model's cast; do not hash here to avoid double-hashing.
+        if (array_key_exists('password_confirmation', $data)) {
+            unset($payload['password_confirmation']);
         }
 
-        $customer->update($data);
+        $customer->update($payload);
 
         return $customer->fresh();
     }

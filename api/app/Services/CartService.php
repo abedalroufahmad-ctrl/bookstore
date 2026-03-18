@@ -43,10 +43,16 @@ class CartService extends BaseService implements CartServiceInterface
             throw new \InvalidArgumentException("Insufficient stock. Available: {$book->stock_quantity}");
         }
 
-        $items = collect($cart->items ?? []);
-        $existingIndex = $items->search(fn ($item) => ($item['book_id'] ?? '') === $bookId);
+        $items = array_values($cart->items ?? []);
+        $existingIndex = null;
+        foreach ($items as $i => $item) {
+            if (($item['book_id'] ?? '') === $bookId) {
+                $existingIndex = $i;
+                break;
+            }
+        }
 
-        if ($existingIndex !== false) {
+        if ($existingIndex !== null) {
             $newQty = ($items[$existingIndex]['quantity'] ?? 0) + $quantity;
             if ($book->stock_quantity < $newQty) {
                 throw new \InvalidArgumentException("Insufficient stock. Available: {$book->stock_quantity}");
@@ -54,14 +60,14 @@ class CartService extends BaseService implements CartServiceInterface
             $items[$existingIndex]['quantity'] = $newQty;
             $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book);
         } else {
-            $items->push([
+            $items[] = [
                 'book_id' => $bookId,
                 'quantity' => $quantity,
                 'price' => $this->calculateDiscountedPrice($book),
-            ]);
+            ];
         }
 
-        $this->cartRepository->update($cart->getKey(), ['items' => $items->values()->all()]);
+        $this->cartRepository->update($cart->getKey(), ['items' => $items]);
 
         return $cart->fresh();
     }
@@ -93,17 +99,23 @@ class CartService extends BaseService implements CartServiceInterface
             throw new \InvalidArgumentException("Insufficient stock. Available: {$book->stock_quantity}");
         }
 
-        $items = collect($cart->items ?? []);
-        $existingIndex = $items->search(fn ($item) => ($item['book_id'] ?? '') === $bookId);
+        $items = array_values($cart->items ?? []);
+        $existingIndex = null;
+        foreach ($items as $i => $item) {
+            if (($item['book_id'] ?? '') === $bookId) {
+                $existingIndex = $i;
+                break;
+            }
+        }
 
-        if ($existingIndex === false) {
+        if ($existingIndex === null) {
             throw new \InvalidArgumentException('Book not in cart.');
         }
 
         $items[$existingIndex]['quantity'] = $quantity;
         $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book);
 
-        $this->cartRepository->update($cart->getKey(), ['items' => $items->values()->all()]);
+        $this->cartRepository->update($cart->getKey(), ['items' => $items]);
 
         return $cart->fresh();
     }

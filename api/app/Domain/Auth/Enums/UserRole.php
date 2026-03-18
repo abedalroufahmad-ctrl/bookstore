@@ -59,4 +59,12 @@ enum UserRole: string
     {
         return $role === self::WarehouseManager->value;
     }
+
+    /**
+     * Roles that can see and manage all warehouses (no scoping).
+     */
+    public static function canManageAllWarehouses(string $role): bool
+    {
+        return $role === self::Manager->value;
+    }
 }

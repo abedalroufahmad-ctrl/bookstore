@@ -11,6 +11,8 @@ interface AuthContextType {
   login: (type: 'customer' | 'employee', email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
   logout: () => Promise<void>
+  /** Refetch current user from API (e.g. after profile update). */
+  refreshUser: () => Promise<void>
   isLoading: boolean
 }
 
@@ -110,9 +112,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    const type = localStorage.getItem('userType') as UserType
+    if (!token || !type) return
+    if (type === 'customer') {
+      const r = await auth.customerMe()
+      const d = r.data.data
+      setUser({ id: d._id, name: d.name, email: d.email })
+    } else {
+      const r = await auth.employeeMe()
+      const d = r.data.data as { _id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[] }
+      setUser({
+        id: d._id,
+        name: d.name,
+        email: d.email,
+        role: d.role,
+        warehouse_id: d.warehouse_id,
+        warehouse_ids: d.warehouse_ids,
+      })
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, userType, token, login, register, logout, isLoading }}
+      value={{ user, userType, token, login, register, logout, refreshUser, isLoading }}
     >
       {children}
     </AuthContext.Provider>

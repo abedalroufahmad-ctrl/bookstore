@@ -23,8 +23,6 @@ const EMPLOYEE_ROLES = [
   { value: 'warehouse_manager', labelKey: 'admin.roleWarehouseManager' },
 ] as const
 
-const SHIPPING_ONLY_ROLES = [{ value: 'shipping', labelKey: 'admin.roleShipping' }] as const
-
 export function AdminEmployees() {
   const { t } = useTranslation()
   const { user, userType } = useAuth()
@@ -91,7 +89,7 @@ export function AdminEmployees() {
   type EmployeeItem = { _id: string; name: string; email: string; role: string; warehouse_id?: string; warehouse_ids?: string[]; warehouse?: { _id: string; name: string } }
   const items = extractList<EmployeeItem>(employeesData)
   const warehouses = extractList<{ _id: string; name: string }>(warehousesData)
-  const roleOptions = isWarehouseManager ? SHIPPING_ONLY_ROLES : EMPLOYEE_ROLES
+  const roleOptions = EMPLOYEE_ROLES
   const isWarehouseManagerRole = (r: string) => r === 'warehouse_manager'
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -139,7 +137,7 @@ export function AdminEmployees() {
       email: emp.email,
       password: '',
       password_confirmation: '',
-      role: isWarehouseManager ? 'shipping' : validRole,
+      role: validRole,
       warehouse_id: emp.warehouse_id ?? emp.warehouse?._id ?? '',
       warehouse_ids: Array.isArray(emp.warehouse_ids) ? emp.warehouse_ids : [],
     })

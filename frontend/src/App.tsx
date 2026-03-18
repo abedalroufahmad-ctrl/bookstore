@@ -11,6 +11,7 @@ import { CartPage } from './pages/Cart'
 import { Checkout } from './pages/Checkout'
 import { Orders } from './pages/Orders'
 import { OrderDetail } from './pages/OrderDetail'
+import { CustomerAccount } from './pages/CustomerAccount'
 import { AdminDashboard } from './pages/AdminDashboard'
 import { AdminBooks } from './pages/AdminBooks'
 import { AdminBookForm } from './pages/AdminBookForm'
@@ -87,6 +88,14 @@ function AppRoutes() {
           element={
             <CustomerRoute>
               <OrderDetail />
+            </CustomerRoute>
+          }
+        />
+        <Route
+          path="account"
+          element={
+            <CustomerRoute>
+              <CustomerAccount />
             </CustomerRoute>
           }
         />

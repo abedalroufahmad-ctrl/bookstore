@@ -1,15 +1,41 @@
-import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { books } from '../lib/api'
+import { books, cart } from '../lib/api'
 import { BookCard } from '../components/BookCard'
 import { Pagination } from '../components/Pagination'
 import { useSettings } from '../contexts/SettingsContext'
+import { useAuth } from '../contexts/AuthContext'
 
 export function BookList() {
   const { t } = useTranslation()
   const { settings } = useSettings()
+  const { userType } = useAuth()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  const addToCartMutation = useMutation({
+    mutationFn: (bookId: string) => cart.addItem(bookId, 1),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
+  })
+
+  const handleAddToCart = (bookId: string) => {
+    if (userType !== 'customer') {
+      navigate('/login')
+      return
+    }
+    addToCartMutation.mutate(bookId, {
+      onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
+        if (err.response?.status === 401) {
+          navigate('/login')
+          return
+        }
+        const message = err.response?.data?.message ?? t('common.error')
+        alert(message)
+      },
+    })
+  }
   const search = searchParams.get('search') ?? ''
   const page = parseInt(searchParams.get('page') ?? '1', 10)
   const setPage = (p: number) => {
@@ -26,6 +52,17 @@ export function BookList() {
       return res.data
     },
   })
+
+  const { data: cartData } = useQuery({
+    queryKey: ['cart'],
+    queryFn: async () => {
+      const res = await cart.get()
+      return res.data
+    },
+    enabled: userType === 'customer',
+  })
+
+  const cartBookIds = (cartData?.data?.items ?? []).map((item: { book_id: string }) => item.book_id)
 
   if (isLoading) return <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>{t('common.loading')}</div>
   if (error) return <div className="text-center py-12" style={{ color: 'var(--color-discount)' }}>{t('books.failedToLoad')}</div>
@@ -59,6 +96,9 @@ export function BookList() {
             authors={book.authors}
             discountPercent={book.discount_percent}
             globalDiscount={settings.global_discount}
+            onAddToCart={handleAddToCart}
+            isAddingToCart={addToCartMutation.isPending && addToCartMutation.variables === book._id}
+            isInCart={cartBookIds.includes(book._id)}
           />
         ))}
       </div>

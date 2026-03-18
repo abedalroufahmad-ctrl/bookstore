@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use MongoDB\Laravel\Eloquent\Model;
 
 class Country extends Model
@@ -11,6 +12,11 @@ class Country extends Model
     protected $collection = 'countries';
 
     protected $fillable = ['name', 'code', 'translations'];
+
+    public function cities(): HasMany
+    {
+        return $this->hasMany(City::class, 'countryId', '_id');
+    }
 
     /**
      * MongoDB stores/returns translations as native array; do not use 'array' cast

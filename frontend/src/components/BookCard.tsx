@@ -22,6 +22,12 @@ interface BookCardProps {
   authors?: AuthorRef[]
   discountPercent?: number
   globalDiscount: number
+  /** When provided, an "Add to cart" button is shown. Call with book id on click. */
+  onAddToCart?: (bookId: string) => void
+  /** When true, show loading state on the Add to cart button. */
+  isAddingToCart?: boolean
+  /** When true, show the Add to cart button as green (in cart). */
+  isInCart?: boolean
 }
 
 function getAuthorColor(name: string) {
@@ -47,6 +53,9 @@ export function BookCard({
   authors,
   discountPercent,
   globalDiscount,
+  onAddToCart,
+  isAddingToCart,
+  isInCart,
 }: BookCardProps) {
   const { t } = useTranslation()
   const [useFallbackCover, setUseFallbackCover] = useState(false)
@@ -123,6 +132,29 @@ export function BookCard({
 
         <div className="book-title-text">{title}</div>
       </Link>
+      {onAddToCart && (
+        <div className="mt-3" style={{ position: 'relative', zIndex: 1 }}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onAddToCart(id)
+            }}
+            disabled={isAddingToCart}
+            className="w-full py-2 px-3 rounded-lg text-sm font-medium transition"
+            style={{
+              background: isInCart ? '#16a34a' : 'var(--color-primary)',
+              color: '#fff',
+              border: 'none',
+              cursor: isAddingToCart ? 'wait' : 'pointer',
+              pointerEvents: 'auto',
+            }}
+          >
+            {isAddingToCart ? t('common.loading') : t('bookDetail.addToCart')}
+          </button>
+        </div>
+      )}
       {(authors?.length || authorName) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           {authors && authors.length > 0
