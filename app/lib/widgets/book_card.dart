@@ -142,8 +142,7 @@ class BookCard extends StatelessWidget {
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontSize: 11,
-                      decoration: TextDecoration.underline,
-                      decorationColor: theme.colorScheme.primary,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                 ),

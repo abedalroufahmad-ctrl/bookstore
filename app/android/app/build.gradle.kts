@@ -19,9 +19,9 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "farmanapp_01.app"
     compileSdk = flutter.compileSdkVersion
-    // Temporarily use installed NDK version until 28.2.13676358 license is resolved
-    ndkVersion = "27.1.12297006" // Using installed NDK version
-    // ndkVersion = flutter.ndkVersion
+    // Pin to a working NDK version (this folder contains source.properties)
+    // so Gradle doesn't fail when another NDK download is incomplete.
+    ndkVersion = "30.0.14904198-beta1"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

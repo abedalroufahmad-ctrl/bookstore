@@ -347,8 +347,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               authors[i].name ?? '',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Theme.of(context).colorScheme.primary,
+                                decoration: TextDecoration.none,
                               ),
                             ),
                           ),
@@ -394,8 +393,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   value,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
