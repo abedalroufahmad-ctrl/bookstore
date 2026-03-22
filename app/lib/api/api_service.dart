@@ -199,10 +199,14 @@ class ApiService {
   }
 
   // Customer auth
-  Future<ApiResponse<AuthResult>> customerLogin(String email, String password) async {
+  Future<ApiResponse<AuthResult>> customerLogin(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     final res = await _client.post<Map<String, dynamic>>(
       '/customers/login',
-      body: {'email': email, 'password': password},
+      body: {'email': email, 'password': password, 'remember_me': rememberMe},
     );
     if (res.success && res.data != null) {
       final d = res.data!;

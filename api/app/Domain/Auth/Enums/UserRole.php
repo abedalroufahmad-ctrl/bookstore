@@ -67,4 +67,15 @@ enum UserRole: string
     {
         return $role === self::Manager->value;
     }
+
+    /**
+     * Roles a warehouse manager may assign when adding/updating staff in their warehouse(s).
+     */
+    public static function warehouseManagerStaffRoles(): array
+    {
+        return [
+            self::Shipping->value,
+            self::Accounting->value,
+        ];
+    }
 }

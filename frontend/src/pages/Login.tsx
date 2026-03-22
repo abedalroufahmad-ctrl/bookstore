@@ -7,6 +7,7 @@ export function Login() {
   const [type, setType] = useState<'customer' | 'employee'>('customer')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
@@ -18,7 +19,7 @@ export function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(type, email, password)
+      await login(type, email, password, type === 'customer' && rememberMe)
       navigate(type === 'employee' ? '/admin' : '/')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t('auth.loginFailed')
@@ -63,6 +64,17 @@ export function Login() {
             className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
           />
         </div>
+        {type === 'customer' && (
+          <label className="flex items-center gap-2 text-sm text-stone-700">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+            />
+            {t('auth.rememberMe')}
+          </label>
+        )}
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button
           type="submit"

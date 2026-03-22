@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useDebounce } from '../hooks/useDebounce'
 
 type SearchType = 'books' | 'authors' | 'categories'
 
@@ -20,7 +19,6 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
   const [localSearch, setLocalSearch] = useState(urlSearch)
   const [searchType, setSearchType] = useState<SearchType>('books')
   const [isFocused, setIsFocused] = useState(false)
-  const debouncedSearch = useDebounce(localSearch, 400)
 
   useEffect(() => {
     setLocalSearch(urlSearch)
@@ -36,44 +34,58 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
   const isCatalogDetailPage = isAuthorDetailPage || isCategoryDetailPage
   const isCatalogPage = isCatalogListPage || isCatalogDetailPage
 
-  const applySearch = useCallback((value: string, type?: SearchType) => {
-    const trimmed = value.trim()
-    const routes: Record<SearchType, string> = {
-      books: '/books',
-      authors: '/authors',
-      categories: '/categories',
-    }
-    if (variant === 'home' && type) {
-      navigate(trimmed ? `${routes[type]}?search=${encodeURIComponent(trimmed)}` : routes[type])
-    } else if (isCatalogPage) {
-      const params = new URLSearchParams(searchParams)
-      if (trimmed) {
-        params.set('search', trimmed)
-        params.set('page', '1')
-      } else {
-        params.delete('search')
-        params.delete('page')
+  const applySearch = useCallback(
+    (value: string, type?: SearchType) => {
+      const trimmed = value.trim()
+      const routes: Record<SearchType, string> = {
+        books: '/books',
+        authors: '/authors',
+        categories: '/categories',
       }
-      setSearchParams(params, { replace: true })
-    } else {
-      const targetType = isBooksListPage ? 'books' : isAuthorsListPage ? 'authors' : isCategoriesListPage ? 'categories' : 'books'
-      navigate(trimmed ? `${routes[targetType]}?search=${encodeURIComponent(trimmed)}` : routes[targetType])
-    }
-  }, [variant, isCatalogPage, isBooksListPage, isAuthorsListPage, isCategoriesListPage, navigate, searchParams, setSearchParams])
+      if (variant === 'home' && type) {
+        navigate(trimmed ? `${routes[type]}?search=${encodeURIComponent(trimmed)}` : routes[type])
+      } else if (isCatalogPage) {
+        const params = new URLSearchParams(searchParams)
+        if (trimmed) {
+          params.set('search', trimmed)
+          params.set('page', '1')
+        } else {
+          params.delete('search')
+          params.delete('page')
+        }
+        setSearchParams(params, { replace: true })
+      } else {
+        const targetType = isBooksListPage
+          ? 'books'
+          : isAuthorsListPage
+            ? 'authors'
+            : isCategoriesListPage
+              ? 'categories'
+              : 'books'
+        navigate(trimmed ? `${routes[targetType]}?search=${encodeURIComponent(trimmed)}` : routes[targetType])
+      }
+    },
+    [variant, isCatalogPage, isBooksListPage, isAuthorsListPage, isCategoriesListPage, navigate, searchParams, setSearchParams],
+  )
 
-  useEffect(() => {
-    if (variant === 'nav' && isCatalogPage && isFocused && debouncedSearch.trim() !== urlSearch) {
-      const params = new URLSearchParams(searchParams)
-      if (debouncedSearch.trim()) {
-        params.set('search', debouncedSearch.trim())
-        params.set('page', '1')
-      } else {
-        params.delete('search')
-        params.delete('page')
+  /** Catalog nav: update URL only after space / Enter / submit — not on every keystroke */
+  const applyCatalogNavIfFocused = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim()
+      if (variant === 'nav' && isCatalogPage && isFocused && trimmed !== urlSearch) {
+        const params = new URLSearchParams(searchParams)
+        if (trimmed) {
+          params.set('search', trimmed)
+          params.set('page', '1')
+        } else {
+          params.delete('search')
+          params.delete('page')
+        }
+        setSearchParams(params, { replace: true })
       }
-      setSearchParams(params, { replace: true })
-    }
-  }, [debouncedSearch, variant, isCatalogPage, isFocused, urlSearch, searchParams, setSearchParams])
+    },
+    [variant, isCatalogPage, isFocused, urlSearch, searchParams, setSearchParams],
+  )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,7 +93,17 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalSearch(e.target.value)
+    const next = e.target.value
+    setLocalSearch(next)
+    if (next.endsWith(' ')) {
+      window.setTimeout(() => applyCatalogNavIfFocused(next), 0)
+    }
+  }
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      applyCatalogNavIfFocused(e.currentTarget.value)
+    }
   }
 
   if (variant === 'home') {
@@ -101,6 +123,7 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
           type="search"
           value={localSearch}
           onChange={handleChange}
+          onKeyDown={handleSearchKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={variant === 'home' && homePlaceholder ? homePlaceholder : t('search.placeholder')}
@@ -123,7 +146,8 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
       <input
         type="search"
         value={localSearch}
-        onChange={(e) => setLocalSearch(e.target.value)}
+        onChange={handleChange}
+        onKeyDown={handleSearchKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         placeholder={t('search.placeholder')}

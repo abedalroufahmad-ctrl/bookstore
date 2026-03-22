@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { AdminListSearchBar } from '../components/AdminListSearchBar'
+import { useSearchCommit } from '../hooks/useSearchCommit'
 import { useAuth } from '../contexts/AuthContext'
 
 function extractList<T>(data: unknown): T[] {
@@ -23,13 +25,16 @@ const EMPLOYEE_ROLES = [
   { value: 'warehouse_manager', labelKey: 'admin.roleWarehouseManager' },
 ] as const
 
+/** Roles a warehouse_manager may assign to new staff in their warehouse(s) */
+const WAREHOUSE_MANAGER_STAFF_ROLE_VALUES = ['shipping', 'accounting'] as const
+
 export function AdminEmployees() {
   const { t } = useTranslation()
   const { user, userType } = useAuth()
   const isWarehouseManager = userType === 'employee' && (user as { role?: string } | null)?.role === 'warehouse_manager'
-  const currentWarehouseId = (user as { warehouse_id?: string } | null)?.warehouse_id ?? ''
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -42,10 +47,18 @@ export function AdminEmployees() {
   })
   const [error, setError] = useState('')
 
-  const { data: employeesData, isLoading } = useQuery({
-    queryKey: ['admin-employees', page],
+  useEffect(() => {
+    setPage(1)
+  }, [committedSearch])
+
+  const { data: employeesData, isLoading, isFetching } = useQuery({
+    queryKey: ['admin-employees', page, committedSearch],
     queryFn: async () => {
-      const res = await admin.employees.list({ page, per_page: 15 })
+      const res = await admin.employees.list({
+        page,
+        per_page: 15,
+        ...(committedSearch ? { search: committedSearch } : {}),
+      })
       return res.data
     },
   })
@@ -89,8 +102,30 @@ export function AdminEmployees() {
   type EmployeeItem = { _id: string; name: string; email: string; role: string; warehouse_id?: string; warehouse_ids?: string[]; warehouse?: { _id: string; name: string } }
   const items = extractList<EmployeeItem>(employeesData)
   const warehouses = extractList<{ _id: string; name: string }>(warehousesData)
-  const roleOptions = EMPLOYEE_ROLES
+  const roleOptions = isWarehouseManager
+    ? EMPLOYEE_ROLES.filter((r) =>
+        (WAREHOUSE_MANAGER_STAFF_ROLE_VALUES as readonly string[]).includes(r.value)
+      )
+    : EMPLOYEE_ROLES
   const isWarehouseManagerRole = (r: string) => r === 'warehouse_manager'
+
+  const managedWarehouseIds = useMemo(() => {
+    if (!isWarehouseManager || !user) return [] as string[]
+    const u = user as { warehouse_id?: string; warehouse_ids?: string[]; role?: string }
+    if (u.role === 'warehouse_manager' && Array.isArray(u.warehouse_ids) && u.warehouse_ids.length > 0) {
+      return u.warehouse_ids.map(String)
+    }
+    if (u.warehouse_id) return [String(u.warehouse_id)]
+    return []
+  }, [isWarehouseManager, user])
+
+  const isEmployeeInManagedWarehouse = (emp: EmployeeItem) => {
+    if (!emp.warehouse_id) return false
+    return managedWarehouseIds.includes(String(emp.warehouse_id))
+  }
+
+  const isWarehouseManagerEditBlocked = (emp: EmployeeItem) =>
+    isWarehouseManager && emp.role === 'warehouse_manager' && !isEmployeeInManagedWarehouse(emp)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingForm, setEditingForm] = useState({
@@ -131,15 +166,32 @@ export function AdminEmployees() {
 
   const handleStartEdit = (emp: EmployeeItem) => {
     setEditingId(emp._id)
-    const validRole = EMPLOYEE_ROLES.some((r) => r.value === emp.role) ? emp.role : 'manager'
+    const validRole = isWarehouseManager
+      ? emp.role === 'shipping' || emp.role === 'accounting'
+        ? emp.role
+        : 'shipping'
+      : EMPLOYEE_ROLES.some((r) => r.value === emp.role)
+        ? emp.role
+        : 'manager'
+    // Always prefer the employee's actual warehouse for the dropdown value (string for <select> matching).
+    const employeeWarehouseId = String(emp.warehouse_id ?? emp.warehouse?._id ?? '').trim()
+    const defaultWarehouseForAssign =
+      warehouses.find((w) => managedWarehouseIds.includes(String(w._id)))?._id ?? warehouses[0]?._id ?? ''
+    // Only warehouse managers use "assign to my warehouse" default when the employee is outside their warehouses.
+    // For other roles, managedWarehouseIds is empty so inManaged would always be false — that wrongly picked warehouses[0].
+    const inManaged = isWarehouseManager && isEmployeeInManagedWarehouse(emp)
+    const warehouseIdForEdit =
+      isWarehouseManager && ! inManaged
+        ? String(defaultWarehouseForAssign)
+        : employeeWarehouseId
     setEditingForm({
       name: emp.name,
       email: emp.email,
       password: '',
       password_confirmation: '',
       role: validRole,
-      warehouse_id: emp.warehouse_id ?? emp.warehouse?._id ?? '',
-      warehouse_ids: Array.isArray(emp.warehouse_ids) ? emp.warehouse_ids : [],
+      warehouse_id: warehouseIdForEdit,
+      warehouse_ids: Array.isArray(emp.warehouse_ids) ? emp.warehouse_ids.map(String) : [],
     })
     setError('')
   }
@@ -202,31 +254,57 @@ export function AdminEmployees() {
     createMutation.mutate({ ...form })
   }
 
-  if (isLoading) return <div className="text-center py-12">{t('common.loading')}</div>
+  if (isLoading && !employeesData) return <div className="text-center py-12">{t('common.loading')}</div>
+
+  const editingEmp = editingId ? items.find((e) => e._id === editingId) : undefined
+  const showAssignFromDirectoryHint =
+    Boolean(isWarehouseManager && editingId && editingEmp && !isEmployeeInManagedWarehouse(editingEmp))
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.employees')}</h1>
-        <button
-          type="button"
-          onClick={() => {
-            setForm((prev) => ({
-              ...prev,
-              role: isWarehouseManager ? 'shipping' : prev.role,
-              warehouse_id: isWarehouseManager ? (warehouses[0]?._id ?? '') : prev.warehouse_id,
-              warehouse_ids: prev.warehouse_ids ?? [],
-            }))
-            setShowForm(true)
-          }}
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800"
-        >
-          {t('admin.addEmployee')}
-        </button>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <h1 className="text-2xl font-bold text-amber-900">{t('admin.employees')}</h1>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            <AdminListSearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              placeholder={t('admin.searchEmployeesPlaceholder')}
+              hint={t('admin.listAutoSearchHint')}
+              isFetching={isFetching}
+              committedValue={committedSearch}
+              onCommit={commitSearch}
+              className="w-full sm:min-w-[280px]"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  role: isWarehouseManager ? 'shipping' : prev.role,
+                  warehouse_id: isWarehouseManager ? (warehouses[0]?._id ?? '') : prev.warehouse_id,
+                  warehouse_ids: prev.warehouse_ids ?? [],
+                }))
+                setShowForm(true)
+              }}
+              className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 whitespace-nowrap"
+            >
+              {t('admin.addEmployee')}
+            </button>
+          </div>
+        </div>
+        {isWarehouseManager && (
+          <p className="text-sm text-stone-600">{t('admin.employeesAllUsersHint')}</p>
+        )}
       </div>
       {editingId && (
         <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
           <h2 className="font-semibold mb-4">{t('admin.editEmployee')}</h2>
+          {showAssignFromDirectoryHint && (
+            <p className="mb-4 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              {t('admin.assignEmployeeToWarehouseHint')}
+            </p>
+          )}
           <form onSubmit={handleSaveEdit} className="space-y-4 max-w-md">
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')}</label>
@@ -283,7 +361,7 @@ export function AdminEmployees() {
                 ))}
               </select>
               {isWarehouseManager && (
-                <p className="mt-1 text-stone-500 text-sm">{t('admin.roleShipping')} only</p>
+                <p className="mt-1 text-stone-500 text-sm">{t('admin.warehouseManagerStaffRolesHint')}</p>
               )}
             </div>
             <div>
@@ -420,7 +498,7 @@ export function AdminEmployees() {
                 ))}
               </select>
               {isWarehouseManager && (
-                <p className="mt-1 text-stone-500 text-sm">{t('admin.roleShipping')} only</p>
+                <p className="mt-1 text-stone-500 text-sm">{t('admin.warehouseManagerStaffRolesHint')}</p>
               )}
             </div>
             <div>
@@ -533,7 +611,9 @@ export function AdminEmployees() {
                   <button
                     type="button"
                     onClick={() => handleStartEdit(emp)}
-                    className="text-amber-700 hover:underline text-sm"
+                    disabled={isWarehouseManagerEditBlocked(emp)}
+                    title={isWarehouseManagerEditBlocked(emp) ? t('admin.cannotEditOtherWarehouseManager') : undefined}
+                    className="text-amber-700 hover:underline text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
                   >
                     {t('admin.edit')}
                   </button>

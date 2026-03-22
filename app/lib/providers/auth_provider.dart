@@ -67,8 +67,16 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> loginAsCustomer(String email, String password) async {
-    final res = await ApiService.instance.customerLogin(email, password);
+  Future<String?> loginAsCustomer(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
+    final res = await ApiService.instance.customerLogin(
+      email,
+      password,
+      rememberMe: rememberMe,
+    );
     if (res.success && res.data != null) {
       await _saveToken(res.data!.token, 'customer');
       return null;

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Order, type Employee } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { AdminListSearchBar } from '../components/AdminListSearchBar'
+import { useSearchCommit } from '../hooks/useSearchCommit'
 
 const ORDER_STATUSES = [
   'pending_review',
@@ -36,16 +38,22 @@ export function AdminOrders() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-orders', statusFilter, paymentStatusFilter, page],
+  useEffect(() => {
+    setPage(1)
+  }, [committedSearch, statusFilter, paymentStatusFilter])
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['admin-orders', statusFilter, paymentStatusFilter, page, committedSearch],
     queryFn: async () => {
       const params: Record<string, string | number> = { page, per_page: 15 }
       if (statusFilter) params.status = statusFilter
       if (paymentStatusFilter) params.payment_status = paymentStatusFilter
+      if (committedSearch) params.search = committedSearch
       const res = await admin.orders.list(params)
       return res.data
     },
@@ -94,7 +102,18 @@ export function AdminOrders() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">{t('admin.orders')}</h1>
+      <h1 className="text-2xl font-bold text-amber-900 mb-4">{t('admin.orders')}</h1>
+
+      <AdminListSearchBar
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder={t('admin.searchOrdersPlaceholder')}
+        hint={t('admin.listAutoSearchHint')}
+        isFetching={isFetching}
+        committedValue={committedSearch}
+        onCommit={commitSearch}
+        className="mb-4"
+      />
 
       <div className="mb-4 flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
@@ -127,7 +146,7 @@ export function AdminOrders() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading && !data ? (
         <div className="text-center py-12">{t('common.loading')}</div>
       ) : (
         <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">

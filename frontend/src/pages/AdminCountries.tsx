@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Country, type CountryFormData, type CountryCity } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { AdminListSearchBar } from '../components/AdminListSearchBar'
+import { useSearchCommit } from '../hooks/useSearchCommit'
 
 function extractList<T>(data: unknown): T[] {
   if (!data) return []
@@ -26,15 +28,24 @@ export function AdminCountries() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CountryFormData>(emptyForm)
   const [error, setError] = useState('')
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-countries', page],
+  useEffect(() => {
+    setPage(1)
+  }, [committedSearch])
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['admin-countries', page, committedSearch],
     queryFn: async () => {
-      const res = await admin.countries.list({ page, per_page: 20 })
+      const res = await admin.countries.list({
+        page,
+        per_page: 20,
+        ...(committedSearch ? { search: committedSearch } : {}),
+      })
       return res.data
     },
   })
@@ -193,13 +204,24 @@ export function AdminCountries() {
         </div>
       </div>
 
+      <AdminListSearchBar
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder={t('admin.searchCountriesPlaceholder')}
+        hint={t('admin.listAutoSearchHint')}
+        isFetching={isFetching}
+        committedValue={committedSearch}
+        onCommit={commitSearch}
+        className="mb-6"
+      />
+
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
         </div>
       )}
 
-      {isLoading ? (
+      {isLoading && !data ? (
         <div className="text-center py-12">{t('common.loading')}</div>
       ) : (
         <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">

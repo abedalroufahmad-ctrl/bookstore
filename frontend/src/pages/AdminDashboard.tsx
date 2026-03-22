@@ -57,6 +57,13 @@ export function AdminDashboard() {
           <p className="text-sm text-stone-500 mt-1">{t('admin.manageStaff')}</p>
         </Link>
         <Link
+          to="/admin/customers"
+          className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
+        >
+          <h2 className="font-semibold text-amber-900">{t('admin.customers')}</h2>
+          <p className="text-sm text-stone-500 mt-1">{t('admin.manageCustomers')}</p>
+        </Link>
+        <Link
           to="/admin/settings"
           className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
         >

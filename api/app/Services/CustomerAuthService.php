@@ -20,9 +20,15 @@ class CustomerAuthService extends BaseService implements CustomerAuthServiceInte
         return auth('customer')->login($customer);
     }
 
-    public function attemptLogin(array $credentials): string|false
+    public function attemptLogin(array $credentials, bool $rememberMe = false): string|false
     {
-        return auth('customer')->attempt($credentials);
+        $guard = auth('customer');
+        $defaultTtl = (int) config('jwt.ttl', 60);
+        // "Remember me": use a very long TTL (~10 years) for customer tokens.
+        $rememberTtl = 60 * 24 * 365 * 10;
+        $guard->factory()->setTTL($rememberMe ? $rememberTtl : $defaultTtl);
+
+        return $guard->attempt($credentials);
     }
 
     public function updateProfile(Customer $customer, array $data): Customer

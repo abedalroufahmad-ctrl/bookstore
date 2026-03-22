@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { admin, type Author } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
 import { Pagination } from '../components/Pagination'
+import { AdminListSearchBar } from '../components/AdminListSearchBar'
+import { useSearchCommit } from '../hooks/useSearchCommit'
 
 function formatDate(s: string | undefined): string {
   if (!s) return '-'
@@ -20,11 +22,20 @@ export function AdminAuthors() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
 
-  const { data } = useQuery({
-    queryKey: ['admin-authors', page],
+  useEffect(() => {
+    setPage(1)
+  }, [committedSearch])
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['admin-authors', page, committedSearch],
     queryFn: async () => {
-      const res = await admin.authors.list({ page, per_page: 32 })
+      const res = await admin.authors.list({
+        page,
+        per_page: 32,
+        ...(committedSearch ? { search: committedSearch } : {}),
+      })
       return res.data
     },
   })
@@ -42,15 +53,25 @@ export function AdminAuthors() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold text-amber-900">{t('admin.authors')}</h1>
         <Link
           to="/admin/authors/new"
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800"
+          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
         >
           {t('admin.addAuthor')}
         </Link>
       </div>
+      <AdminListSearchBar
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder={t('admin.searchAuthorsPlaceholder')}
+        hint={t('admin.listAutoSearchHint')}
+        isFetching={isFetching}
+        committedValue={committedSearch}
+        onCommit={commitSearch}
+        className="mb-6"
+      />
       <div className="bg-white rounded-lg border border-stone-200 overflow-x-auto">
         <table className="w-full min-w-[700px]">
           <thead className="bg-stone-100">

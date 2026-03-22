@@ -71,6 +71,9 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
 
         Route::get('customers', [CustomerController::class, 'index']);
         Route::get('customers/{id}', [CustomerController::class, 'show']);
+        Route::put('customers/{id}', [CustomerController::class, 'update']);
+        Route::delete('customers/{id}', [CustomerController::class, 'destroy']);
+        Route::post('customers/{id}/convert-to-employee', [CustomerController::class, 'convertToEmployee']);
 
         Route::get('orders', [AdminOrderController::class, 'index']);
         Route::get('orders/{id}', [AdminOrderController::class, 'show']);

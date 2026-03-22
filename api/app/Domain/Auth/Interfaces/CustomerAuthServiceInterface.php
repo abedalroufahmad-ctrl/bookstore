@@ -19,7 +19,7 @@ interface CustomerAuthServiceInterface
     /**
      * Attempt to authenticate a customer and return JWT token.
      */
-    public function attemptLogin(array $credentials): string|false;
+    public function attemptLogin(array $credentials, bool $rememberMe = false): string|false;
 
     /**
      * Update customer profile.

@@ -5,6 +5,7 @@ namespace App\Infrastructure\Repositories\Mongo;
 use App\Domain\Customer\Interfaces\CustomerRepositoryInterface;
 use App\Models\Customer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use MongoDB\BSON\ObjectId;
 
 class CustomerRepository implements CustomerRepositoryInterface
 {
@@ -26,7 +27,19 @@ class CustomerRepository implements CustomerRepositoryInterface
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%")
+                    ->orWhere('country', 'like', "%{$search}%")
+                    ->orWhere('postal_code', 'like', "%{$search}%");
+                // Match by document id when the query looks like a MongoDB ObjectId (24 hex chars).
+                if (strlen($search) === 24 && ctype_xdigit($search)) {
+                    try {
+                        $q->orWhere('_id', new ObjectId($search));
+                    } catch (\Throwable) {
+                        // ignore invalid ObjectId
+                    }
+                }
             });
         }
 
@@ -39,5 +52,27 @@ class CustomerRepository implements CustomerRepositoryInterface
         }
 
         return $query->orderByDesc('created_at')->paginate($perPage);
+    }
+
+    public function updateById(string $id, array $data): ?Customer
+    {
+        $customer = $this->findById($id);
+        if (! $customer) {
+            return null;
+        }
+
+        $customer->update($data);
+
+        return $customer->fresh();
+    }
+
+    public function deleteById(string $id): bool
+    {
+        $customer = $this->findById($id);
+        if (! $customer) {
+            return false;
+        }
+
+        return (bool) $customer->delete();
     }
 }

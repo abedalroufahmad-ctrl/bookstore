@@ -16,6 +16,7 @@ class CustomerLoginRequest extends BaseFormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'remember_me' => ['sometimes', 'boolean'],
         ];
     }
 }

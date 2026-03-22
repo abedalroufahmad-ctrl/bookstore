@@ -19,9 +19,17 @@ class CountryController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $perPage = min((int) $request->get('per_page', 20), 100);
-        $countries = Country::query()
-            ->orderBy('name')
-            ->paginate($perPage);
+        $query = Country::query();
+        if ($request->filled('search')) {
+            $s = trim((string) $request->get('search'));
+            if ($s !== '') {
+                $query->where(function ($q) use ($s) {
+                    $q->where('name', 'like', "%{$s}%")
+                        ->orWhere('code', 'like', "%{$s}%");
+                });
+            }
+        }
+        $countries = $query->orderBy('name')->paginate($perPage);
 
         $items = $countries->getCollection()->map(function (Country $country) {
             return $this->formatCountry($country);

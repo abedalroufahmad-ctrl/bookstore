@@ -65,10 +65,11 @@ export const settings = {
 }
 
 export const auth = {
-  customerLogin: (email: string, password: string) =>
+  customerLogin: (email: string, password: string, rememberMe = false) =>
     api.post<ApiResponse<{ customer: Customer; token: string }>>('/customers/login', {
       email,
       password,
+      remember_me: rememberMe,
     }),
   customerRegister: (data: RegisterData) =>
     api.post<ApiResponse<{ customer: Customer; token: string }>>('/customers/register', data),
@@ -188,6 +189,29 @@ export const admin = {
       warehouse_id?: string
       warehouse_ids?: string[]
     }) => api.put<ApiResponse<Employee>>(`/admin/employees/${id}`, data),
+  },
+  customers: {
+    list: (params?: Record<string, string | number>) =>
+      api.get<ApiResponse<PaginatedResponse<Customer>>>('/admin/customers', { params }),
+    get: (id: string) => api.get<ApiResponse<Customer>>(`/admin/customers/${id}`),
+    update: (id: string, data: {
+      name?: string
+      email?: string
+      phone?: string
+      address?: string
+      city?: string
+      country?: string
+      postal_code?: string
+      password?: string
+      password_confirmation?: string
+    }) => api.put<ApiResponse<Customer>>(`/admin/customers/${id}`, data),
+    delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/customers/${id}`),
+    convertToEmployee: (id: string, data: {
+      role: string
+      warehouse_id: string
+      password?: string
+      password_confirmation?: string
+    }) => api.post<ApiResponse<Employee>>(`/admin/customers/${id}/convert-to-employee`, data),
   },
   authors: {
     list: (params?: Record<string, string | number>) =>

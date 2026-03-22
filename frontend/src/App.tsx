@@ -17,6 +17,7 @@ import { AdminBooks } from './pages/AdminBooks'
 import { AdminBookForm } from './pages/AdminBookForm'
 import { AdminOrders } from './pages/AdminOrders'
 import { AdminEmployees } from './pages/AdminEmployees'
+import { AdminCustomers } from './pages/AdminCustomers'
 import { AdminAuthors } from './pages/AdminAuthors'
 import { AdminAuthorForm } from './pages/AdminAuthorForm'
 import { AdminCategories } from './pages/AdminCategories'
@@ -144,6 +145,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminEmployees />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/customers"
+          element={
+            <AdminRoute>
+              <AdminCustomers />
             </AdminRoute>
           }
         />

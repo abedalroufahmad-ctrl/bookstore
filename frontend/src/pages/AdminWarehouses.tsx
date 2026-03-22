@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Warehouse, type WarehouseFormData } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { AdminListSearchBar } from '../components/AdminListSearchBar'
+import { useSearchCommit } from '../hooks/useSearchCommit'
+import { useAuth } from '../contexts/AuthContext'
 
 function extractList<T>(data: unknown): T[] {
   if (!data) return []
@@ -27,7 +30,11 @@ const emptyForm: WarehouseFormData = {
 
 export function AdminWarehouses() {
   const { t } = useTranslation()
+  const { user, userType } = useAuth()
+  const isWarehouseManagerUser =
+    userType === 'employee' && (user as { role?: string } | null)?.role === 'warehouse_manager'
   const queryClient = useQueryClient()
+  const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<WarehouseFormData>(emptyForm)
   const [error, setError] = useState('')
@@ -35,10 +42,18 @@ export function AdminWarehouses() {
   const [editingForm, setEditingForm] = useState<WarehouseFormData>(emptyForm)
   const [page, setPage] = useState(1)
 
-  const { data } = useQuery({
-    queryKey: ['admin-warehouses', page],
+  useEffect(() => {
+    setPage(1)
+  }, [committedSearch])
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['admin-warehouses', page, isWarehouseManagerUser ? 'wm' : committedSearch],
     queryFn: async () => {
-      const res = await admin.warehouses.list({ page, per_page: 15 })
+      const res = await admin.warehouses.list({
+        page,
+        per_page: 15,
+        ...(!isWarehouseManagerUser && committedSearch ? { search: committedSearch } : {}),
+      })
       return res.data
     },
   })
@@ -85,7 +100,16 @@ export function AdminWarehouses() {
   })
 
   const paginated = data?.data
-  const items: Warehouse[] = paginated?.data ?? []
+  const rawItems: Warehouse[] = paginated?.data ?? []
+  const items = useMemo(() => {
+    if (!isWarehouseManagerUser || !committedSearch) return rawItems
+    const s = committedSearch.toLowerCase()
+    return rawItems.filter((w) =>
+      [w.name, w.email, w.city, w.country, w.address, w.phone]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(s))
+    )
+  }, [rawItems, isWarehouseManagerUser, committedSearch])
   const meta = paginated && 'current_page' in paginated ? paginated : null
 
   const handleStartEdit = async (w: Warehouse) => {
@@ -144,16 +168,30 @@ export function AdminWarehouses() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold text-amber-900">{t('admin.warehouses')}</h1>
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800"
+          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
         >
           {t('admin.addWarehouse')}
         </button>
       </div>
+      <AdminListSearchBar
+        value={searchInput}
+        onChange={setSearchInput}
+        placeholder={t('admin.searchWarehousesPlaceholder')}
+        hint={
+          isWarehouseManagerUser
+            ? t('admin.searchWarehousesLocalHint')
+            : t('admin.listAutoSearchHint')
+        }
+        isFetching={isFetching && !isWarehouseManagerUser}
+        committedValue={committedSearch}
+        onCommit={commitSearch}
+        className="mb-6"
+      />
       {editingId && (
         <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
           <h2 className="font-semibold mb-4">{t('admin.editWarehouse')}</h2>

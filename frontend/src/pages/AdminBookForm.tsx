@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchCommit } from '../hooks/useSearchCommit'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -54,27 +55,26 @@ export function AdminBookForm() {
 
   const [form, setForm] = useState<BookFormData>(emptyForm)
   const [error, setError] = useState('')
-  const [authorSearch, setAuthorSearch] = useState('')
-  const [authorSearchDebounced, setAuthorSearchDebounced] = useState('')
+  const {
+    searchInput: authorSearch,
+    setSearchInput: setAuthorSearch,
+    committedSearch: authorSearchDebounced,
+    commitSearch: commitAuthorSearch,
+  } = useSearchCommit()
   const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false)
 
-  useEffect(() => {
-    const t = setTimeout(() => setAuthorSearchDebounced(authorSearch.trim()), 300)
-    return () => clearTimeout(t)
-  }, [authorSearch])
-  const [newAuthorName, setNewAuthorName] = useState('')
-  const [categorySearch, setCategorySearch] = useState('')
-  const [categorySearchDebounced, setCategorySearchDebounced] = useState('')
+  const [, setNewAuthorName] = useState('')
+  const {
+    searchInput: categorySearch,
+    setSearchInput: setCategorySearch,
+    committedSearch: categorySearchDebounced,
+    commitSearch: commitCategorySearch,
+  } = useSearchCommit()
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
   const [newCategory, setNewCategory] = useState({ dewey_code: '', subject_title: '' })
   const [addingAuthor, setAddingAuthor] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
-
-  useEffect(() => {
-    const t = setTimeout(() => setCategorySearchDebounced(categorySearch.trim()), 300)
-    return () => clearTimeout(t)
-  }, [categorySearch])
 
   const { data: bookData } = useQuery({
     queryKey: ['admin-book', id],
@@ -475,8 +475,18 @@ export function AdminBookForm() {
               type="text"
               value={categorySearch}
               onChange={(e) => {
-                setCategorySearch(e.target.value)
+                const next = e.target.value
+                setCategorySearch(next)
                 setCategoryDropdownOpen(true)
+                if (next.endsWith(' ')) {
+                  window.setTimeout(() => commitCategorySearch(next), 0)
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  commitCategorySearch(e.currentTarget.value)
+                }
               }}
               onFocus={() => setCategoryDropdownOpen(true)}
               onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 180)}
@@ -629,8 +639,18 @@ export function AdminBookForm() {
               type="text"
               value={authorSearch}
               onChange={(e) => {
-                setAuthorSearch(e.target.value)
+                const next = e.target.value
+                setAuthorSearch(next)
                 setAuthorDropdownOpen(true)
+                if (next.endsWith(' ')) {
+                  window.setTimeout(() => commitAuthorSearch(next), 0)
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  commitAuthorSearch(e.currentTarget.value)
+                }
               }}
               onFocus={() => setAuthorDropdownOpen(true)}
               onBlur={() =>

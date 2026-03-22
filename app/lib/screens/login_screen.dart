@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _rememberMe = false;
   bool _loading = false;
   String? _error;
 
@@ -34,7 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
     });
     final auth = context.read<AuthProvider>();
-    final err = await auth.loginAsCustomer(_emailController.text, _passwordController.text);
+    final err = await auth.loginAsCustomer(
+      _emailController.text,
+      _passwordController.text,
+      rememberMe: _rememberMe,
+    );
     if (!mounted) return;
     setState(() => _loading = false);
     if (err != null) {
@@ -107,6 +112,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: true,
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Password required' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      value: _rememberMe,
+                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('Remember me'),
+                      controlAffinity: ListTileControlAffinity.leading,
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 16),

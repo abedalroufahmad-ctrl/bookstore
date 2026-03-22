@@ -28,7 +28,10 @@ class CustomerAuthController extends BaseApiController
 
     public function login(CustomerLoginRequest $request): JsonResponse
     {
-        $token = $this->authService->attemptLogin($request->only('email', 'password'));
+        $token = $this->authService->attemptLogin(
+            $request->only('email', 'password'),
+            (bool) $request->boolean('remember_me')
+        );
 
         if (! $token) {
             return $this->errorResponse('Invalid credentials', 401);
