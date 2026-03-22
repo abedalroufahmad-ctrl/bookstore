@@ -11,6 +11,22 @@
 /frontend/dist/
 /frontend/.env
 
+# IDE & editors
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Local binaries / spreadsheets (not for VCS)
+*.appimage
+/*.ods
+api/app/Console/Commands/*.ods
+my-books.ods
+
+# Flutter app — Android build outputs (see also app/.gitignore)
+/app/android/build/
+/app/android/.gradle/
+
 # General
 .DS_Store
 .env
