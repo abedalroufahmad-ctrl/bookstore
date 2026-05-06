@@ -87,8 +87,7 @@ export function AuthorList() {
 
             {/* Authors Grid */}
             <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
                 {items.map((author) => (
                     <Link
