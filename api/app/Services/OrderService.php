@@ -45,9 +45,9 @@ class OrderService extends BaseService implements OrderServiceInterface
         protected PaymentRepository $paymentRepository
     ) {}
 
-    public function checkout($user, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array
+    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array
     {
-        $cart = $this->cartService->getOrCreateActiveCart($user);
+        $cart = $this->cartService->getOrCreateActiveCart($customer);
 
         if (empty($cart->items)) {
             throw new \InvalidArgumentException('Cart is empty.');
@@ -55,7 +55,7 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $paymentStatus = $paymentMethod === 'cod' ? Payment::statusPaid() : Payment::statusPending();
 
-        $doCheckout = function () use ($cart, $user, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatus) {
+        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatus) {
             $groupedByWarehouse = $this->groupCartItemsByWarehouse($cart->items);
             $createdOrders = [];
 
@@ -64,7 +64,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                 $orderTotal = $this->calculateItemsTotal($items);
 
                 $order = $this->orderRepository->create([
-                    'customer_id' => $user->getKey(),
+                    'customer_id' => $customer->getKey(),
                     'warehouse_id' => $warehouseId,
                     'items' => $items,
                     'status' => OrderStatus::PendingReview->value,
@@ -77,7 +77,7 @@ class OrderService extends BaseService implements OrderServiceInterface
 
                 $this->paymentRepository->create([
                     'order_id' => $order->getKey(),
-                    'user_id' => $user->getKey(),
+                    'user_id' => $customer->getKey(),
                     'payment_method' => $paymentMethod,
                     'payment_status' => $paymentStatus,
                     'transaction_id' => null,
@@ -174,9 +174,9 @@ class OrderService extends BaseService implements OrderServiceInterface
         return $order->fresh(['customer', 'employee']);
     }
 
-    public function getOrdersForCustomer($user, int $perPage = 15): LengthAwarePaginator
+    public function getOrdersForCustomer(Customer $customer, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->orderRepository->getByCustomerId($user->getKey(), $perPage);
+        return $this->orderRepository->getByCustomerId($customer->getKey(), $perPage);
     }
 
     public function getOrderById(string $id, ?string $customerId = null, array $with = []): ?Order

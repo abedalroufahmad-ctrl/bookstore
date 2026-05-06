@@ -13,10 +13,10 @@ class CartRepository implements CartRepositoryInterface
         protected Cart $model
     ) {}
 
-    public function findActiveByCustomer($user): ?Cart
+    public function findActiveByCustomer(Customer $customer): ?Cart
     {
         return $this->model->newQuery()
-            ->where('customer_id', $user->getKey())
+            ->where('customer_id', $customer->getKey())
             ->where('status', CartStatus::Active->value)
             ->first();
     }

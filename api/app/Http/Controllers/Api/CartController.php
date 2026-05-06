@@ -15,8 +15,8 @@ class CartController extends BaseApiController
 
     public function show(): JsonResponse
     {
-        $user = auth('customer')->user() ?? auth('employee')->user();
-        $cart = $this->cartService->getOrCreateActiveCart($user);
+        $customer = auth('customer')->user();
+        $cart = $this->cartService->getOrCreateActiveCart($customer);
         $items = $this->cartService->getItemsWithDetails($cart);
         $total = $this->cartService->calculateTotal($cart);
 
@@ -30,8 +30,8 @@ class CartController extends BaseApiController
     public function addItem(AddToCartRequest $request): JsonResponse
     {
         try {
-            $user = auth('customer')->user() ?? auth('employee')->user();
-            $cart = $this->cartService->getOrCreateActiveCart($user);
+            $customer = auth('customer')->user();
+            $cart = $this->cartService->getOrCreateActiveCart($customer);
             $cart = $this->cartService->addBook(
                 $cart,
                 $request->validated('book_id'),
@@ -52,8 +52,8 @@ class CartController extends BaseApiController
     public function removeItem(string $bookId): JsonResponse
     {
         try {
-            $user = auth('customer')->user() ?? auth('employee')->user();
-            $cart = $this->cartService->getOrCreateActiveCart($user);
+            $customer = auth('customer')->user();
+            $cart = $this->cartService->getOrCreateActiveCart($customer);
             $cart = $this->cartService->removeBook($cart, $bookId);
             $total = $this->cartService->calculateTotal($cart);
 
@@ -69,8 +69,8 @@ class CartController extends BaseApiController
     public function updateItem(UpdateCartItemRequest $request, string $bookId): JsonResponse
     {
         try {
-            $user = auth('customer')->user() ?? auth('employee')->user();
-            $cart = $this->cartService->getOrCreateActiveCart($user);
+            $customer = auth('customer')->user();
+            $cart = $this->cartService->getOrCreateActiveCart($customer);
             $cart = $this->cartService->updateQuantity(
                 $cart,
                 $bookId,

@@ -17,13 +17,13 @@ class CartService extends BaseService implements CartServiceInterface
         protected CartRepositoryInterface $cartRepository
     ) {}
 
-    public function getOrCreateActiveCart($user): Cart
+    public function getOrCreateActiveCart(Customer $customer): Cart
     {
-        $cart = $this->cartRepository->findActiveByCustomer($user);
+        $cart = $this->cartRepository->findActiveByCustomer($customer);
 
         if (! $cart) {
             $cart = $this->cartRepository->create([
-                'customer_id' => $user->getKey(),
+                'customer_id' => $customer->getKey(),
                 'items' => [],
                 'status' => CartStatus::Active->value,
             ]);

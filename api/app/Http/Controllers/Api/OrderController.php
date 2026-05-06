@@ -18,9 +18,9 @@ class OrderController extends BaseApiController
     public function checkout(CheckoutRequest $request): JsonResponse
     {
         try {
-            $user = auth('customer')->user() ?? auth('employee')->user();
+            $customer = auth('customer')->user();
             $orders = $this->orderService->checkout(
-                $user,
+                $customer,
                 $request->validated('shipping_address'),
                 $request->validated('payment_method'),
                 $request->validated('payment_info')
@@ -42,17 +42,17 @@ class OrderController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
-        $user = auth('customer')->user() ?? auth('employee')->user();
+        $customer = auth('customer')->user();
         $perPage = min((int) $request->get('per_page', 15), 100);
-        $orders = $this->orderService->getOrdersForCustomer($user, $perPage);
+        $orders = $this->orderService->getOrdersForCustomer($customer, $perPage);
 
         return $this->successResponse($orders);
     }
 
     public function show(string $id): JsonResponse
     {
-        $user = auth('customer')->user() ?? auth('employee')->user();
-        $order = $this->orderService->getOrderById($id, $user->getKey());
+        $customer = auth('customer')->user();
+        $order = $this->orderService->getOrderById($id, $customer->getKey());
 
         if (! $order) {
             return $this->errorResponse('Order not found', 404);
@@ -64,8 +64,8 @@ class OrderController extends BaseApiController
     public function updateStatus(UpdateOrderStatusRequest $request, string $id): JsonResponse
     {
         try {
-            $user = auth('customer')->user() ?? auth('employee')->user();
-            $order = $this->orderService->getOrderById($id, $user->getKey());
+            $customer = auth('customer')->user();
+            $order = $this->orderService->getOrderById($id, $customer->getKey());
 
             if (! $order) {
                 return $this->errorResponse('Order not found', 404);

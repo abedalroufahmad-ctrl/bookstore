@@ -21,7 +21,6 @@ import { AdminCustomers } from './pages/AdminCustomers'
 import { AdminAuthors } from './pages/AdminAuthors'
 import { AdminAuthorForm } from './pages/AdminAuthorForm'
 import { AdminCategories } from './pages/AdminCategories'
-import { AdminPublishers } from './pages/AdminPublishers'
 import { AdminWarehouses } from './pages/AdminWarehouses'
 import { AuthorList } from './pages/AuthorList'
 import { AuthorBooks } from './pages/AuthorBooks'
@@ -52,13 +51,6 @@ function CustomerRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { userType, isLoading } = useAuth()
-  if (isLoading) return <div className="py-12 text-center">Loading...</div>
-  if (userType !== 'customer' && userType !== 'employee') return <Navigate to="/login" replace />
-  return <>{children}</>
-}
-
 function AppRoutes() {
   return (
     <Routes>
@@ -77,33 +69,33 @@ function AppRoutes() {
         <Route
           path="cart"
           element={
-            <AuthRoute>
+            <CustomerRoute>
               <CartPage />
-            </AuthRoute>
+            </CustomerRoute>
           }
         />
         <Route
           path="checkout"
           element={
-            <AuthRoute>
+            <CustomerRoute>
               <Checkout />
-            </AuthRoute>
+            </CustomerRoute>
           }
         />
         <Route
           path="orders"
           element={
-            <AuthRoute>
+            <CustomerRoute>
               <Orders />
-            </AuthRoute>
+            </CustomerRoute>
           }
         />
         <Route
           path="orders/:id"
           element={
-            <AuthRoute>
+            <CustomerRoute>
               <OrderDetail />
-            </AuthRoute>
+            </CustomerRoute>
           }
         />
         <Route
@@ -199,14 +191,6 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminCategories />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="admin/publishers"
-          element={
-            <AdminRoute>
-              <AdminPublishers />
             </AdminRoute>
           }
         />

@@ -13,7 +13,7 @@ export function BookDetail() {
   const { userType } = useAuth()
   const { settings } = useSettings()
   const [showOriginal, setShowOriginal] = useState(false)
-    const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setShowOriginal(false)
@@ -37,7 +37,7 @@ export function BookDetail() {
   })
 
   const addToCart = async () => {
-    if (userType !== 'customer' && userType !== 'employee') {
+    if (userType !== 'customer') {
       navigate('/login')
       return
     }
@@ -181,15 +181,15 @@ export function BookDetail() {
               value={
                 category && (category._id ? (
                   <Link to={`/categories/${category._id}`} style={{ color: 'var(--color-primary)' }} className="hover:underline">
-                    {i18n.language === 'ar' && category.subject_title_ar ? category.subject_title_ar : (category.subject_title_en ?? category.dewey_code)}
+                    {category.subject_title ?? category.dewey_code}
                   </Link>
                 ) : (
-                  i18n.language === 'ar' && category.subject_title_ar ? category.subject_title_ar : (category.subject_title_en ?? category.dewey_code)
+                  category.subject_title ?? category.dewey_code
                 ))
               }
             />
             <InfoRow label={t('bookDetail.isbn')} value={book.isbn} />
-            <InfoRow label={t('bookDetail.publisher')} value={typeof book.publisher === 'string' ? book.publisher : book.publisher?.name} />
+            <InfoRow label={t('bookDetail.publisher')} value={book.publisher} />
             <InfoRow label={t('bookDetail.year')} value={book.publish_year} />
             <InfoRow label={t('bookDetail.pages')} value={book.pages != null ? String(book.pages) : null} />
             <InfoRow label={t('bookDetail.size')} value={book.size} />
@@ -210,7 +210,7 @@ export function BookDetail() {
             />
           </div>
           {book.description && <p className="text-stone-600 mb-4">{book.description}</p>}
-          {(userType === 'customer' || userType === 'employee') && book.stock_quantity > 0 && (
+          {userType === 'customer' && book.stock_quantity > 0 && (
             <button
               onClick={addToCart}
               className="px-6 py-2.5 rounded-lg font-medium text-white transition-colors hover:opacity-90"
@@ -219,7 +219,7 @@ export function BookDetail() {
               {t('bookDetail.addToCart')}
             </button>
           )}
-          {userType !== 'customer' && userType !== 'employee' && book.stock_quantity > 0 && (
+          {userType !== 'customer' && book.stock_quantity > 0 && (
             <button
               onClick={() => navigate('/login')}
               className="px-6 py-2.5 rounded-lg font-medium text-white flex items-center gap-2 transition-colors hover:opacity-90"

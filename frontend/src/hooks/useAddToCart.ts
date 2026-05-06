@@ -10,8 +10,6 @@ export function useAddToCart() {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const isAuthUser = userType === 'customer' || userType === 'employee'
-
   const addToCartMutation = useMutation({
     mutationFn: (bookId: string) => cart.addItem(bookId, 1),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
@@ -23,12 +21,12 @@ export function useAddToCart() {
       const res = await cart.get()
       return res.data
     },
-    enabled: isAuthUser,
+    enabled: userType === 'customer',
   })
 
   const cartBookIds = (cartData?.data?.items ?? []).map((item: { book_id: string }) => item.book_id)
 
-  const handleAddToCart = isAuthUser ? (bookId: string) => {
+  const handleAddToCart = userType === 'customer' ? (bookId: string) => {
     addToCartMutation.mutate(bookId, {
       onError: (err: any) => {
         if (err?.response?.status === 401) {

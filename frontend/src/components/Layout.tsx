@@ -52,7 +52,7 @@ export function Layout() {
                       </button>
                     </span>
                   )}
-                  {(userType === 'customer' || userType === 'employee') && (
+                  {userType === 'customer' && (
                     <Link to="/cart" className="text-sm" style={{ color: 'var(--color-text)' }}>
                       🛒 {t('nav.cart')}
                     </Link>
@@ -72,10 +72,8 @@ export function Layout() {
                 <Link to="/categories" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.categories')}</Link>
                 <Link to="/warehouses" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.warehouses')}</Link>
                 {userType === 'customer' && (
-                  <Link to="/account" className="text-sm py-2 font-medium" style={{ color: 'var(--color-primary)' }}>{t('nav.myAccount')}</Link>
-                )}
-                {(userType === 'customer' || userType === 'employee') && (
                   <>
+                    <Link to="/account" className="text-sm py-2 font-medium" style={{ color: 'var(--color-primary)' }}>{t('nav.myAccount')}</Link>
                     <Link to="/cart" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.cart')}</Link>
                     <Link to="/orders" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.orders')}</Link>
                   </>
@@ -97,10 +95,8 @@ export function Layout() {
                 <Link to="/categories" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.categories')}</Link>
                 <Link to="/warehouses" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.warehouses')}</Link>
                 {userType === 'customer' && (
-                  <Link to="/account" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-primary)' }}>{t('nav.myAccount')}</Link>
-                )}
-                {(userType === 'customer' || userType === 'employee') && (
                   <>
+                    <Link to="/account" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-primary)' }}>{t('nav.myAccount')}</Link>
                     <Link to="/cart" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.cart')}</Link>
                     <Link to="/orders" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.orders')}</Link>
                   </>

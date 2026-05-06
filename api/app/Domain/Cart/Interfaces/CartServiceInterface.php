@@ -3,11 +3,12 @@
 namespace App\Domain\Cart\Interfaces;
 
 use App\Models\Cart;
+use App\Models\Customer;
 use Illuminate\Support\Collection;
 
 interface CartServiceInterface
 {
-    public function getOrCreateActiveCart($user): Cart;
+    public function getOrCreateActiveCart(Customer $customer): Cart;
 
     public function addBook(Cart $cart, string $bookId, int $quantity = 1): Cart;
 
