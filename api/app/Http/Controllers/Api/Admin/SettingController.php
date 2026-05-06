@@ -23,7 +23,7 @@ class SettingController extends BaseApiController
         }
 
         if (! isset($settings['catalog_items_per_page'])) {
-            $settings['catalog_items_per_page'] = 35;
+            $settings['catalog_items_per_page'] = 24;
         }
 
         $raw = $settings['payment_methods'] ?? null;

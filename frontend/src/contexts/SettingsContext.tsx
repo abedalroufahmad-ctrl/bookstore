@@ -71,7 +71,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         weight_unit: (raw?.weight_unit as WeightUnit) || 'kg',
         catalog_items_per_page: typeof raw?.catalog_items_per_page === 'number' && raw.catalog_items_per_page >= 1
             ? Math.min(100, Math.round(raw.catalog_items_per_page))
-            : 35,
+            : 24,
     }
 
     return (
