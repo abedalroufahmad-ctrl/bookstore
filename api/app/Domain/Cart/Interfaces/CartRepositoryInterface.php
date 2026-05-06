@@ -7,7 +7,7 @@ use App\Models\Customer;
 
 interface CartRepositoryInterface
 {
-    public function findActiveByCustomer(Customer $customer): ?Cart;
+    public function findActiveByCustomer($user): ?Cart;
 
     public function create(array $data): Cart;
 

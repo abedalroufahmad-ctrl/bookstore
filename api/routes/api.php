@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\CountryController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\EmployeeController;
+use App\Http\Controllers\Api\Admin\PublisherController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\UploadAuthorPhotoController;
 use App\Http\Controllers\Api\Admin\UploadCoverController;
@@ -67,6 +68,12 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         Route::put('categories/{id}', [CategoryController::class, 'update']);
         Route::delete('categories/{id}', [CategoryController::class, 'destroy']);
 
+        Route::get('publishers', [PublisherController::class, 'index']);
+        Route::post('publishers', [PublisherController::class, 'store']);
+        Route::get('publishers/{id}', [PublisherController::class, 'show']);
+        Route::put('publishers/{id}', [PublisherController::class, 'update']);
+        Route::delete('publishers/{id}', [PublisherController::class, 'destroy']);
+
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::get('employees/{id}', [EmployeeController::class, 'show']);
@@ -120,6 +127,13 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::post('refresh', [CustomerAuthController::class, 'refresh']);
             Route::get('me', [CustomerAuthController::class, 'me']);
             Route::put('profile', [CustomerAuthController::class, 'updateProfile']);
+        });
+
+        Route::middleware(['auth:customer,employee'])->group(function () {
+            // Orders
+            Route::get('orders', [OrderController::class, 'index']);
+            Route::get('orders/{id}', [OrderController::class, 'show']);
+            Route::patch('orders/{id}/status', [OrderController::class, 'updateStatus']);
 
             // Cart
             Route::get('cart', [CartController::class, 'show']);
@@ -127,11 +141,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::delete('cart/items/{bookId}', [CartController::class, 'removeItem']);
             Route::patch('cart/items/{bookId}', [CartController::class, 'updateItem']);
 
-            // Orders
+            // Checkout
             Route::post('orders/checkout', [OrderController::class, 'checkout']);
-            Route::get('orders', [OrderController::class, 'index']);
-            Route::get('orders/{id}', [OrderController::class, 'show']);
-            Route::patch('orders/{id}/status', [OrderController::class, 'updateStatus']);
         });
     });
 });

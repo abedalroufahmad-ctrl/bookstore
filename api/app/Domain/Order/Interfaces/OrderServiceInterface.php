@@ -14,13 +14,13 @@ interface OrderServiceInterface
      *
      * @return array<int, Order>
      */
-    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array;
+    public function checkout($user, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array;
 
     public function updateStatus(Order $order, string $newStatus): Order;
 
     public function assignOrder(Order $order, string $employeeId, ?string $warehouseId = null): Order;
 
-    public function getOrdersForCustomer(Customer $customer, int $perPage = 15): LengthAwarePaginator;
+    public function getOrdersForCustomer($user, int $perPage = 15): LengthAwarePaginator;
 
     public function getOrderById(string $id, ?string $customerId = null, array $with = []): ?Order;
 
