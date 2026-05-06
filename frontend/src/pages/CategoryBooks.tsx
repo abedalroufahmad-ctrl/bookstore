@@ -5,11 +5,14 @@ import { categories as categoriesApi, books as booksApi } from '../lib/api'
 import { BookCard } from '../components/BookCard'
 import { useSettings } from '../contexts/SettingsContext'
 import { Pagination } from '../components/Pagination'
+import { useAddToCart } from '../hooks/useAddToCart'
 import type { Category, Book } from '../lib/api'
 
 export function CategoryBooks() {
     const { id } = useParams<{ id: string }>()
     const [searchParams, setSearchParams] = useSearchParams()
+    const { handleAddToCart, isAddingToCart, isInCart } = useAddToCart()
+
     const search = searchParams.get('search') ?? ''
     const page = parseInt(searchParams.get('page') ?? '1', 10)
     const setPage = (p: number) => {
@@ -18,7 +21,7 @@ export function CategoryBooks() {
         setSearchParams(params)
     }
 
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { settings } = useSettings()
 
     const { data: categoryData, isLoading: categoryLoading } = useQuery({
@@ -96,7 +99,7 @@ export function CategoryBooks() {
                     {t('categories.title')}
                 </Link>
                 {' '}
-                / {category?.subject_title}
+                / {category ? (i18n.language === 'ar' && category.subject_title_ar ? category.subject_title_ar : category.subject_title_en) : ''}
             </div>
 
             {/* Category Header */}
@@ -131,7 +134,7 @@ export function CategoryBooks() {
 
                     <div>
                         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', margin: 0 }}>
-                            {category.subject_title}
+                            {i18n.language === 'ar' && category.subject_title_ar ? category.subject_title_ar : category.subject_title_en}
                         </h1>
                         <div
                             style={{
@@ -173,8 +176,13 @@ export function CategoryBooks() {
                             coverImageThumb={book.cover_image_thumb}
                             authorName={book.authors?.map((a) => a.name).join('، ')}
                             authors={book.authors}
+                            publisher={typeof book.publisher === 'string' ? book.publisher : book.publisher?.name}
+                            warehouseName={book.warehouse?.name}
                             discountPercent={book.discount_percent ?? 0}
                             globalDiscount={settings.global_discount ?? 0}
+                            onAddToCart={handleAddToCart}
+                            isAddingToCart={isAddingToCart(book._id)}
+                            isInCart={isInCart(book._id)}
                         />
                     ))}
                 </div>

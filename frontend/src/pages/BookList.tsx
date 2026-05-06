@@ -1,41 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { books, cart } from '../lib/api'
+import { books } from '../lib/api'
 import { BookCard } from '../components/BookCard'
 import { Pagination } from '../components/Pagination'
 import { useSettings } from '../contexts/SettingsContext'
-import { useAuth } from '../contexts/AuthContext'
+import { useAddToCart } from '../hooks/useAddToCart'
 
 export function BookList() {
   const { t } = useTranslation()
   const { settings } = useSettings()
-  const { userType } = useAuth()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { handleAddToCart, isAddingToCart, isInCart } = useAddToCart()
 
-  const addToCartMutation = useMutation({
-    mutationFn: (bookId: string) => cart.addItem(bookId, 1),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
-  })
-
-  const handleAddToCart = (bookId: string) => {
-    if (userType !== 'customer') {
-      navigate('/login')
-      return
-    }
-    addToCartMutation.mutate(bookId, {
-      onError: (err: any) => {
-        if (err?.response?.status === 401) {
-          navigate('/login')
-          return
-        }
-        const message = err?.response?.data?.message ?? t('common.error')
-        alert(message)
-      },
-    })
-  }
   const search = searchParams.get('search') ?? ''
   const page = parseInt(searchParams.get('page') ?? '1', 10)
   const setPage = (p: number) => {
@@ -53,30 +30,12 @@ export function BookList() {
     },
   })
 
-  const { data: cartData } = useQuery({
-    queryKey: ['cart'],
-    queryFn: async () => {
-      const res = await cart.get()
-      return res.data
-    },
-    enabled: userType === 'customer',
-  })
-
-  const cartBookIds = (cartData?.data?.items ?? []).map((item: { book_id: string }) => item.book_id)
-
   if (isLoading) return <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>{t('common.loading')}</div>
   if (error) return <div className="text-center py-12" style={{ color: 'var(--color-discount)' }}>{t('books.failedToLoad')}</div>
 
   const paginated = data?.data
   const items = paginated?.data ?? []
   const meta = paginated && 'current_page' in paginated ? paginated : null
-
-  // The resolveCoverUrl function is no longer needed here as BookCard will handle image resolution
-  // const apiBase = import.meta.env.VITE_API_URL || '/api/v1'
-  // const resolveCoverUrl = (path: string) =>
-  //   path.startsWith('http://') || path.startsWith('https://')
-  //     ? path
-  //     : `${apiBase.replace(/\/api\/v1$/, '')}${path.startsWith('/') ? path : `/${path}`}`
 
   return (
     <div>
@@ -94,11 +53,13 @@ export function BookList() {
             coverImageThumb={book.cover_image_thumb}
             authorName={book.authors?.map((a: any) => a.name).join('، ') || ''}
             authors={book.authors}
+            publisher={typeof book.publisher === 'string' ? book.publisher : book.publisher?.name}
+            warehouseName={book.warehouse?.name}
             discountPercent={book.discount_percent}
             globalDiscount={settings.global_discount}
             onAddToCart={handleAddToCart}
-            isAddingToCart={addToCartMutation.isPending && addToCartMutation.variables === book._id}
-            isInCart={cartBookIds.includes(book._id)}
+            isAddingToCart={isAddingToCart(book._id)}
+            isInCart={isInCart(book._id)}
           />
         ))}
       </div>

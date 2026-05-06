@@ -8,7 +8,7 @@ import { useSettings } from '../contexts/SettingsContext'
 import type { Book, Warehouse } from '../lib/api'
 
 export function HomePage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { settings } = useSettings()
     const { data, isLoading, error } = useQuery({
         queryKey: ['books', settings.catalog_items_per_page],
@@ -63,16 +63,16 @@ export function HomePage() {
     const youMightLike = items.slice(0, 8)
 
     const mainTopics = [
-        { code: '000', name: 'Information, Computers, Public Business', icon: '💻' },
-        { code: '100', name: 'Philosophy, Psychology, Ideas', icon: '🧠' },
-        { code: '200', name: 'Religion', icon: '🕌' },
-        { code: '300', name: 'Social Sciences, Society', icon: '🌍' },
-        { code: '400', name: 'Language', icon: '🗣️' },
-        { code: '500', name: 'Natural Sciences, Mathematics', icon: '🔬' },
-        { code: '600', name: 'Technology, Applied Sciences', icon: '⚙️' },
-        { code: '700', name: 'Arts, Entertainment, Sports', icon: '🎨' },
-        { code: '800', name: 'Literature', icon: '📖' },
-        { code: '900', name: 'History, Geography', icon: '🗺️' },
+        { code: '000', name: i18n.language === 'ar' ? 'المعلومات، الحواسيب، الأعمال العامة' : 'Information, Computers, Public Business', icon: '💻' },
+        { code: '100', name: i18n.language === 'ar' ? 'الفلسفة، علم النفس، الأفكار' : 'Philosophy, Psychology, Ideas', icon: '🧠' },
+        { code: '200', name: i18n.language === 'ar' ? 'الدين' : 'Religion', icon: '🕌' },
+        { code: '300', name: i18n.language === 'ar' ? 'العلوم الاجتماعية، المجتمع' : 'Social Sciences, Society', icon: '🌍' },
+        { code: '400', name: i18n.language === 'ar' ? 'اللغة' : 'Language', icon: '🗣️' },
+        { code: '500', name: i18n.language === 'ar' ? 'العلوم الطبيعية، الرياضيات' : 'Natural Sciences, Mathematics', icon: '🔬' },
+        { code: '600', name: i18n.language === 'ar' ? 'التكنولوجيا، العلوم التطبيقية' : 'Technology, Applied Sciences', icon: '⚙️' },
+        { code: '700', name: i18n.language === 'ar' ? 'الفنون، الترفيه، الرياضة' : 'Arts, Entertainment, Sports', icon: '🎨' },
+        { code: '800', name: i18n.language === 'ar' ? 'الأدب' : 'Literature', icon: '📖' },
+        { code: '900', name: i18n.language === 'ar' ? 'التاريخ، الجغرافيا' : 'History, Geography', icon: '🗺️' },
     ]
 
     return (
@@ -274,6 +274,11 @@ export function HomePage() {
                                 >
                                     {book.title}
                                 </div>
+                                {book.publisher && (
+                                    <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                                        🏢 {typeof book.publisher === 'string' ? book.publisher : book.publisher.name}
+                                    </div>
+                                )}
                                 <div className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>
                                     ${book.price?.toFixed(2) ?? '—'}
                                 </div>

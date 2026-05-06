@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { BookCard } from './BookCard'
 import type { Book } from '../lib/api'
+import { useAddToCart } from '../hooks/useAddToCart'
 
 interface BookCarouselProps {
     title: string
@@ -16,6 +17,7 @@ export function BookCarousel({
     showAllLink,
 }: BookCarouselProps) {
     const scrollRef = useRef<HTMLDivElement>(null)
+    const { handleAddToCart, isAddingToCart, isInCart } = useAddToCart()
 
     const scroll = (direction: 'left' | 'right') => {
         if (!scrollRef.current) return
@@ -69,8 +71,13 @@ export function BookCarousel({
                             coverImageThumb={book.cover_image_thumb}
                             authorName={book.authors?.map((a) => a.name).join('، ') || ''}
                             authors={book.authors}
+                            publisher={typeof book.publisher === 'string' ? book.publisher : book.publisher?.name}
+                            warehouseName={book.warehouse?.name}
                             discountPercent={book.discount_percent}
                             globalDiscount={globalDiscount}
+                            onAddToCart={handleAddToCart}
+                            isAddingToCart={isAddingToCart(book._id)}
+                            isInCart={isInCart(book._id)}
                         />
                     ))}
                 </div>

@@ -5,11 +5,14 @@ import { warehousesPublic as warehousesApi, books as booksApi } from '../lib/api
 import { BookCard } from '../components/BookCard'
 import { useSettings } from '../contexts/SettingsContext'
 import { Pagination } from '../components/Pagination'
+import { useAddToCart } from '../hooks/useAddToCart'
 import type { Book, Warehouse } from '../lib/api'
 
 export function WarehouseBooks() {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { handleAddToCart, isAddingToCart, isInCart } = useAddToCart()
+
   const search = searchParams.get('search') ?? ''
   const page = parseInt(searchParams.get('page') ?? '1', 10)
   const setPage = (p: number) => {
@@ -140,8 +143,13 @@ export function WarehouseBooks() {
               coverImageThumb={book.cover_image_thumb}
               authorName={book.authors?.map((a) => a.name).join('، ')}
               authors={book.authors}
+              publisher={typeof book.publisher === 'string' ? book.publisher : book.publisher?.name}
+              warehouseName={book.warehouse?.name}
               discountPercent={book.discount_percent ?? 0}
               globalDiscount={settings.global_discount ?? 0}
+              onAddToCart={handleAddToCart}
+              isAddingToCart={isAddingToCart(book._id)}
+              isInCart={isInCart(book._id)}
             />
           ))}
         </div>
