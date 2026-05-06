@@ -73,7 +73,7 @@ export function Checkout() {
     },
   })
 
-  if (userType !== 'customer') {
+  if (userType !== 'customer' && userType !== 'employee') {
     navigate('/login')
     return null
   }
@@ -89,6 +89,11 @@ export function Checkout() {
   return (
     <div className="max-w-md mx-auto">
       <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">{t('checkout.title')}</h1>
+      
+      <div className="mb-6 bg-blue-50 text-blue-800 p-4 rounded-lg text-sm border border-blue-200">
+        ℹ️ {t('cart.warehouseSplitNotice', 'Items are grouped by warehouse. Each warehouse will be processed as a separate order.')}
+      </div>
+
       <p className="text-stone-600 mb-4">{t('checkout.shippingAddress')}</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

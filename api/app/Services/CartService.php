@@ -139,7 +139,7 @@ class CartService extends BaseService implements CartServiceInterface
         $items = collect($cart->items ?? []);
 
         return $items->map(function (array $item) {
-            $book = Book::find($item['book_id'] ?? null);
+            $book = Book::with('warehouse')->find($item['book_id'] ?? null);
             $currentPrice = $book ? $this->calculateDiscountedPrice($book) : ($item['price'] ?? 0);
 
             return [
@@ -152,6 +152,10 @@ class CartService extends BaseService implements CartServiceInterface
                     'title' => $book->title,
                     'price' => $book->price,
                     'discount_percent' => $book->discount_percent,
+                    'warehouse' => $book->warehouse ? [
+                        'id' => $book->warehouse->getKey(),
+                        'name' => $book->warehouse->name,
+                    ] : null,
                 ] : null,
             ];
         });
