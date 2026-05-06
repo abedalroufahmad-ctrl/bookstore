@@ -20,7 +20,7 @@ class EmployeeOrderController extends BaseApiController
             'assigned_to_me' => $request->boolean('assigned_to_me'),
         ];
         $employee = auth('employee')->user();
-        if ($employee && UserRole::isWarehouseScoped($employee->role)) {
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             $managedIds = $employee->getManagedWarehouseIds();
             if (! empty($managedIds)) {
                 $filters['warehouse_ids'] = $managedIds;
@@ -44,7 +44,7 @@ class EmployeeOrderController extends BaseApiController
         }
 
         $employee = auth('employee')->user();
-        if ($employee && UserRole::isWarehouseScoped($employee->role)) {
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
             if ($orderWarehouseId !== null && ! $employee->managesWarehouse((string) $orderWarehouseId)) {
                 return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
@@ -64,7 +64,7 @@ class EmployeeOrderController extends BaseApiController
             }
 
             $employee = auth('employee')->user();
-            if ($employee && UserRole::isWarehouseScoped($employee->role)) {
+            if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
                 $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
                 if ($orderWarehouseId !== null && ! $employee->managesWarehouse((string) $orderWarehouseId)) {
                     return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);

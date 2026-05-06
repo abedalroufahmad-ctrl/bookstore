@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Order;
 
-use App\Models\Setting;
 use App\Http\Requests\BaseFormRequest;
+use App\Models\Setting;
 use Illuminate\Validation\Validator;
 
 class CheckoutRequest extends BaseFormRequest
@@ -33,16 +33,11 @@ class CheckoutRequest extends BaseFormRequest
             if (! $method) {
                 return;
             }
-            $list = Setting::get('payment_methods');
-            if (! is_array($list)) {
+            $enabledIds = Setting::enabledPaymentMethodIds();
+            if ($enabledIds === []) {
                 $validator->errors()->add('payment_method', 'No payment methods configured.');
+
                 return;
-            }
-            $enabledIds = [];
-            foreach ($list as $item) {
-                if (is_array($item) && ! empty($item['id']) && ! empty($item['enabled'])) {
-                    $enabledIds[] = (string) $item['id'];
-                }
             }
             if (! in_array((string) $method, $enabledIds, true)) {
                 $validator->errors()->add('payment_method', 'This payment method is not available or not enabled.');

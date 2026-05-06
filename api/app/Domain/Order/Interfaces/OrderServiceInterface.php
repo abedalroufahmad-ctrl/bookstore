@@ -8,7 +8,13 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface OrderServiceInterface
 {
-    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): Order;
+    /**
+     * Create one or more orders from the active cart.
+     * Items are split by warehouse, each warehouse gets an independent order.
+     *
+     * @return array<int, Order>
+     */
+    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array;
 
     public function updateStatus(Order $order, string $newStatus): Order;
 

@@ -8,6 +8,7 @@
         "books": "الكتب",
         "authors": "المؤلفون",
         "categories": "التصنيفات",
+        "warehouses": "المستودعات",
         "myAccount": "حسابي",
         "cart": "السلة",
         "orders": "طلباتي",
@@ -59,7 +60,8 @@
         "browseBooks": "تصفح الكتب",
         "topAuthors": "أفضل المؤلفين",
         "booksCount": "{{count}} كتاب",
-        "categoriesCount": "{{count}} تصنيفات"
+        "categoriesCount": "{{count}} تصنيفات",
+        "viewAllWarehouses": "جميع المستودعات"
     },
     "books": {
         "title": "تصفح الكتب",
@@ -82,6 +84,7 @@
         "weight": "الوزن",
         "bindingType": "نوع التجليد",
         "paperType": "نوع الورق",
+        "warehouse": "المستودع",
         "stock": "المخزون",
         "inStock": "{{count}} في المخزون",
         "outOfStock": "غير متوفر",
@@ -162,6 +165,12 @@
         "booksByAuthor": "كتب {{name}}",
         "noBooksForAuthor": "لا توجد كتب لهذا المؤلف."
     },
+    "warehouses": {
+        "title": "المستودعات",
+        "noWarehouses": "لا توجد مستودعات.",
+        "loadError": "فشل تحميل المستودعات",
+        "noBooks": "لا توجد كتب في هذا المستودع."
+    },
     "categories": {
         "title": "التصنيفات",
         "deweyCode": "ديوي: {{code}}",
@@ -195,6 +204,10 @@
         "books": "الكتب",
         "authors": "المؤلفون",
         "categories": "التصنيفات",
+        "warehouseBooksTitle": "كتب حسب المستودع",
+        "warehouseBooksHint": "اختر مستودعاً لعرض كتبه وإدارتها.",
+        "backToWarehouses": "كل المستودعات",
+        "noWarehouses": "لا توجد مستودعات.",
         "orders": "الطلبات",
         "employees": "الموظفون",
         "customers": "العملاء",

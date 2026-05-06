@@ -96,7 +96,7 @@ export function AdminBookForm() {
   const { data: authorsSearchData, isFetching: authorsSearchLoading } = useQuery({
     queryKey: ['admin-authors-search', authorSearchDebounced],
     queryFn: async () => {
-      const params = authorSearchDebounced
+      const params: Record<string, string | number> = authorSearchDebounced
         ? { search: authorSearchDebounced, per_page: 50 }
         : { per_page: 50 }
       const res = await admin.authors.list(params)
@@ -116,7 +116,7 @@ export function AdminBookForm() {
   const { data: categoriesSearchData, isFetching: categoriesSearchLoading } = useQuery({
     queryKey: ['admin-categories-search', categorySearchDebounced],
     queryFn: async () => {
-      const params = categorySearchDebounced
+      const params: Record<string, string | number> = categorySearchDebounced
         ? { search: categorySearchDebounced, per_page: 50 }
         : { per_page: 50 }
       const res = await admin.categories.list(params)
@@ -136,7 +136,7 @@ export function AdminBookForm() {
   const authorList = extractList<{ _id: string; name: string }>(authorsData)
   const searchAuthorList = extractList<{ _id: string; name: string }>(authorsSearchData)
   const rawBook = bookData?.data as (Book & { authors?: Array<Record<string, unknown>> }) | undefined
-  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a) => {
+  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a: any) => {
     const id = normalizeId(a._id ?? a.id) ?? ''
     const name = (a.name ?? a.title) as string | undefined
     return { _id: id, name: name ?? '' }
@@ -204,7 +204,7 @@ export function AdminBookForm() {
   useEffect(() => {
     if (bookData?.data) {
       const b = bookData.data as Book & { authors?: Array<{ _id?: string; id?: string; name?: string }> }
-      const rawAuthorIds = b.author_ids ?? b.authors?.map((a) => a._id ?? a.id) ?? []
+      const rawAuthorIds = b.author_ids ?? b.authors?.map((a: any) => a._id ?? a.id) ?? []
       const authorIds = (Array.isArray(rawAuthorIds) ? rawAuthorIds : []).map((id) => normalizeId(id)).filter((id): id is string => id != null)
       setForm({
         title: b.title ?? '',

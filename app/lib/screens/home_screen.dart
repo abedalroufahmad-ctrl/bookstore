@@ -22,7 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Book> _books = [];
-  List<Category> _categories = [];
+  List<Warehouse> _warehouses = [];
   List<Author> _authors = [];
   double _globalDiscount = 0;
   bool _isLoading = true;
@@ -44,14 +44,14 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final results = await Future.wait([
         ApiService.instance.getBooks(),
-        ApiService.instance.getCategories(),
+        ApiService.instance.getWarehousesPaginated(1, perPage: 40),
         ApiService.instance.getAuthors(),
         ApiService.instance.getSettings(),
       ]);
 
       if (!mounted) return;
       final booksRes = results[0];
-      final categoriesRes = results[1] as ApiResponse<List<Category>>;
+      final warehousesRes = results[1] as ApiResponse<PaginatedResult<Warehouse>>;
       final authorsRes = results[2] as ApiResponse<List<Author>>;
       final settingsRes = results[3] as ApiResponse<Map<String, dynamic>>;
 
@@ -69,7 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _books = list;
         }
 
-        if (categoriesRes.success) _categories = categoriesRes.data ?? [];
+        if (warehousesRes.success && warehousesRes.data != null) {
+          _warehouses = warehousesRes.data!.items;
+        }
         if (authorsRes.success) _authors = authorsRes.data ?? [];
 
         if (settingsRes.success && settingsRes.data != null) {
@@ -86,21 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
-  }
-
-  String _getCategoryIcon(String? deweyCode) {
-    if (deweyCode == null) return '📖';
-    final code = int.tryParse(deweyCode) ?? 0;
-    if (code < 100) return '💻';
-    if (code < 200) return '🧠';
-    if (code < 300) return '🕌';
-    if (code < 400) return '🌍';
-    if (code < 500) return '🗣️';
-    if (code < 600) return '🔬';
-    if (code < 700) return '⚙️';
-    if (code < 800) return '🎨';
-    if (code < 900) return '📖';
-    return '🗺️';
   }
 
   Color _getCategoryColor(String? deweyCode) {
@@ -129,6 +116,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final localeProvider = context.watch<LocaleProvider>();
     final featuredBooks = _books.take(5).toList();
     final newestBooks = _books.reversed.take(10).toList();
+
+    final mainTopics = [
+      {'code': '000', 'name': 'Information, Computers, Public Business', 'icon': '💻'},
+      {'code': '100', 'name': 'Philosophy, Psychology, Ideas', 'icon': '🧠'},
+      {'code': '200', 'name': 'Religion', 'icon': '🕌'},
+      {'code': '300', 'name': 'Social Sciences, Society', 'icon': '🌍'},
+      {'code': '400', 'name': 'Language', 'icon': '🗣️'},
+      {'code': '500', 'name': 'Natural Sciences, Mathematics', 'icon': '🔬'},
+      {'code': '600', 'name': 'Technology, Applied Sciences', 'icon': '⚙️'},
+      {'code': '700', 'name': 'Arts, Entertainment, Sports', 'icon': '🎨'},
+      {'code': '800', 'name': 'Literature', 'icon': '📖'},
+      {'code': '900', 'name': 'History, Geography', 'icon': '🗺️'},
+    ];
 
     return PlatformScaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -257,18 +257,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _categories.length,
+                            itemCount: mainTopics.length,
                             itemBuilder: (context, i) {
-                              final cat = _categories[i];
+                              final topic = mainTopics[i];
                               return Padding(
                                 padding: const EdgeInsets.only(left: 16),
                                 child: SizedBox(
                                   width: 80,
                                   child: InkWell(
                                     onTap: () => Navigator.pushNamed(
-                                      context,
-                                      '/category/${cat.id}',
-                                      arguments: {'title': cat.subjectTitle},
+                                      context, 
+                                      '/categories',
+                                      arguments: {'topicCode': topic['code']}
                                     ),
                                     borderRadius: BorderRadius.circular(16),
                                     child: Column(
@@ -278,12 +278,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                           width: 56,
                                           height: 56,
                                           decoration: BoxDecoration(
-                                            color: _getCategoryColor(cat.deweyCode),
+                                            color: _getCategoryColor(topic['code']),
                                             borderRadius: BorderRadius.circular(14),
                                           ),
                                           child: Center(
                                             child: Text(
-                                              _getCategoryIcon(cat.deweyCode),
+                                              topic['icon']!,
                                               style: const TextStyle(fontSize: 26),
                                             ),
                                           ),
@@ -291,7 +291,61 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const SizedBox(height: 6),
                                         Flexible(
                                           child: Text(
-                                            cat.subjectTitle ?? '',
+                                            topic['name']!,
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        // Warehouses
+                        _buildSectionHeader(t.navWarehouses, '/warehouses'),
+                        SizedBox(
+                          height: 110,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _warehouses.length,
+                            itemBuilder: (context, i) {
+                              final w = _warehouses[i];
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 16),
+                                child: SizedBox(
+                                  width: 88,
+                                  child: InkWell(
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/warehouse/${w.id}',
+                                      arguments: {'name': w.name},
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.secondaryContainer,
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          child: const Center(
+                                            child: Text('🏭', style: TextStyle(fontSize: 26)),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Flexible(
+                                          child: Text(
+                                            w.name ?? '',
                                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,

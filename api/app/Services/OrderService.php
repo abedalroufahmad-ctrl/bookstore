@@ -8,6 +8,7 @@ use App\Domain\Order\Interfaces\OrderRepositoryInterface;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Domain\Order\Interfaces\StockServiceInterface;
 use App\Infrastructure\Repositories\Mongo\PaymentRepository;
+use App\Models\Book;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Payment;
@@ -17,10 +18,15 @@ use Illuminate\Support\Facades\DB;
 class OrderService extends BaseService implements OrderServiceInterface
 {
     public const STATUS_PENDING_REVIEW = 'pending_review';
+
     public const STATUS_CONFIRMED = 'confirmed';
+
     public const STATUS_PREPARING = 'preparing';
+
     public const STATUS_SHIPPED = 'shipped';
+
     public const STATUS_DELIVERED = 'delivered';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const VALID_STATUSES = [
@@ -39,7 +45,7 @@ class OrderService extends BaseService implements OrderServiceInterface
         protected PaymentRepository $paymentRepository
     ) {}
 
-    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): Order
+    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array
     {
         $cart = $this->cartService->getOrCreateActiveCart($customer);
 
@@ -47,35 +53,42 @@ class OrderService extends BaseService implements OrderServiceInterface
             throw new \InvalidArgumentException('Cart is empty.');
         }
 
-        $total = $this->cartService->calculateTotal($cart);
-
         $paymentStatus = $paymentMethod === 'cod' ? Payment::statusPaid() : Payment::statusPending();
 
-        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $total, $paymentMethod, $paymentStatus) {
-            $this->stockService->validateAndDeduct($cart->items);
+        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatus) {
+            $groupedByWarehouse = $this->groupCartItemsByWarehouse($cart->items);
+            $createdOrders = [];
 
-            $order = $this->orderRepository->create([
-                'customer_id' => $customer->getKey(),
-                'items' => $cart->items,
-                'status' => OrderStatus::PendingReview->value,
-                'total' => $total,
-                'shipping_address' => $shippingAddress,
-                'payment_info' => $paymentInfo ?? [],
-                'payment_method' => $paymentMethod,
-                'payment_status' => $paymentStatus,
-            ]);
+            foreach ($groupedByWarehouse as $warehouseId => $items) {
+                $this->stockService->validateAndDeduct($items);
+                $orderTotal = $this->calculateItemsTotal($items);
 
-            $this->paymentRepository->create([
-                'order_id' => $order->getKey(),
-                'user_id' => $customer->getKey(),
-                'payment_method' => $paymentMethod,
-                'payment_status' => $paymentStatus,
-                'transaction_id' => null,
-            ]);
+                $order = $this->orderRepository->create([
+                    'customer_id' => $customer->getKey(),
+                    'warehouse_id' => $warehouseId,
+                    'items' => $items,
+                    'status' => OrderStatus::PendingReview->value,
+                    'total' => $orderTotal,
+                    'shipping_address' => $shippingAddress,
+                    'payment_info' => $paymentInfo ?? [],
+                    'payment_method' => $paymentMethod,
+                    'payment_status' => $paymentStatus,
+                ]);
+
+                $this->paymentRepository->create([
+                    'order_id' => $order->getKey(),
+                    'user_id' => $customer->getKey(),
+                    'payment_method' => $paymentMethod,
+                    'payment_status' => $paymentStatus,
+                    'transaction_id' => null,
+                ]);
+
+                $createdOrders[] = $order->fresh();
+            }
 
             $this->cartService->markAsConverted($cart);
 
-            return $order->fresh();
+            return $createdOrders;
         };
 
         if (config('database.mongodb_transactions_enabled', false)) {
@@ -83,6 +96,54 @@ class OrderService extends BaseService implements OrderServiceInterface
         }
 
         return $doCheckout();
+    }
+
+    /**
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function groupCartItemsByWarehouse(array $items): array
+    {
+        $grouped = [];
+
+        foreach ($items as $item) {
+            $bookId = $item['book_id'] ?? null;
+            if (! $bookId) {
+                continue;
+            }
+
+            $book = Book::find($bookId);
+            if (! $book) {
+                throw new \InvalidArgumentException("Book not found: {$bookId}");
+            }
+
+            $warehouseId = (string) ($book->warehouse_id ?? '');
+            if ($warehouseId === '') {
+                throw new \InvalidArgumentException("Book '{$book->title}' is not assigned to a warehouse.");
+            }
+
+            $grouped[$warehouseId][] = $item;
+        }
+
+        if ($grouped === []) {
+            throw new \InvalidArgumentException('Cart has no valid items.');
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function calculateItemsTotal(array $items): float
+    {
+        $total = 0.0;
+        foreach ($items as $item) {
+            $price = (float) ($item['price'] ?? 0);
+            $quantity = max(0, (int) ($item['quantity'] ?? 0));
+            $total += $price * $quantity;
+        }
+
+        return $total;
     }
 
     public function updateStatus(Order $order, string $newStatus): Order

@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Http\Controllers\Api\BaseApiController;
 use App\Domain\Auth\Enums\UserRole;
+use App\Http\Controllers\Api\BaseApiController;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SettingController extends BaseApiController
 {
-    public static function defaultPaymentMethods(): array
-    {
-        return [
-            ['id' => 'cod', 'name' => 'Cash on Delivery (COD)', 'enabled' => true],
-            ['id' => 'stripe', 'name' => 'Credit/Debit Card (Stripe)', 'enabled' => false],
-            ['id' => 'paypal', 'name' => 'PayPal', 'enabled' => false],
-        ];
-    }
-
     public function index(): JsonResponse
     {
         $settings = Setting::all()->pluck('value', 'key')->toArray();
@@ -51,9 +42,9 @@ class SettingController extends BaseApiController
                     $converted[] = ['id' => $id, 'name' => $id, 'enabled' => (bool) $enabled];
                 }
             }
-            $settings['payment_methods'] = $converted ?: self::defaultPaymentMethods();
+            $settings['payment_methods'] = $converted ?: Setting::defaultPaymentMethods();
         } else {
-            $settings['payment_methods'] = self::defaultPaymentMethods();
+            $settings['payment_methods'] = Setting::defaultPaymentMethods();
         }
 
         return $this->successResponse($settings);

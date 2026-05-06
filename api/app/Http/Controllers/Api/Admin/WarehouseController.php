@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\WarehouseStoreRequest;
 use App\Http\Requests\Admin\WarehouseUpdateRequest;
-use App\Domain\Auth\Enums\UserRole;
 use App\Infrastructure\Services\WarehouseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,11 +20,12 @@ class WarehouseController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $employee = auth('employee')->user();
-        // Managers can see and manage all warehouses; only warehouse_manager is scoped.
-        if ($employee && ! UserRole::canManageAllWarehouses($employee->role) && UserRole::isWarehouseScoped($employee->role)) {
+        // Only global managers see all warehouses; every other employee sees only assigned warehouse(s).
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             $managedIds = $employee->getManagedWarehouseIds();
             if (empty($managedIds)) {
                 $paginator = new LengthAwarePaginator([], 0, 15, 1, ['path' => $request->url()]);
+
                 return $this->successResponse($paginator);
             }
             $warehouses = [];
@@ -34,6 +35,26 @@ class WarehouseController extends BaseApiController
                     $warehouses[] = $w;
                 }
             }
+            if ($search = $request->get('search')) {
+                $needle = mb_strtolower((string) $search);
+                $warehouses = array_values(array_filter($warehouses, function ($w) use ($needle) {
+                    $fields = [
+                        $w->name ?? '',
+                        $w->email ?? '',
+                        $w->city ?? '',
+                        $w->country ?? '',
+                        $w->address ?? '',
+                        $w->phone ?? '',
+                    ];
+                    foreach ($fields as $f) {
+                        if (str_contains(mb_strtolower((string) $f), $needle)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }));
+            }
             $paginator = new LengthAwarePaginator(
                 $warehouses,
                 count($warehouses),
@@ -41,6 +62,7 @@ class WarehouseController extends BaseApiController
                 1,
                 ['path' => $request->url()]
             );
+
             return $this->successResponse($paginator);
         }
 
@@ -59,8 +81,8 @@ class WarehouseController extends BaseApiController
     public function store(WarehouseStoreRequest $request): JsonResponse
     {
         $employee = auth('employee')->user();
-        if ($employee && ! UserRole::canManageAllWarehouses($employee->role) && UserRole::isWarehouseScoped($employee->role)) {
-            return $this->errorResponse('Forbidden. Warehouse managers cannot create warehouses.', 403);
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+            return $this->errorResponse('Forbidden. Only managers can create warehouses.', 403);
         }
 
         $warehouse = $this->warehouseService->create($request->validated());
@@ -77,7 +99,7 @@ class WarehouseController extends BaseApiController
         }
 
         $employee = auth('employee')->user();
-        if ($employee && ! UserRole::canManageAllWarehouses($employee->role) && UserRole::isWarehouseScoped($employee->role)) {
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             if (! $employee->managesWarehouse((string) $warehouse->getKey())) {
                 return $this->errorResponse('Forbidden. You can only access your assigned warehouses.', 403);
             }
@@ -89,7 +111,7 @@ class WarehouseController extends BaseApiController
     public function update(WarehouseUpdateRequest $request, string $id): JsonResponse
     {
         $employee = auth('employee')->user();
-        if ($employee && ! UserRole::canManageAllWarehouses($employee->role) && UserRole::isWarehouseScoped($employee->role)) {
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             if (! $employee->managesWarehouse($id)) {
                 return $this->errorResponse('Forbidden. You can only update your assigned warehouses.', 403);
             }
@@ -107,8 +129,8 @@ class WarehouseController extends BaseApiController
     public function destroy(string $id): JsonResponse
     {
         $employee = auth('employee')->user();
-        if ($employee && ! UserRole::canManageAllWarehouses($employee->role) && UserRole::isWarehouseScoped($employee->role)) {
-            return $this->errorResponse('Forbidden. Warehouse managers cannot delete warehouses.', 403);
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+            return $this->errorResponse('Forbidden. Only managers can delete warehouses.', 403);
         }
 
         if (! $this->warehouseService->delete($id)) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Warehouse, type WarehouseFormData } from '../lib/api'
@@ -31,8 +31,11 @@ const emptyForm: WarehouseFormData = {
 export function AdminWarehouses() {
   const { t } = useTranslation()
   const { user, userType } = useAuth()
-  const isWarehouseManagerUser =
-    userType === 'employee' && (user as { role?: string } | null)?.role === 'warehouse_manager'
+  const employeeRole = userType === 'employee' ? (user as { role?: string } | null)?.role : undefined
+  const isManager = employeeRole === 'manager'
+  // const isWarehouseManagerUser = employeeRole === 'warehouse_manager'
+  /** Any logged-in employee who is not the global manager (sees only assigned warehouse(s) from API). */
+  const isScopedWarehouseUser = userType === 'employee' && !isManager
   const queryClient = useQueryClient()
   const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [showForm, setShowForm] = useState(false)
@@ -47,12 +50,12 @@ export function AdminWarehouses() {
   }, [committedSearch])
 
   const { data, isFetching } = useQuery({
-    queryKey: ['admin-warehouses', page, isWarehouseManagerUser ? 'wm' : committedSearch],
+    queryKey: ['admin-warehouses', page, isScopedWarehouseUser ? 'scoped' : 'all', committedSearch],
     queryFn: async () => {
       const res = await admin.warehouses.list({
         page,
         per_page: 15,
-        ...(!isWarehouseManagerUser && committedSearch ? { search: committedSearch } : {}),
+        ...(committedSearch ? { search: committedSearch } : {}),
       })
       return res.data
     },
@@ -100,16 +103,7 @@ export function AdminWarehouses() {
   })
 
   const paginated = data?.data
-  const rawItems: Warehouse[] = paginated?.data ?? []
-  const items = useMemo(() => {
-    if (!isWarehouseManagerUser || !committedSearch) return rawItems
-    const s = committedSearch.toLowerCase()
-    return rawItems.filter((w) =>
-      [w.name, w.email, w.city, w.country, w.address, w.phone]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(s))
-    )
-  }, [rawItems, isWarehouseManagerUser, committedSearch])
+  const items: Warehouse[] = paginated?.data ?? []
   const meta = paginated && 'current_page' in paginated ? paginated : null
 
   const handleStartEdit = async (w: Warehouse) => {
@@ -170,24 +164,26 @@ export function AdminWarehouses() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold text-amber-900">{t('admin.warehouses')}</h1>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
-        >
-          {t('admin.addWarehouse')}
-        </button>
+        {isManager && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
+          >
+            {t('admin.addWarehouse')}
+          </button>
+        )}
       </div>
       <AdminListSearchBar
         value={searchInput}
         onChange={setSearchInput}
         placeholder={t('admin.searchWarehousesPlaceholder')}
         hint={
-          isWarehouseManagerUser
+          isScopedWarehouseUser
             ? t('admin.searchWarehousesLocalHint')
             : t('admin.listAutoSearchHint')
         }
-        isFetching={isFetching && !isWarehouseManagerUser}
+        isFetching={isFetching}
         committedValue={committedSearch}
         onCommit={commitSearch}
         className="mb-6"
@@ -310,7 +306,7 @@ export function AdminWarehouses() {
           </div>
         </div>
       )}
-      {showForm && (
+      {showForm && isManager && (
         <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
           <h2 className="font-semibold mb-4">{t('admin.newWarehouse')}</h2>
           <div className="grid gap-4 max-w-2xl">
@@ -466,16 +462,18 @@ export function AdminWarehouses() {
                   >
                     {t('admin.edit')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      window.confirm(t('admin.deleteWarehouseConfirm', { name: w.name })) &&
-                      deleteMutation.mutate(w._id)
-                    }
-                    className="text-red-600 hover:underline text-sm"
-                  >
-                    {t('admin.delete')}
-                  </button>
+                  {isManager && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        window.confirm(t('admin.deleteWarehouseConfirm', { name: w.name })) &&
+                        deleteMutation.mutate(w._id)
+                      }
+                      className="text-red-600 hover:underline text-sm"
+                    >
+                      {t('admin.delete')}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

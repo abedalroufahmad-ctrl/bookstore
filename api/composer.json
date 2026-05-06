@@ -6,6 +6,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "symfony/clock": "^7.2",
+        "symfony/css-selector": "^7.2",
+        "symfony/string": "^7.2",
+        "symfony/translation": "^7.2",
+        "symfony/yaml": "^7.2",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",

@@ -21,6 +21,7 @@ class AppLocalizations {
   String get navBooks => _s('الكتب', 'Books');
   String get navAuthors => _s('المؤلفون', 'Authors');
   String get navCategories => _s('التصنيفات', 'Categories');
+  String get navWarehouses => _s('المستودعات', 'Warehouses');
   String get navCart => _s('السلة', 'Cart');
   String get navAccount => _s('الحساب', 'Account');
   String get navProfile => _s('الملف الشخصي', 'Profile');
@@ -60,6 +61,7 @@ class AppLocalizations {
   String get searchBooksHint => _s('بحث عن كتاب أو مؤلف...', 'Search books or authors...');
   String get searchAuthorsHint => _s('بحث عن مؤلف...', 'Search authors...');
   String get searchCategoriesHint => _s('بحث عن تصنيف...', 'Search categories...');
+  String get searchWarehousesHint => _s('بحث عن مستودع...', 'Search warehouses...');
   String get noSearchResults => _s('لا توجد نتائج', 'No results found');
 
   // ── Books ───────────────────────────────────────────────────────────────────
@@ -110,6 +112,11 @@ class AppLocalizations {
   // ── Categories ───────────────────────────────────────────────────────────────
   String get categoriesTitle => _s('التصنيفات', 'Categories');
   String get noCategories => _s('لا توجد تصنيفات', 'No categories found');
+
+  String get warehousesTitle => _s('المستودعات', 'Warehouses');
+  String get noWarehouses => _s('لا توجد مستودعات', 'No warehouses found');
+  String get warehouseBooksTitle => _s('كتب المستودع', 'Warehouse books');
+  String get noBooksInWarehouse => _s('لا توجد كتب في هذا المستودع', 'No books in this warehouse');
 
   // ── Guest Landing ────────────────────────────────────────────────────────────
   String get welcomeTitle => _s('مرحباً بك', 'Welcome');

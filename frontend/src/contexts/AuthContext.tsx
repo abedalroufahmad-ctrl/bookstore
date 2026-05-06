@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = res.data.data
     const t = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string }; token: string }).token
       : (data as { employee: { _id: string; name: string; email: string }; token: string }).token
-    const u = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string } }).customer
+    const u: any = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string } }).customer
       : (data as { employee: { _id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[] } }).employee
     localStorage.setItem('token', t)
     localStorage.setItem('userType', type)

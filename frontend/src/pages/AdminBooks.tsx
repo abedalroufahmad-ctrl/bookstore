@@ -21,7 +21,7 @@ export function AdminBooks() {
     setPage(1)
   }, [committedSearch])
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ['admin-books', page, committedSearch],
     queryFn: async () => {
       const res = await admin.books.list({
@@ -83,7 +83,9 @@ export function AdminBooks() {
     }
   }
 
-  if (isLoading && !data) return <div className="text-center py-12">{t('common.loading')}</div>
+  const queryErrorMessage =
+    (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message ??
+    (data && 'success' in data && data.success === false ? data.message : undefined)
 
   const paginated = data?.data
   const items = paginated?.data ?? []
@@ -99,6 +101,8 @@ export function AdminBooks() {
       el.indeterminate = someSelected && !allSelected
     }
   }, [someSelected, allSelected])
+
+  if (isLoading && !data) return <div className="text-center py-12">{t('common.loading')}</div>
 
   const toggleSelectAllOnPage = () => {
     setSelectedIds((prev) => {
@@ -145,6 +149,11 @@ export function AdminBooks() {
         onCommit={commitSearch}
         className="mb-6"
       />
+      {queryErrorMessage && (
+        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {queryErrorMessage}
+        </p>
+      )}
       {items.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <button
@@ -191,7 +200,7 @@ export function AdminBooks() {
                 </td>
                 <td className="px-4 py-2">{book.title}</td>
                 <td className="px-4 py-2">{book.isbn ?? '-'}</td>
-                <td className="px-4 py-2">${book.price?.toFixed(2)}</td>
+                <td className="px-4 py-2">${Number(book.price ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2">{book.stock_quantity ?? 0}</td>
                 <td className="px-4 py-2 text-right">
                   <Link

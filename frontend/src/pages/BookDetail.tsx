@@ -55,6 +55,13 @@ export function BookDetail() {
   const book = data.data
   const authors = Array.isArray(book.authors) ? book.authors : []
   const category = book.category
+  const warehouse = book.warehouse
+  const warehouseDisplay =
+    warehouse != null
+      ? [warehouse.name, [warehouse.city, warehouse.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')
+      : book.warehouse_id
+        ? '—'
+        : null
 
   const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
     const show = alwaysShow || (value != null && value !== '')
@@ -190,6 +197,7 @@ export function BookDetail() {
             <InfoRow label={t('bookDetail.edition')} value={book.edition_number != null ? String(book.edition_number) : null} />
             <InfoRow label={t('bookDetail.bindingType')} value={book.binding_type} />
             <InfoRow label={t('bookDetail.paperType')} value={book.paper_type} />
+            <InfoRow label={t('bookDetail.warehouse')} value={warehouseDisplay} />
             <InfoRow
               label={t('bookDetail.stock')}
               value={

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Author;
 use App\Infrastructure\Services\BookService;
 use App\Infrastructure\Services\CachedCatalogService;
+use App\Models\Author;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,6 +28,9 @@ class PublicBookController extends BaseApiController
         }
         if ($request->filled('category_id')) {
             $filters['category_id'] = $request->get('category_id');
+        }
+        if ($request->filled('warehouse_id')) {
+            $filters['warehouse_id'] = $request->get('warehouse_id');
         }
         if ($request->filled('author_id')) {
             $filters['author_id'] = $request->get('author_id');
@@ -56,7 +59,7 @@ class PublicBookController extends BaseApiController
             return $this->errorResponse('Book not found', 404);
         }
 
-        $book->loadMissing(['authors', 'category']);
+        $book->loadMissing(['authors', 'category', 'warehouse']);
 
         // Fallback: if authors relation is empty but author_ids exists, fetch authors manually
         $authorIds = $book->author_ids ?? [];

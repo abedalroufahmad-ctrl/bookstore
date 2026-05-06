@@ -27,6 +27,17 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
   static const _searchDebounceDuration = Duration(milliseconds: 400);
 
+  String? _topicCodeFilter;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map?;
+    if (args != null && args['topicCode'] != null) {
+      _topicCodeFilter = args['topicCode'] as String;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +145,35 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
+    
+    final topics = [
+      {'range': [0, 99], 'name': 'Information, Computers, Public Business', 'code': '000'},
+      {'range': [100, 199], 'name': 'Philosophy, Psychology, Ideas', 'code': '100'},
+      {'range': [200, 299], 'name': 'Religion', 'code': '200'},
+      {'range': [300, 399], 'name': 'Social Sciences, Society', 'code': '300'},
+      {'range': [400, 499], 'name': 'Language', 'code': '400'},
+      {'range': [500, 599], 'name': 'Natural Sciences, Mathematics', 'code': '500'},
+      {'range': [600, 699], 'name': 'Technology, Applied Sciences', 'code': '600'},
+      {'range': [700, 799], 'name': 'Arts, Entertainment, Sports', 'code': '700'},
+      {'range': [800, 899], 'name': 'Literature', 'code': '800'},
+      {'range': [900, 999], 'name': 'History, Geography', 'code': '900'},
+      {'range': [-1, -1], 'name': 'Other', 'code': 'Other'},
+    ];
+
+    final groupedTopics = <Map<String, dynamic>>[];
+    for (final topic in topics) {
+      if (_topicCodeFilter != null && _topicCodeFilter != topic['code']) continue;
+      final range = topic['range'] as List<int>;
+      final cats = _categories.where((cat) {
+        final c = int.tryParse(cat.deweyCode ?? '') ?? -1;
+        if (topic['code'] == 'Other') return c < 0 || c > 999;
+        return c >= range[0] && c <= range[1];
+      }).toList();
+      if (cats.isNotEmpty) {
+        groupedTopics.add({'topic': topic, 'cats': cats});
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(t.navCategories)),
       body: Column(
@@ -188,75 +228,99 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                           )
                         : RefreshIndicator(
                             onRefresh: () => _loadFirst(search: _lastSearchQuery),
-                            child: GridView.builder(
+                            child: ListView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.all(16),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                                childAspectRatio: 1.2,
-                              ),
-                              itemCount: _categories.length + (_hasMore ? 1 : 0),
+                              itemCount: groupedTopics.length + (_hasMore ? 1 : 0),
                               itemBuilder: (context, i) {
-                                if (i >= _categories.length) {
+                                if (i >= groupedTopics.length) {
                                       return const Padding(
                                         padding: EdgeInsets.all(16),
                                         child: Center(child: CircularProgressIndicator()),
                                       );
                                     }
-                                    final cat = _categories[i];
-                                    return InkWell(
-                                      onTap: () {
-                                        Navigator.pushNamed(
-                                          context,
-                                          '/category/${cat.id}',
-                                          arguments: {'title': cat.subjectTitle},
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: theme.cardColor,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: theme.colorScheme.outline.withOpacity(0.3),
+                                    
+                                    final group = groupedTopics[i];
+                                    final topic = group['topic'] as Map<String, dynamic>;
+                                    final cats = group['cats'] as List<Category>;
+
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.only(bottom: 12, top: i > 0 ? 24 : 0),
+                                          child: Text(
+                                            topic['code'] == 'Other' ? topic['name'] : '${topic['code']} - ${topic['name']}',
+                                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                                           ),
                                         ),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              width: 50,
-                                              height: 50,
-                                              decoration: BoxDecoration(
-                                                color: _getCategoryColor(cat.deweyCode),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  _getCategoryIcon(cat.deweyCode),
-                                                  style: const TextStyle(fontSize: 24),
+                                        GridView.builder(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 2,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
+                                            childAspectRatio: 1.2,
+                                          ),
+                                          itemCount: cats.length,
+                                          itemBuilder: (context, j) {
+                                            final cat = cats[j];
+                                            return InkWell(
+                                              onTap: () {
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  '/category/${cat.id}',
+                                                  arguments: {'title': cat.subjectTitle},
+                                                );
+                                              },
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: theme.cardColor,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: theme.colorScheme.outline.withOpacity(0.3),
+                                                  ),
+                                                ),
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      width: 50,
+                                                      height: 50,
+                                                      decoration: BoxDecoration(
+                                                        color: _getCategoryColor(cat.deweyCode),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                      ),
+                                                      child: Center(
+                                                        child: Text(
+                                                          _getCategoryIcon(cat.deweyCode),
+                                                          style: const TextStyle(fontSize: 24),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    Padding(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                      child: Text(
+                                                        cat.subjectTitle ?? '',
+                                                        textAlign: TextAlign.center,
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 13,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                                              child: Text(
-                                                cat.subjectTitle ?? '',
-                                                textAlign: TextAlign.center,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                            );
+                                          },
                                         ),
-                                      ),
+                                      ],
                                     );
                                   },
                                 ),

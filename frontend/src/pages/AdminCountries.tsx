@@ -188,7 +188,7 @@ export function AdminCountries() {
           </button>
           <button
             type="button"
-            onClick={() => syncCitiesMutation.mutate()}
+            onClick={() => syncCitiesMutation.mutate(undefined)}
             disabled={syncCitiesMutation.isPending}
             className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50"
           >

@@ -3,13 +3,13 @@
 use App\Http\Controllers\Api\Admin\AdminOrderController;
 use App\Http\Controllers\Api\Admin\AuthorController;
 use App\Http\Controllers\Api\Admin\BookController;
-use App\Http\Controllers\Api\Admin\UploadAuthorPhotoController;
-use App\Http\Controllers\Api\Admin\UploadCoverController;
 use App\Http\Controllers\Api\Admin\CategoryController;
+use App\Http\Controllers\Api\Admin\CountryController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\EmployeeController;
-use App\Http\Controllers\Api\Admin\CountryController;
 use App\Http\Controllers\Api\Admin\SettingController;
+use App\Http\Controllers\Api\Admin\UploadAuthorPhotoController;
+use App\Http\Controllers\Api\Admin\UploadCoverController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CustomerAuthController;
@@ -17,9 +17,10 @@ use App\Http\Controllers\Api\EmployeeAuthController;
 use App\Http\Controllers\Api\EmployeeOrderController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PublicAuthorController;
-use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\PublicBookController;
 use App\Http\Controllers\Api\PublicCategoryController;
+use App\Http\Controllers\Api\PublicWarehouseController;
+use App\Http\Controllers\Api\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
@@ -32,6 +33,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     Route::get('books/{id}', [PublicBookController::class, 'show']);
     Route::get('categories', [PublicCategoryController::class, 'index']);
     Route::get('categories/{id}', [PublicCategoryController::class, 'show']);
+    Route::get('warehouses', [PublicWarehouseController::class, 'index']);
+    Route::get('warehouses/{id}', [PublicWarehouseController::class, 'show']);
     Route::get('authors', [PublicAuthorController::class, 'index']);
     Route::get('authors/{id}', [PublicAuthorController::class, 'show']);
     Route::get('settings', [SettingController::class, 'index']);

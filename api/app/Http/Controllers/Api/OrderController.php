@@ -7,6 +7,7 @@ use App\Http\Requests\Order\CheckoutRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class OrderController extends BaseApiController
 {
@@ -18,14 +19,17 @@ class OrderController extends BaseApiController
     {
         try {
             $customer = auth('customer')->user();
-            $order = $this->orderService->checkout(
+            $orders = $this->orderService->checkout(
                 $customer,
                 $request->validated('shipping_address'),
                 $request->validated('payment_method'),
                 $request->validated('payment_info')
             );
 
-            return $this->successResponse($order, 'Order created successfully', 201);
+            return $this->successResponse([
+                'orders' => $orders,
+                'count' => count($orders),
+            ], 'Order(s) created successfully', 201);
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 422);
         } catch (\Throwable $e) {
@@ -36,7 +40,7 @@ class OrderController extends BaseApiController
         }
     }
 
-    public function index(\Illuminate\Http\Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $customer = auth('customer')->user();
         $perPage = min((int) $request->get('per_page', 15), 100);

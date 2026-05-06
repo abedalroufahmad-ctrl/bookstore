@@ -110,8 +110,11 @@ class ApiClient {
         return ApiResponse(success: false, message: 'Invalid response', data: null);
       }
       final success = map['success'] as bool? ?? false;
-      final message = map['message'] as String? ?? '';
+      var message = map['message'] as String? ?? '';
       dynamic data = map['data'];
+      if (!success && data is Map && data['errors'] != null) {
+        message = _firstValidationErrorMessage(message, data['errors']);
+      }
       T? parsed;
       if (data != null && fromJson != null) {
         try {
@@ -130,6 +133,21 @@ class ApiClient {
         data: null,
       );
     }
+  }
+
+  /// Prefer Laravel field errors over generic "Validation failed." (better UX on checkout, etc.).
+  static String _firstValidationErrorMessage(String fallback, dynamic errors) {
+    if (errors is! Map) return fallback;
+    final parts = <String>[];
+    for (final e in errors.values) {
+      if (e is List && e.isNotEmpty) {
+        parts.add(e.first.toString());
+      } else if (e is String && e.isNotEmpty) {
+        parts.add(e);
+      }
+    }
+    if (parts.isEmpty) return fallback;
+    return parts.join(' ');
   }
 }
 

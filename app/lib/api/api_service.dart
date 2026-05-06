@@ -136,6 +136,54 @@ class ApiService {
     );
   }
 
+  Future<ApiResponse<PaginatedResult<Warehouse>>> getWarehousesPaginated(int page, {int perPage = _defaultPerPage, String? search}) async {
+    final params = <String, String>{'page': page.toString(), 'per_page': perPage.toString()};
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final res = await _client.get<dynamic>('/warehouses', params: params);
+    return _parsePaginatedWarehouses(res);
+  }
+
+  static ApiResponse<PaginatedResult<Warehouse>> _parsePaginatedWarehouses(ApiResponse<dynamic> res) {
+    if (!res.success || res.data == null) {
+      return ApiResponse(success: false, message: res.message, data: null);
+    }
+    final d = res.data;
+    List<Warehouse> list = [];
+    int currentPage = 1;
+    int lastPage = 1;
+    int total = 0;
+    int perPage = _defaultPerPage;
+    if (d is Map) {
+      final rawList = d['data'];
+      if (rawList is List) {
+        list = rawList.map((e) => Warehouse.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      currentPage = (d['current_page'] as num?)?.toInt() ?? 1;
+      lastPage = (d['last_page'] as num?)?.toInt() ?? 1;
+      total = (d['total'] as num?)?.toInt() ?? 0;
+      perPage = (d['per_page'] as num?)?.toInt() ?? _defaultPerPage;
+    }
+    return ApiResponse(
+      success: true,
+      message: res.message,
+      data: PaginatedResult<Warehouse>(items: list, currentPage: currentPage, lastPage: lastPage, total: total, perPage: perPage),
+    );
+  }
+
+  Future<ApiResponse<Warehouse>> getWarehouse(String id) async {
+    final res = await _client.get<Map<String, dynamic>>('/warehouses/$id');
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Warehouse.fromJson(res.data as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
   Future<ApiResponse<List<Author>>> getAuthors() async {
     final res = await _client.get<dynamic>('/authors');
     if (res.success && res.data != null) {
@@ -519,8 +567,11 @@ class ApiService {
     return _client.delete('/admin/categories/$id');
   }
 
-  Future<ApiResponse<List<Map<String, dynamic>>>> adminWarehousesList() async {
-    final res = await _client.get<dynamic>('/admin/warehouses');
+  Future<ApiResponse<List<Map<String, dynamic>>>> adminWarehousesList({int perPage = 100}) async {
+    final res = await _client.get<dynamic>(
+      '/admin/warehouses',
+      params: {'per_page': perPage.toString()},
+    );
     if (res.success && res.data != null) {
       final d = res.data;
       List<Map<String, dynamic>> list = [];

@@ -38,7 +38,7 @@ export function Checkout() {
     enabled: userType === 'customer',
   })
 
-  const customer = (profileData?.data as { address?: string; city?: string; country?: string; postal_code?: string } | undefined) | undefined
+  const customer = profileData?.data as { address?: string; city?: string; country?: string; postal_code?: string } | undefined
   useEffect(() => {
     if (!customer) return
     setAddress((prev) => (prev === '' && customer.address != null ? customer.address : prev))

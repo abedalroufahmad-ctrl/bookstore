@@ -119,6 +119,25 @@ class Category {
   }
 }
 
+class Warehouse {
+  Warehouse({required this.id, this.name, this.city, this.country});
+
+  final String id;
+  final String? name;
+  final String? city;
+  final String? country;
+
+  factory Warehouse.fromJson(Map<String, dynamic> json) {
+    final id = json['_id'] ?? json['id'] ?? '';
+    return Warehouse(
+      id: id.toString(),
+      name: json['name'],
+      city: json['city'],
+      country: json['country'],
+    );
+  }
+}
+
 class Author {
   Author({required this.id, this.name});
 

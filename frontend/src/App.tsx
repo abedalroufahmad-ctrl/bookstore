@@ -26,9 +26,13 @@ import { AuthorList } from './pages/AuthorList'
 import { AuthorBooks } from './pages/AuthorBooks'
 import { CategoryList } from './pages/CategoryList'
 import { CategoryBooks } from './pages/CategoryBooks'
+import { WarehouseList } from './pages/WarehouseList'
+import { WarehouseBooks } from './pages/WarehouseBooks'
 import { AdminSettings } from './pages/AdminSettings'
 import { AdminCountries } from './pages/AdminCountries'
 import { AdminReportsBooksWithoutCover } from './pages/AdminReportsBooksWithoutCover'
+import { AdminWarehouseBrowse } from './pages/AdminWarehouseBrowse'
+import { AdminWarehouseBooksAdmin } from './pages/AdminWarehouseBooksAdmin'
 import { SettingsProvider } from './contexts/SettingsContext'
 
 const queryClient = new QueryClient()
@@ -58,6 +62,8 @@ function AppRoutes() {
         <Route path="authors/:id" element={<AuthorBooks />} />
         <Route path="categories" element={<CategoryList />} />
         <Route path="categories/:id" element={<CategoryBooks />} />
+        <Route path="warehouses" element={<WarehouseList />} />
+        <Route path="warehouses/:id" element={<WarehouseBooks />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route
@@ -193,6 +199,22 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminWarehouses />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/warehouse-books"
+          element={
+            <AdminRoute>
+              <AdminWarehouseBrowse />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/warehouse-books/:id"
+          element={
+            <AdminRoute>
+              <AdminWarehouseBooksAdmin />
             </AdminRoute>
           }
         />

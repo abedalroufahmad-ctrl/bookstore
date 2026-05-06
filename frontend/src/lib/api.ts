@@ -53,6 +53,12 @@ export const categories = {
   get: (id: string) => api.get<ApiResponse<Category>>(`/categories/${id}`),
 }
 
+export const warehousesPublic = {
+  list: (params?: Record<string, string | number>) =>
+    api.get<ApiResponse<PaginatedResponse<Warehouse>>>('/warehouses', { params }),
+  get: (id: string) => api.get<ApiResponse<Warehouse>>(`/warehouses/${id}`),
+}
+
 export const authors = {
   list: (params?: Record<string, string | number>) =>
     api.get<ApiResponse<PaginatedResponse<Author>>>('/authors', { params }),
@@ -112,7 +118,7 @@ export const orders = {
     paymentMethod: PaymentMethodId,
     paymentInfo?: object
   ) =>
-    api.post<ApiResponse<Order>>('/customers/orders/checkout', {
+    api.post<ApiResponse<{ orders: Order[]; count: number }>>('/customers/orders/checkout', {
       shipping_address: shippingAddress,
       payment_method: paymentMethod,
       payment_info: paymentInfo,

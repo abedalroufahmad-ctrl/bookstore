@@ -4,12 +4,37 @@
 
 $issues = array();
 
-if (!(PHP_VERSION_ID >= 80400)) {
-    $issues[] = 'Your Composer dependencies require a PHP version ">= 8.4.0". You are running ' . PHP_VERSION . '.';
+if (!(PHP_VERSION_ID >= 80300)) {
+    $issues[] = 'Your Composer dependencies require a PHP version ">= 8.3.0". You are running ' . PHP_VERSION . '.';
 }
 
 if (PHP_INT_SIZE !== 8) {
     $issues[] = 'Your Composer dependencies require a 64-bit build of PHP.';
+}
+
+$missingExtensions = array();
+extension_loaded('dom') || $missingExtensions[] = 'dom';
+extension_loaded('fileinfo') || $missingExtensions[] = 'fileinfo';
+extension_loaded('filter') || $missingExtensions[] = 'filter';
+extension_loaded('hash') || $missingExtensions[] = 'hash';
+extension_loaded('iconv') || $missingExtensions[] = 'iconv';
+extension_loaded('json') || $missingExtensions[] = 'json';
+extension_loaded('libxml') || $missingExtensions[] = 'libxml';
+extension_loaded('mongodb') || $missingExtensions[] = 'mongodb';
+extension_loaded('openssl') || $missingExtensions[] = 'openssl';
+extension_loaded('pcre') || $missingExtensions[] = 'pcre';
+extension_loaded('session') || $missingExtensions[] = 'session';
+extension_loaded('simplexml') || $missingExtensions[] = 'simplexml';
+extension_loaded('sodium') || $missingExtensions[] = 'sodium';
+extension_loaded('tokenizer') || $missingExtensions[] = 'tokenizer';
+extension_loaded('xml') || $missingExtensions[] = 'xml';
+extension_loaded('xmlreader') || $missingExtensions[] = 'xmlreader';
+extension_loaded('xmlwriter') || $missingExtensions[] = 'xmlwriter';
+extension_loaded('zip') || $missingExtensions[] = 'zip';
+extension_loaded('zlib') || $missingExtensions[] = 'zlib';
+
+if ($missingExtensions) {
+    $issues[] = 'Your Composer dependencies require the following PHP extensions to be installed: ' . implode(', ', $missingExtensions) . '.';
 }
 
 if ($issues) {
@@ -23,7 +48,8 @@ if ($issues) {
             echo 'Composer detected issues in your platform:' . PHP_EOL.PHP_EOL . str_replace('You are running '.PHP_VERSION.'.', '', implode(PHP_EOL, $issues)) . PHP_EOL.PHP_EOL;
         }
     }
-    throw new \RuntimeException(
-        'Composer detected issues in your platform: ' . implode(' ', $issues)
+    trigger_error(
+        'Composer detected issues in your platform: ' . implode(' ', $issues),
+        E_USER_ERROR
     );
 }

@@ -1,31 +1,42 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { categories as categoriesApi } from '../lib/api'
 import { Pagination } from '../components/Pagination'
-import { useSettings } from '../contexts/SettingsContext'
+import { useEffect } from 'react'
 import type { Category } from '../lib/api'
 
 export function CategoryList() {
     const { t } = useTranslation()
-    const { settings } = useSettings()
     const [searchParams, setSearchParams] = useSearchParams()
+    const location = useLocation()
     const search = searchParams.get('search') ?? ''
     const page = parseInt(searchParams.get('page') ?? '1', 10)
+    
     const setPage = (p: number) => {
         const params = new URLSearchParams(searchParams)
         params.set('page', String(p))
         setSearchParams(params)
     }
     const { data, isLoading, error } = useQuery({
-        queryKey: ['categories', page, search, settings.catalog_items_per_page],
+        queryKey: ['categories', page, search],
         queryFn: async () => {
-            const queryParams: Record<string, string | number> = { page, per_page: settings.catalog_items_per_page }
+            const queryParams: Record<string, string | number> = { page, per_page: 1000 }
             if (search) queryParams.search = search
             const res = await categoriesApi.list(queryParams)
             return res.data
         },
     })
+
+    useEffect(() => {
+        if (location.hash && data) {
+            const id = location.hash.replace('#', '')
+            const element = document.getElementById(id)
+            if (element) {
+                setTimeout(() => element.scrollIntoView({ behavior: 'smooth' }), 100)
+            }
+        }
+    }, [location.hash, data])
 
     const paginated = data?.data
     const items: Category[] = paginated?.data ?? []
@@ -96,63 +107,94 @@ export function CategoryList() {
                 </h1>
             </div>
 
-            {/* Categories Grid */}
-            <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
-            >
-                {items.map((cat) => {
-                    const [bgColor] = getColor(cat.dewey_code)
+            {/* Categories Grouped by Dewey */}
+            <div className="space-y-12">
+                {[
+                    { range: [0, 99], name: 'Information, Computers, Public Business', code: '000' },
+                    { range: [100, 199], name: 'Philosophy, Psychology, Ideas', code: '100' },
+                    { range: [200, 299], name: 'Religion', code: '200' },
+                    { range: [300, 399], name: 'Social Sciences, Society', code: '300' },
+                    { range: [400, 499], name: 'Language', code: '400' },
+                    { range: [500, 599], name: 'Natural Sciences, Mathematics', code: '500' },
+                    { range: [600, 699], name: 'Technology, Applied Sciences', code: '600' },
+                    { range: [700, 799], name: 'Arts, Entertainment, Sports', code: '700' },
+                    { range: [800, 899], name: 'Literature', code: '800' },
+                    { range: [900, 999], name: 'History, Geography', code: '900' },
+                    { range: [-1, -1], name: 'Other', code: 'Other' },
+                ].map((topic) => {
+                    const topicCategories = items.filter(cat => {
+                        const c = parseInt(cat.dewey_code, 10);
+                        if (topic.code === 'Other') return isNaN(c) || c < 0 || c > 999;
+                        return !isNaN(c) && c >= topic.range[0] && c <= topic.range[1];
+                    });
+
+                    if (topicCategories.length === 0) return null;
+
                     return (
-                        <Link
-                            key={cat._id}
-                            to={`/categories/${cat._id}`}
-                            className="category-card flex items-center gap-4"
-                            style={{ textDecoration: 'none', color: 'inherit' }}
-                        >
-                            {/* Icon */}
+                        <div key={topic.code} id={`topic-${topic.code}`}>
+                            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text)', borderBottom: '2px solid var(--color-border)', paddingBottom: '8px' }}>
+                                {topic.code !== 'Other' ? `${topic.code} - ` : ''}{topic.name}
+                            </h2>
                             <div
-                                style={{
-                                    width: 56,
-                                    height: 56,
-                                    borderRadius: 12,
-                                    background: bgColor,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 26,
-                                    flexShrink: 0,
-                                }}
+                                className="grid gap-4"
+                                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
                             >
-                                {getCategoryIcon(cat.dewey_code)}
-                            </div>
+                                {topicCategories.map((cat) => {
+                                    const [bgColor] = getColor(cat.dewey_code)
+                                    return (
+                                        <Link
+                                            key={cat._id}
+                                            to={`/categories/${cat._id}`}
+                                            className="category-card flex items-center gap-4"
+                                            style={{ textDecoration: 'none', color: 'inherit' }}
+                                        >
+                                            {/* Icon */}
+                                            <div
+                                                style={{
+                                                    width: 56,
+                                                    height: 56,
+                                                    borderRadius: 12,
+                                                    background: bgColor,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: 26,
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                {getCategoryIcon(cat.dewey_code)}
+                                            </div>
 
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div
-                                    style={{
-                                        fontSize: 16,
-                                        fontWeight: 600,
-                                        color: 'var(--color-text)',
-                                        lineHeight: 1.4,
-                                    }}
-                                >
-                                    {cat.subject_title}
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: 12,
-                                        color: 'var(--color-text-muted)',
-                                        marginTop: 4,
-                                    }}
-                                >
-                                    Dewey: {cat.dewey_code}
-                                </div>
-                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: 16,
+                                                        fontWeight: 600,
+                                                        color: 'var(--color-text)',
+                                                        lineHeight: 1.4,
+                                                    }}
+                                                >
+                                                    {cat.subject_title}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 12,
+                                                        color: 'var(--color-text-muted)',
+                                                        marginTop: 4,
+                                                    }}
+                                                >
+                                                    Dewey: {cat.dewey_code}
+                                                </div>
+                                            </div>
 
-                            <div style={{ fontSize: 18, color: 'var(--color-primary)', fontWeight: 500, flexShrink: 0 }}>
-                                ←
+                                            <div style={{ fontSize: 18, color: 'var(--color-primary)', fontWeight: 500, flexShrink: 0 }}>
+                                                ←
+                                            </div>
+                                        </Link>
+                                    )
+                                })}
                             </div>
-                        </Link>
+                        </div>
                     )
                 })}
             </div>

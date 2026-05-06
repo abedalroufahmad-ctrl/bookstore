@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\EmployeeStoreRequest;
 use App\Http\Requests\Admin\EmployeeUpdateRequest;
-use App\Domain\Auth\Enums\UserRole;
 use App\Infrastructure\Services\EmployeeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +24,17 @@ class EmployeeController extends BaseApiController
             'warehouse_id' => $request->get('warehouse_id'),
         ];
 
-        // Warehouse managers need to see all employees so they can pick who to assign to their warehouse.
+        $currentEmployee = auth('employee')->user();
+        if ($currentEmployee && UserRole::isLimitedToAssignedWarehouses($currentEmployee->role)) {
+            $managedIds = $currentEmployee->getManagedWarehouseIds();
+            if (! empty($managedIds)) {
+                $filters['warehouse_ids'] = $managedIds;
+            } elseif (! empty($currentEmployee->warehouse_id)) {
+                $filters['warehouse_id'] = $currentEmployee->warehouse_id;
+            } else {
+                $filters['warehouse_id'] = '__none__';
+            }
+        }
 
         $perPage = min((int) $request->get('per_page', 15), 100);
 
@@ -40,6 +50,9 @@ class EmployeeController extends BaseApiController
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
+        if ($currentEmployee && UserRole::isLimitedToAssignedWarehouses($currentEmployee->role) && ! UserRole::isWarehouseScoped($currentEmployee->role)) {
+            return $this->errorResponse('Forbidden. Only managers or warehouse managers can create employees.', 403);
+        }
         if ($currentEmployee && UserRole::isWarehouseScoped($currentEmployee->role)) {
             $wid = $data['warehouse_id'] ?? null;
             $managedIds = $currentEmployee->getManagedWarehouseIds();
@@ -65,6 +78,14 @@ class EmployeeController extends BaseApiController
             return $this->errorResponse('Employee not found', 404);
         }
 
+        $currentEmployee = auth('employee')->user();
+        if ($currentEmployee && UserRole::isLimitedToAssignedWarehouses($currentEmployee->role)) {
+            $wid = (string) ($employee->warehouse_id ?? '');
+            if ($wid === '' || ! $currentEmployee->managesWarehouse($wid)) {
+                return $this->errorResponse('Forbidden. You can only view employees in your warehouse(s).', 403);
+            }
+        }
+
         return $this->successResponse($employee);
     }
 
@@ -75,6 +96,9 @@ class EmployeeController extends BaseApiController
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
+        if ($currentEmployee && UserRole::isLimitedToAssignedWarehouses($currentEmployee->role) && ! UserRole::isWarehouseScoped($currentEmployee->role)) {
+            return $this->errorResponse('Forbidden. Only managers or warehouse managers can update employees.', 403);
+        }
         if ($currentEmployee && UserRole::isWarehouseScoped($currentEmployee->role)) {
             $existing = $this->employeeService->getById($id);
             $managedIds = $currentEmployee->getManagedWarehouseIds();

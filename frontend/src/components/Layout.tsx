@@ -70,6 +70,7 @@ export function Layout() {
                 <Link to="/books" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.books')}</Link>
                 <Link to="/authors" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.authors')}</Link>
                 <Link to="/categories" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.categories')}</Link>
+                <Link to="/warehouses" className="text-sm py-2" style={{ color: 'var(--color-text)' }}>{t('nav.warehouses')}</Link>
                 {userType === 'customer' && (
                   <>
                     <Link to="/account" className="text-sm py-2 font-medium" style={{ color: 'var(--color-primary)' }}>{t('nav.myAccount')}</Link>
@@ -92,6 +93,7 @@ export function Layout() {
                 <Link to="/books" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.books')}</Link>
                 <Link to="/authors" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.authors')}</Link>
                 <Link to="/categories" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.categories')}</Link>
+                <Link to="/warehouses" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.warehouses')}</Link>
                 {userType === 'customer' && (
                   <>
                     <Link to="/account" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-primary)' }}>{t('nav.myAccount')}</Link>
@@ -136,6 +138,7 @@ export function Layout() {
               <Link to="/books">{t('nav.books')}</Link>
               <Link to="/authors">{t('nav.authors')}</Link>
               <Link to="/categories">{t('nav.categories')}</Link>
+              <Link to="/warehouses">{t('nav.warehouses')}</Link>
             </div>
           </div>
         </div>

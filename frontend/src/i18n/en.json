@@ -8,6 +8,7 @@
     "books": "Books",
     "authors": "Authors",
     "categories": "Categories",
+    "warehouses": "Warehouses",
     "myAccount": "My account",
     "cart": "Cart",
     "orders": "Orders",
@@ -59,7 +60,8 @@
     "browseBooks": "Browse Books",
     "topAuthors": "Top Authors",
     "booksCount": "{{count}} books",
-    "categoriesCount": "{{count}} categories"
+    "categoriesCount": "{{count}} categories",
+    "viewAllWarehouses": "All warehouses"
   },
   "books": {
     "title": "Browse Books",
@@ -82,6 +84,7 @@
     "weight": "Weight",
     "bindingType": "Binding",
     "paperType": "Paper type",
+    "warehouse": "Warehouse",
     "stock": "Stock",
     "inStock": "{{count}} in stock",
     "outOfStock": "Out of stock",
@@ -162,6 +165,12 @@
     "booksByAuthor": "Books by {{name}}",
     "noBooksForAuthor": "No books found for this author."
   },
+  "warehouses": {
+    "title": "Warehouses",
+    "noWarehouses": "No warehouses found.",
+    "loadError": "Failed to load warehouses",
+    "noBooks": "No books found for this warehouse."
+  },
   "categories": {
     "title": "Categories",
     "deweyCode": "Dewey: {{code}}",
@@ -195,6 +204,10 @@
     "books": "Books",
     "authors": "Authors",
     "categories": "Categories",
+    "warehouseBooksTitle": "Books by warehouse",
+    "warehouseBooksHint": "Pick a warehouse to view and manage its books.",
+    "backToWarehouses": "All warehouses",
+    "noWarehouses": "No warehouses found.",
     "orders": "Orders",
     "employees": "Employees",
     "customers": "Customers",

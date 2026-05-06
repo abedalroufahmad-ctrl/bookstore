@@ -26,12 +26,12 @@ export function BookList() {
       return
     }
     addToCartMutation.mutate(bookId, {
-      onError: (err: { response?: { status?: number; data?: { message?: string } } }) => {
-        if (err.response?.status === 401) {
+      onError: (err: any) => {
+        if (err?.response?.status === 401) {
           navigate('/login')
           return
         }
-        const message = err.response?.data?.message ?? t('common.error')
+        const message = err?.response?.data?.message ?? t('common.error')
         alert(message)
       },
     })

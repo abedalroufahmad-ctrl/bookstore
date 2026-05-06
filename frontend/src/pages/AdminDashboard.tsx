@@ -29,6 +29,13 @@ export function AdminDashboard() {
           <p className="text-sm text-stone-500 mt-1">{t('admin.addManageCategories')}</p>
         </Link>
         <Link
+          to="/admin/warehouse-books"
+          className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
+        >
+          <h2 className="font-semibold text-amber-900">{t('admin.warehouseBooksTitle')}</h2>
+          <p className="text-sm text-stone-500 mt-1">{t('admin.warehouseBooksHint')}</p>
+        </Link>
+        <Link
           to="/admin/warehouses"
           className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
         >

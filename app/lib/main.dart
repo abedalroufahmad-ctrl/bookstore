@@ -16,6 +16,9 @@ import 'screens/author_books_screen.dart';
 import 'screens/author_list_screen.dart';
 import 'screens/category_books_screen.dart';
 import 'screens/category_list_screen.dart';
+import 'screens/warehouse_books_screen.dart';
+import 'screens/warehouse_list_screen.dart';
+import 'screens/admin_warehouses_browse_screen.dart';
 import 'screens/guest_landing_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
@@ -177,6 +180,8 @@ class BookStoreApp extends StatelessWidget {
               '/orders': (context) => const OrdersScreen(),
               '/authors': (context) => const AuthorListScreen(),
               '/categories': (context) => const CategoryListScreen(),
+              '/warehouses': (context) => const WarehouseListScreen(),
+              '/admin/warehouses/browse': (context) => const AdminWarehousesBrowseScreen(),
             },
             onGenerateRoute: (settings) {
               if (settings.name?.startsWith('/book/') == true) {
@@ -203,6 +208,17 @@ class BookStoreApp extends StatelessWidget {
                   builder: (_) => CategoryBooksScreen(
                     categoryId: id,
                     categoryTitle: args?['title'],
+                  ),
+                  settings: settings,
+                );
+              }
+              if (settings.name?.startsWith('/warehouse/') == true) {
+                final id = settings.name!.replaceFirst('/warehouse/', '');
+                final args = settings.arguments as Map<String, dynamic>?;
+                return MaterialPageRoute(
+                  builder: (_) => WarehouseBooksScreen(
+                    warehouseId: id,
+                    warehouseName: args?['name'] as String?,
                   ),
                   settings: settings,
                 );

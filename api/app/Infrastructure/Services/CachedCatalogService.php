@@ -10,7 +10,8 @@ class CachedCatalogService
     public function __construct(
         protected CategoryService $categoryService,
         protected AuthorService $authorService,
-        protected BookService $bookService
+        protected BookService $bookService,
+        protected WarehouseService $warehouseService
     ) {}
 
     public function getCachedCategories(array $filters = [], int $perPage = 50): LengthAwarePaginator
@@ -52,6 +53,19 @@ class CachedCatalogService
         return Cache::remember($key, $ttl, fn () => $this->bookService->getAll($filters, $perPage));
     }
 
+    public function getCachedWarehouses(array $filters = [], int $perPage = 50): LengthAwarePaginator
+    {
+        $page = (int) (request()->get('page') ?: 1);
+        if (! config('catalog.cache_enabled', true)) {
+            return $this->warehouseService->getAll($filters, $perPage);
+        }
+
+        $key = $this->cacheKey('warehouses', $filters, $perPage, $page);
+        $ttl = config('catalog.cache_ttl.warehouses', 3600);
+
+        return Cache::remember($key, $ttl, fn () => $this->warehouseService->getAll($filters, $perPage));
+    }
+
     /**
      * Invalidate catalog cache. Call when admin updates categories, authors, or books.
      * Bumps a version so all cached catalog data is refetched on next request.
@@ -68,6 +82,6 @@ class CachedCatalogService
         $prefix = config('catalog.cache_prefix', 'bookstore_catalog_');
         $version = (int) Cache::get('bookstore_catalog_version', 0);
 
-        return $prefix . 'v' . $version . '_' . $type . '_' . md5(json_encode($filters) . $perPage . $page);
+        return $prefix.'v'.$version.'_'.$type.'_'.md5(json_encode($filters).$perPage.$page);
     }
 }

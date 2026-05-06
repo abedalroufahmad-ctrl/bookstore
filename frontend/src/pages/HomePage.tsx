@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { books as booksApi, categories as categoriesApi } from '../lib/api'
+import { books as booksApi, warehousesPublic as warehousesApi } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/SettingsContext'
-import type { Book, Category } from '../lib/api'
+import type { Book, Warehouse } from '../lib/api'
 
 export function HomePage() {
     const { t } = useTranslation()
@@ -18,10 +18,10 @@ export function HomePage() {
         },
     })
 
-    const { data: categoriesData } = useQuery({
-        queryKey: ['categories', settings.catalog_items_per_page],
+    const { data: warehousesData } = useQuery({
+        queryKey: ['warehouses-home', settings.catalog_items_per_page],
         queryFn: async () => {
-            const res = await categoriesApi.list({ per_page: settings.catalog_items_per_page })
+            const res = await warehousesApi.list({ per_page: settings.catalog_items_per_page })
             return res.data
         },
     })
@@ -31,7 +31,7 @@ export function HomePage() {
         ? paginated
         : (paginated?.data ?? [])
 
-    const categoryItems: Category[] = categoriesData?.data?.data ?? []
+    const warehouseItems: Warehouse[] = warehousesData?.data?.data ?? []
 
     if (isLoading) {
         return (
@@ -62,26 +62,18 @@ export function HomePage() {
     const newestBooks = [...items].reverse().slice(0, 10)
     const youMightLike = items.slice(0, 8)
 
-    const getCategoryIcon = (deweyCode: string) => {
-        const code = parseInt(deweyCode, 10)
-        if (code < 100) return '💻'
-        if (code < 200) return '🧠'
-        if (code < 300) return '🕌'
-        if (code < 400) return '🌍'
-        if (code < 500) return '🗣️'
-        if (code < 600) return '🔬'
-        if (code < 700) return '⚙️'
-        if (code < 800) return '🎨'
-        if (code < 900) return '📖'
-        return '🗺️'
-    }
-
-    const getCategoryBg = (code: string) => {
-        const colors = ['#eef2ff', '#fdf2f8', '#ecfdf5', '#fff7ed', '#fefce8', '#faf5ff']
-        let hash = 0
-        for (let i = 0; i < code.length; i++) hash = code.charCodeAt(i) + ((hash << 5) - hash)
-        return colors[Math.abs(hash) % colors.length]
-    }
+    const mainTopics = [
+        { code: '000', name: 'Information, Computers, Public Business', icon: '💻' },
+        { code: '100', name: 'Philosophy, Psychology, Ideas', icon: '🧠' },
+        { code: '200', name: 'Religion', icon: '🕌' },
+        { code: '300', name: 'Social Sciences, Society', icon: '🌍' },
+        { code: '400', name: 'Language', icon: '🗣️' },
+        { code: '500', name: 'Natural Sciences, Mathematics', icon: '🔬' },
+        { code: '600', name: 'Technology, Applied Sciences', icon: '⚙️' },
+        { code: '700', name: 'Arts, Entertainment, Sports', icon: '🎨' },
+        { code: '800', name: 'Literature', icon: '📖' },
+        { code: '900', name: 'History, Geography', icon: '🗺️' },
+    ]
 
     return (
         <div className="home-three-column">
@@ -94,18 +86,18 @@ export function HomePage() {
                     </h3>
                 </div>
                 <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>
-                    {t('home.categoriesCount', { count: categoryItems.length })}
+                    10 main topics
                 </p>
                 <ul className="space-y-1">
-                    {categoryItems.slice(0, 15).map((cat) => (
-                        <li key={cat._id}>
+                    {mainTopics.map((topic) => (
+                        <li key={topic.code}>
                             <Link
-                                to={`/categories/${cat._id}`}
+                                to={`/categories#topic-${topic.code}`}
                                 className="flex items-center gap-2 py-2 px-2 rounded hover:bg-[var(--color-primary-light)] transition-colors"
                                 style={{ textDecoration: 'none', color: 'var(--color-text)' }}
                             >
-                                <span style={{ fontSize: 18 }}>{getCategoryIcon(cat.dewey_code)}</span>
-                                <span className="text-sm truncate">{cat.subject_title}</span>
+                                <span style={{ fontSize: 18 }}>{topic.icon}</span>
+                                <span className="text-sm truncate">{topic.name}</span>
                             </Link>
                         </li>
                     ))}
@@ -116,6 +108,33 @@ export function HomePage() {
                     style={{ color: 'var(--color-primary)' }}
                 >
                     {t('home.moreCategories')} →
+                </Link>
+                <div className="flex items-center gap-2 mt-6 mb-2">
+                    <span className="text-lg">🏭</span>
+                    <h3 className="font-bold text-lg" style={{ color: 'var(--color-text)' }}>
+                        {t('nav.warehouses')}
+                    </h3>
+                </div>
+                <ul className="space-y-1">
+                    {warehouseItems.slice(0, 10).map((w) => (
+                        <li key={w._id}>
+                            <Link
+                                to={`/warehouses/${w._id}`}
+                                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-[var(--color-primary-light)] transition-colors"
+                                style={{ textDecoration: 'none', color: 'var(--color-text)' }}
+                            >
+                                <span style={{ fontSize: 16 }}>🏭</span>
+                                <span className="text-sm truncate">{w.name}</span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+                <Link
+                    to="/warehouses"
+                    className="block mt-3 text-sm font-medium"
+                    style={{ color: 'var(--color-primary)' }}
+                >
+                    {t('home.viewAllWarehouses')} →
                 </Link>
             </aside>
 
@@ -165,6 +184,14 @@ export function HomePage() {
                     >
                         <div className="home-feature-card-icon">📂</div>
                         <div className="home-feature-card-title">{t('home.categories')}</div>
+                    </Link>
+                    <Link
+                        to="/warehouses"
+                        className="home-feature-card"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                        <div className="home-feature-card-icon">🏭</div>
+                        <div className="home-feature-card-title">{t('nav.warehouses')}</div>
                     </Link>
                 </div>
 

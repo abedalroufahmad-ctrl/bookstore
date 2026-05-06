@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import 'admin_warehouses_browse_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -45,6 +46,15 @@ class AdminDashboardScreen extends StatelessWidget {
             subtitle: 'Add and manage categories',
             icon: Icons.category,
             onTap: () => Navigator.pushNamed(context, '/admin/categories'),
+          ),
+          _AdminTile(
+            title: 'Books by warehouse',
+            subtitle: 'Browse catalog per warehouse',
+            icon: Icons.warehouse,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const AdminWarehousesBrowseScreen()),
+            ),
           ),
           _AdminTile(
             title: 'Orders',

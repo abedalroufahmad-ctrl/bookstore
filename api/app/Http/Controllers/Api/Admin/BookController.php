@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\BookStoreRequest;
 use App\Http\Requests\Admin\BookUpdateRequest;
@@ -17,6 +18,7 @@ class BookController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
+        $employee = auth('employee')->user();
         $filters = [];
         if ($request->filled('search')) {
             $filters['search'] = $request->get('search');
@@ -38,6 +40,14 @@ class BookController extends BaseApiController
         }
         if ($request->boolean('no_cover')) {
             $filters['no_cover'] = true;
+        }
+        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+            $managedIds = $employee->getManagedWarehouseIds();
+            if (empty($managedIds)) {
+                $filters['warehouse_ids'] = ['__none__'];
+            } else {
+                $filters['warehouse_ids'] = $managedIds;
+            }
         }
         $perPage = min((int) $request->get('per_page', 32), 100);
 
