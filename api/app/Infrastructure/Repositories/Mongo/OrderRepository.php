@@ -70,16 +70,11 @@ class OrderRepository implements OrderRepositoryInterface
         }
 
         if (array_key_exists('warehouse_id', $filters) && $filters['warehouse_id'] !== null && $filters['warehouse_id'] !== '') {
-            $query->where(function ($q) use ($filters) {
-                $wid = $filters['warehouse_id'];
-                $q->where('warehouse_id', $wid)->orWhereNull('warehouse_id');
-            });
+            $query->where('warehouse_id', $filters['warehouse_id']);
         }
 
         if (! empty($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->whereIn('warehouse_id', $filters['warehouse_ids'])->orWhereNull('warehouse_id');
-            });
+            $query->whereIn('warehouse_id', $filters['warehouse_ids']);
         }
 
         return $query->orderByDesc('created_at')->paginate($perPage);

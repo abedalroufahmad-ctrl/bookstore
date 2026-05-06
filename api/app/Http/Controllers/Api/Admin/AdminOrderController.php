@@ -55,7 +55,7 @@ class AdminOrderController extends BaseApiController
         $employee = auth('employee')->user();
         if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
-            if ($orderWarehouseId !== null && ! $employee->managesWarehouse((string) $orderWarehouseId)) {
+            if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
                 return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
             }
         }
@@ -75,7 +75,7 @@ class AdminOrderController extends BaseApiController
             $employee = auth('employee')->user();
             if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
                 $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
-                if ($orderWarehouseId !== null && ! $employee->managesWarehouse((string) $orderWarehouseId)) {
+                if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
                     return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
                 }
             }
