@@ -166,8 +166,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               _buildCategoryRow(t.bookCategory, b.category!),
             if (b.isbn != null && b.isbn!.isNotEmpty)
               _buildInfoRow(t.bookIsbn, b.isbn!),
-            if (b.publisher != null && b.publisher!.isNotEmpty)
-              _buildInfoRow(t.bookPublisher, b.publisher!),
+            if (b.publisher != null && b.publisher!.name != null && b.publisher!.name!.isNotEmpty)
+              _buildInfoRow(t.bookPublisher, b.publisher!.name!),
+            if (b.warehouse != null && b.warehouse!.name != null)
+              _buildInfoRow(_s(context, 'المستودع', 'Warehouse'), b.warehouse!.name!),
             if (b.publishYear != null)
               _buildInfoRow(t.bookYear, b.publishYear.toString()),
             if (b.pages != null)
@@ -363,7 +365,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Widget _buildCategoryRow(String label, Category category) {
-    final value = category.subjectTitle ?? category.deweyCode ?? '';
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final value = (localeCode == 'ar' && category.subjectTitleAr != null && category.subjectTitleAr!.isNotEmpty) 
+        ? category.subjectTitleAr! 
+        : (category.subjectTitleEn ?? category.deweyCode ?? '');
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
@@ -384,7 +389,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               onTap: () => Navigator.pushNamed(
                 context,
                 '/category/${category.id}',
-                arguments: {'title': category.subjectTitle},
+                arguments: {'title': value},
               ),
               borderRadius: BorderRadius.circular(4),
               child: Padding(

@@ -32,11 +32,11 @@ class CatalogSeeder extends Seeder
         $categories = [
             Category::firstOrCreate(
                 ['dewey_code' => '823'],
-                ['dewey_code' => '823', 'subject_title' => 'Fiction', 'subject_number' => '823']
+                ['dewey_code' => '823', 'subject_title_en' => 'Fiction', 'subject_number' => '823']
             ),
             Category::firstOrCreate(
                 ['dewey_code' => '813'],
-                ['dewey_code' => '813', 'subject_title' => 'American Fiction', 'subject_number' => '813']
+                ['dewey_code' => '813', 'subject_title_en' => 'American Fiction', 'subject_number' => '813']
             ),
         ];
 

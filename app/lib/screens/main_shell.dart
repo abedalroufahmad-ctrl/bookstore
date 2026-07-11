@@ -1,16 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart' show isMaterial;
+import 'package:flutter_platform_widgets/flutter_platform_widgets.dart'
+    show isMaterial;
+import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
 import 'account_screen.dart';
 import 'book_list_screen.dart';
 import 'cart_screen.dart';
 import 'home_screen.dart';
 
-/// Main shell with bottom navigation: Home, Books, Cart, Profile.
-/// Uses a plain Scaffold + BottomNavigationBar so the nav bar is always visible.
+/// Bottom tabs + browse menu mirroring SPA routes (authors, categories, warehouses, orders).
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -21,10 +23,45 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
+  String _tabTitle(AppLocalizations t) {
+    switch (_currentIndex) {
+      case 1:
+        return t.booksTitle;
+      case 2:
+        return t.cartTitle;
+      case 3:
+        return t.myProfile;
+      default:
+        return t.navHome;
+    }
+  }
+
+  void _goToCart(AuthProvider auth) {
+    final t = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (!auth.isLoggedIn) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(t.cartLoginMsg),
+          action: SnackBarAction(
+            label: t.navLogin,
+            onPressed: () => Navigator.pushNamed(context, '/login'),
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _currentIndex = 2);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final useMaterial = isMaterial(context);
+    final theme = Theme.of(context);
+
+    context.watch<LocaleProvider>();
+    final auth = context.watch<AuthProvider>();
 
     final navItems = [
       BottomNavigationBarItem(
@@ -38,8 +75,12 @@ class _MainShellState extends State<MainShell> {
         label: t.navBooks,
       ),
       BottomNavigationBarItem(
-        icon: Icon(useMaterial ? Icons.shopping_cart_outlined : CupertinoIcons.cart),
-        activeIcon: Icon(useMaterial ? Icons.shopping_cart : CupertinoIcons.cart_fill),
+        icon: Icon(
+          useMaterial ? Icons.shopping_cart_outlined : CupertinoIcons.cart,
+        ),
+        activeIcon: Icon(
+          useMaterial ? Icons.shopping_cart : CupertinoIcons.cart_fill,
+        ),
         label: t.navCart,
       ),
       BottomNavigationBarItem(
@@ -51,22 +92,131 @@ class _MainShellState extends State<MainShell> {
 
     final body = IndexedStack(
       index: _currentIndex,
-      children: const [
-        HomeScreen(),
-        BookListScreen(),
-        CartScreen(),
-        AccountScreen(),
+      children: [
+        const HomeScreen(),
+        const BookListScreen(showAppBar: false),
+        const CartScreen(showAppBar: false),
+        const AccountScreen(showAppBar: false),
       ],
     );
 
-    final theme = Theme.of(context);
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(
+          _currentIndex == 0 ? t.appName : _tabTitle(t),
+        ),
+        actions: [
+          IconButton(
+            tooltip: t.language,
+            onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
+            icon: Icon(useMaterial ? Icons.language : CupertinoIcons.globe),
+          ),
+          IconButton(
+            tooltip: t.navCart,
+            onPressed: () => _goToCart(auth),
+            icon: Icon(
+              useMaterial ? Icons.shopping_cart_outlined : CupertinoIcons.cart,
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              useMaterial ? Icons.more_horiz : CupertinoIcons.ellipsis_vertical,
+            ),
+            onSelected: (value) async {
+              switch (value) {
+                case 'books':
+                  setState(() => _currentIndex = 1);
+                  break;
+                case 'categories':
+                  await Navigator.pushNamed(context, '/categories');
+                  break;
+                case 'authors':
+                  await Navigator.pushNamed(context, '/authors');
+                  break;
+                case 'warehouses':
+                  await Navigator.pushNamed(context, '/warehouses');
+                  break;
+                case 'orders':
+                  if (!auth.isLoggedIn) {
+                    await Navigator.pushNamed(context, '/login');
+                  } else {
+                    await Navigator.pushNamed(context, '/orders');
+                  }
+                  break;
+                case 'browse_warehouses':
+                  await Navigator.pushNamed(context, '/admin/warehouses/browse');
+                  break;
+                case 'staff_orders':
+                  await Navigator.pushNamed(context, '/staff/orders');
+                  break;
+                case 'login':
+                  await Navigator.pushNamed(context, '/login');
+                  break;
+                case 'register':
+                  await Navigator.pushNamed(context, '/register');
+                  break;
+                case 'logout':
+                  await context.read<AuthProvider>().logout();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(t.navLogout)),
+                    );
+                  }
+                  setState(() => _currentIndex = 0);
+                  break;
+              }
+            },
+            itemBuilder: (ctx) {
+              final items = <PopupMenuEntry<String>>[
+                PopupMenuItem(value: 'books', child: Text(t.navBooks)),
+                PopupMenuItem(value: 'categories', child: Text(t.navCategories)),
+                PopupMenuItem(value: 'authors', child: Text(t.navAuthors)),
+                PopupMenuItem(value: 'warehouses', child: Text(t.navWarehouses)),
+              ];
+
+              if (auth.userType == UserType.customer ||
+                  auth.userType == UserType.employee) {
+                items.add(PopupMenuItem(value: 'orders', child: Text(t.navOrders)));
+              }
+
+              if (auth.userType == UserType.employee) {
+                items.addAll([
+                  PopupMenuItem(
+                    value: 'browse_warehouses',
+                    child: Text(t.warehouseBooksTitle),
+                  ),
+                  PopupMenuItem(
+                    value: 'staff_orders',
+                    child: Text(t.staffOrdersTitle),
+                  ),
+                ]);
+              }
+
+              items.add(const PopupMenuDivider());
+
+              if (!auth.isLoggedIn) {
+                items.addAll([
+                  PopupMenuItem(value: 'login', child: Text(t.navLogin)),
+                  PopupMenuItem(value: 'register', child: Text(t.navRegister)),
+                ]);
+              } else {
+                items.add(PopupMenuItem(value: 'logout', child: Text(t.navLogout)));
+              }
+
+              return items;
+            },
+          ),
+        ],
+      ),
       body: body,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: theme.bottomNavigationBarTheme.backgroundColor,
           border: Border(
-            top: BorderSide(color: theme.colorScheme.outline.withOpacity(0.2)),
+            top: BorderSide(
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
+            ),
           ),
         ),
         child: BottomNavigationBar(

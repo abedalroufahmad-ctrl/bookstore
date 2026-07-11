@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\CountryController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\EmployeeController;
+use App\Http\Controllers\Api\Admin\PublisherController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\UploadAuthorPhotoController;
 use App\Http\Controllers\Api\Admin\UploadCoverController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\EmployeeAuthController;
 use App\Http\Controllers\Api\EmployeeOrderController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PayPalController;
 use App\Http\Controllers\Api\PublicAuthorController;
 use App\Http\Controllers\Api\PublicBookController;
 use App\Http\Controllers\Api\PublicCategoryController;
@@ -27,6 +29,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     // Payment webhooks (no auth; verify signature in controller)
     Route::post('webhooks/stripe', [WebhookController::class, 'stripe']);
     Route::post('webhooks/paypal', [WebhookController::class, 'paypal']);
+
+    Route::get('paypal/complete', [PayPalController::class, 'complete']);
 
     // Public Catalog (no auth) - for customers to browse
     Route::get('books', [PublicBookController::class, 'index']);
@@ -67,6 +71,12 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         Route::put('categories/{id}', [CategoryController::class, 'update']);
         Route::delete('categories/{id}', [CategoryController::class, 'destroy']);
 
+        Route::get('publishers', [PublisherController::class, 'index']);
+        Route::post('publishers', [PublisherController::class, 'store']);
+        Route::get('publishers/{id}', [PublisherController::class, 'show']);
+        Route::put('publishers/{id}', [PublisherController::class, 'update']);
+        Route::delete('publishers/{id}', [PublisherController::class, 'destroy']);
+
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);
         Route::get('employees/{id}', [EmployeeController::class, 'show']);
@@ -81,6 +91,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         Route::get('orders', [AdminOrderController::class, 'index']);
         Route::get('orders/{id}', [AdminOrderController::class, 'show']);
         Route::patch('orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
+        Route::post('orders/{id}/warehouse-quote', [AdminOrderController::class, 'submitWarehouseQuote']);
         Route::post('orders/{id}/assign', [AdminOrderController::class, 'assign']);
 
         Route::get('settings', [SettingController::class, 'index']);
@@ -106,6 +117,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
                 Route::get('orders', [EmployeeOrderController::class, 'index']);
                 Route::get('orders/{id}', [EmployeeOrderController::class, 'show']);
                 Route::patch('orders/{id}/status', [EmployeeOrderController::class, 'updateStatus']);
+                Route::post('orders/{id}/warehouse-quote', [EmployeeOrderController::class, 'submitWarehouseQuote']);
             });
         });
     });
@@ -127,9 +139,11 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::delete('cart/items/{bookId}', [CartController::class, 'removeItem']);
             Route::patch('cart/items/{bookId}', [CartController::class, 'updateItem']);
 
-            // Orders
+            // Orders — register paypal/start before orders/{id}
             Route::post('orders/checkout', [OrderController::class, 'checkout']);
+            Route::post('orders/paypal/start', [PayPalController::class, 'start']);
             Route::get('orders', [OrderController::class, 'index']);
+            Route::post('orders/{id}/confirm-quote', [OrderController::class, 'confirmQuote']);
             Route::get('orders/{id}', [OrderController::class, 'show']);
             Route::patch('orders/{id}/status', [OrderController::class, 'updateStatus']);
         });

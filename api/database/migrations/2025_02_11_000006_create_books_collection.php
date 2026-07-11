@@ -11,7 +11,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection('mongodb')->create('books', function (Blueprint $collection) {
-            $collection->unique('isbn', options: ['name' => 'books_isbn_unique']);
+            // Non-unique: legacy ODS imports may contain duplicate ISBNs; admin Form Requests enforce uniqueness on write.
+            $collection->index('isbn', options: ['name' => 'books_isbn_index']);
             $collection->index('title');
             $collection->index('category_id');
             $collection->index('warehouse_id');

@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\BaseFormRequest;
-use Illuminate\Validation\Rule;
 
 class BookStoreRequest extends BaseFormRequest
 {
@@ -31,7 +30,7 @@ class BookStoreRequest extends BaseFormRequest
             'edition_number' => ['nullable', 'integer', 'min:1'],
             'binding_type' => ['nullable', 'string', 'max:50'],
             'paper_type' => ['nullable', 'string', 'max:50'],
-            'publisher' => ['nullable', 'string', 'max:255'],
+            'publisher_id' => ['nullable', 'string'],
             'warehouse_id' => ['required', 'string'],
             'stock_quantity' => ['required', 'integer', 'min:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],

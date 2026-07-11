@@ -22,4 +22,4 @@ flutter run
 
 - Browse books (public catalog)
 - Customer: Register, login, cart, checkout, orders
-- Employee: Login, admin access (placeholder)
+- Employee: On login, pick **Employee** (staff), then **Profile → Warehouse orders** for the same warehouse-quote flow as web admin (shipping fee, methods) and status updates via the employee API.

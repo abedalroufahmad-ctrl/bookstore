@@ -93,18 +93,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _error = null;
       _loading = true;
     });
+    final shipping = {
+      'address': _addressController.text.trim(),
+      'city': _cityController.text.trim(),
+      'country': _countryController.text.trim(),
+      'postal_code': _postalController.text.trim(),
+    };
     final res = await ApiService.instance.checkout(
-      {
-        'address': _addressController.text.trim(),
-        'city': _cityController.text.trim(),
-        'country': _countryController.text.trim(),
-        'postal_code': _postalController.text.trim(),
-      },
+      shipping,
       paymentMethod: _selectedPaymentMethod,
     );
     if (!mounted) return;
     setState(() => _loading = false);
-    if (res.success && res.data != null) {
+    final ordersRaw = res.data?['orders'];
+    if (res.success &&
+        ordersRaw is List &&
+        ordersRaw.isNotEmpty) {
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/orders',
@@ -177,7 +181,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const Text('Payment method', style: TextStyle(fontSize: 18)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _paymentMethods.any((m) => m['id'] == _selectedPaymentMethod)
+                  key: ValueKey(
+                    '${_paymentMethods.map((m) => m['id']).join('|')}|$_selectedPaymentMethod',
+                  ),
+                  initialValue: _paymentMethods.any((m) => m['id'] == _selectedPaymentMethod)
                       ? _selectedPaymentMethod
                       : _paymentMethods.first['id'] as String,
                   decoration: const InputDecoration(

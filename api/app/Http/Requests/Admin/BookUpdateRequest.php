@@ -33,7 +33,7 @@ class BookUpdateRequest extends BaseFormRequest
             'edition_number' => ['nullable', 'integer', 'min:1'],
             'binding_type' => ['nullable', 'string', 'max:50'],
             'paper_type' => ['nullable', 'string', 'max:50'],
-            'publisher' => ['nullable', 'string', 'max:255'],
+            'publisher_id' => ['nullable', 'string'],
             'warehouse_id' => ['sometimes', 'string'],
             'stock_quantity' => ['sometimes', 'integer', 'min:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],

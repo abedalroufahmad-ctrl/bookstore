@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 import 'register_screen.dart';
@@ -18,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
+  bool _loginAsStaff = false;
   bool _loading = false;
   String? _error;
 
@@ -35,19 +37,29 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
     });
     final auth = context.read<AuthProvider>();
-    final err = await auth.loginAsCustomer(
-      _emailController.text,
-      _passwordController.text,
-      rememberMe: _rememberMe,
-    );
+    final String? err;
+    if (_loginAsStaff) {
+      err = await auth.loginAsEmployee(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+    } else {
+      err = await auth.loginAsCustomer(
+        _emailController.text,
+        _passwordController.text,
+        rememberMe: _rememberMe,
+      );
+    }
     if (!mounted) return;
     setState(() => _loading = false);
     if (err != null) {
       if (mounted) setState(() => _error = err);
     } else {
-      final customer = context.read<AuthProvider>().customer;
-      if (customer != null) {
-        await context.read<ProfileProvider>().loadFromCustomer(customer);
+      if (!_loginAsStaff) {
+        final customer = context.read<AuthProvider>().customer;
+        if (customer != null) {
+          await context.read<ProfileProvider>().loadFromCustomer(customer);
+        }
       }
       if (!mounted) return;
       // Only navigate when at /login route (e.g. from cart redirect).
@@ -61,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -97,7 +110,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: theme.textTheme.titleLarge,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        t.isAr ? 'نوع الدخول' : 'Signing in as',
+                        style: theme.textTheme.labelLarge,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: Text(t.customer),
+                            selected: !_loginAsStaff,
+                            onSelected: (v) {
+                              if (v) setState(() => _loginAsStaff = false);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: Text(t.employee),
+                            selected: _loginAsStaff,
+                            onSelected: (v) {
+                              if (v) setState(() => _loginAsStaff = true);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                     TextFormField(
                       controller: _emailController,
                       decoration: const InputDecoration(labelText: 'Email'),
@@ -114,14 +159,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           v == null || v.isEmpty ? 'Password required' : null,
                     ),
                     const SizedBox(height: 8),
-                    CheckboxListTile(
-                      value: _rememberMe,
-                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      title: const Text('Remember me'),
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
+                    if (!_loginAsStaff)
+                      CheckboxListTile(
+                        value: _rememberMe,
+                        onChanged: (v) =>
+                            setState(() => _rememberMe = v ?? false),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: const Text('Remember me'),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
                     if (_error != null) ...[
                       const SizedBox(height: 16),
                       Text(
@@ -147,18 +194,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           : const Text('Login'),
                     ),
-                    const SizedBox(height: 16),
-                    GFButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      ).then((_) => _formKey.currentState?.reset()),
-                      text: 'Register',
-                      type: GFButtonType.outline,
-                      fullWidthButton: true,
-                    ),
+                    if (!_loginAsStaff) ...[
+                      const SizedBox(height: 16),
+                      GFButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
+                          ),
+                        ).then((_) => _formKey.currentState?.reset()),
+                        text: 'Register',
+                        type: GFButtonType.outline,
+                        fullWidthButton: true,
+                      ),
+                    ],
                   ],
                 ),
               ),

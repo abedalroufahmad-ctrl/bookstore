@@ -4,6 +4,7 @@
     "description": "Laravel 11 API - Book Store Backend with MongoDB and JWT",
     "keywords": ["laravel", "api", "mongodb", "jwt"],
     "license": "MIT",
+
     "require": {
         "php": "^8.2",
         "symfony/clock": "^7.2",

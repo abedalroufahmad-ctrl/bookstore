@@ -16,6 +16,16 @@ interface OrderServiceInterface
      */
     public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array;
 
+    /**
+     * Warehouse sets confirmed books subtotal (existing), shipping fee, and confirms shipping/payment preferences.
+     */
+    public function submitWarehouseQuote(Order $order, array $data): Order;
+
+    /**
+     * Customer accepts quoted order (COD, etc.). PayPal orders use paypal/start instead.
+     */
+    public function confirmOrderQuoteByCustomer(Order $order, Customer $customer): Order;
+
     public function updateStatus(Order $order, string $newStatus): Order;
 
     public function assignOrder(Order $order, string $employeeId, ?string $warehouseId = null): Order;
@@ -29,4 +39,11 @@ interface OrderServiceInterface
     public function getOrdersForEmployee(array $filters = [], int $perPage = 15): LengthAwarePaginator;
 
     public function markOrderPaymentPaid(string $orderId, ?string $transactionId = null): void;
+
+    /**
+     * Mark several orders paid after PayPal capture (custom_id lists our order IDs).
+     *
+     * @param  array<int, string>  $orderIds
+     */
+    public function markPayPalOrdersPaid(array $orderIds, ?string $transactionId): void;
 }

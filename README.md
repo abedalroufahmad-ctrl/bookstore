@@ -2,6 +2,8 @@
 
 API-only Laravel 11 backend with MongoDB, JWT authentication, Repository pattern, Service layer, Form Request validation, and role-based middleware.
 
+Full monorepo documentation (architecture, features, Arabic deep description): **[PROJECT.md](./PROJECT.md)**.
+
 ## Requirements
 
 - PHP 8.2+
@@ -127,12 +129,12 @@ CORS_ALLOWED_ORIGINS=https://app.example.com,http://localhost:5173
 CORS_ALLOWED_ORIGINS=*
 ```
 
-## Frontend
+## Web
 
-React + Vite + TypeScript SPA in `frontend/`:
+React + Vite + TypeScript SPA in `web/`:
 
 ```bash
-cd frontend
+cd web
 npm install
 npm run dev
 ```

@@ -17,25 +17,14 @@ use Illuminate\Support\Facades\DB;
 
 class OrderService extends BaseService implements OrderServiceInterface
 {
-    public const STATUS_PENDING_REVIEW = 'pending_review';
-
-    public const STATUS_CONFIRMED = 'confirmed';
-
-    public const STATUS_PREPARING = 'preparing';
-
-    public const STATUS_SHIPPED = 'shipped';
-
-    public const STATUS_DELIVERED = 'delivered';
-
-    public const STATUS_CANCELLED = 'cancelled';
-
     public const VALID_STATUSES = [
-        self::STATUS_PENDING_REVIEW,
-        self::STATUS_CONFIRMED,
-        self::STATUS_PREPARING,
-        self::STATUS_SHIPPED,
-        self::STATUS_DELIVERED,
-        self::STATUS_CANCELLED,
+        OrderStatus::PendingWarehouseReview->value,
+        OrderStatus::AwaitingCustomerConfirmation->value,
+        OrderStatus::ResubmittedToWarehouse->value,
+        OrderStatus::ProcessingFulfillment->value,
+        OrderStatus::ShippedCollectingPayment->value,
+        OrderStatus::Completed->value,
+        OrderStatus::Cancelled->value,
     ];
 
     public function __construct(
@@ -53,33 +42,36 @@ class OrderService extends BaseService implements OrderServiceInterface
             throw new \InvalidArgumentException('Cart is empty.');
         }
 
-        $paymentStatus = $paymentMethod === 'cod' ? Payment::statusPaid() : Payment::statusPending();
+        $paymentStatusPending = Payment::statusPending();
 
-        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatus) {
+        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatusPending) {
             $groupedByWarehouse = $this->groupCartItemsByWarehouse($cart->items);
             $createdOrders = [];
 
             foreach ($groupedByWarehouse as $warehouseId => $items) {
-                $this->stockService->validateAndDeduct($items);
-                $orderTotal = $this->calculateItemsTotal($items);
+                $this->stockService->validateAvailability($items);
+                $booksSubtotal = $this->calculateItemsTotal($items);
 
                 $order = $this->orderRepository->create([
                     'customer_id' => $customer->getKey(),
                     'warehouse_id' => $warehouseId,
                     'items' => $items,
-                    'status' => OrderStatus::PendingReview->value,
-                    'total' => $orderTotal,
+                    'status' => OrderStatus::PendingWarehouseReview->value,
+                    'books_subtotal' => $booksSubtotal,
+                    'shipping_fee' => 0,
+                    'shipping_method' => null,
+                    'total' => $booksSubtotal,
                     'shipping_address' => $shippingAddress,
                     'payment_info' => $paymentInfo ?? [],
                     'payment_method' => $paymentMethod,
-                    'payment_status' => $paymentStatus,
+                    'payment_status' => $paymentStatusPending,
                 ]);
 
                 $this->paymentRepository->create([
                     'order_id' => $order->getKey(),
                     'user_id' => $customer->getKey(),
                     'payment_method' => $paymentMethod,
-                    'payment_status' => $paymentStatus,
+                    'payment_status' => $paymentStatusPending,
                     'transaction_id' => null,
                 ]);
 
@@ -96,6 +88,146 @@ class OrderService extends BaseService implements OrderServiceInterface
         }
 
         return $doCheckout();
+    }
+
+    public function submitWarehouseQuote(Order $order, array $data): Order
+    {
+        $current = OrderStatus::normalizeStored((string) $order->status);
+        if ($current !== OrderStatus::PendingWarehouseReview) {
+            throw new \InvalidArgumentException('Order must be awaiting warehouse pricing before submitting a quote.');
+        }
+
+        $shippingFee = (float) ($data['shipping_fee'] ?? 0);
+        if ($shippingFee < 0) {
+            throw new \InvalidArgumentException('shipping_fee cannot be negative.');
+        }
+
+        $booksSubtotal = (float) ($order->books_subtotal ?? $this->calculateItemsTotal($order->items ?? []));
+        $total = round($booksSubtotal + $shippingFee, 2);
+
+        $update = [
+            'books_subtotal' => $booksSubtotal,
+            'shipping_fee' => $shippingFee,
+            'shipping_method' => isset($data['shipping_method']) ? (string) $data['shipping_method'] : ($order->shipping_method ?? null),
+            'total' => $total,
+            'status' => OrderStatus::AwaitingCustomerConfirmation->value,
+        ];
+
+        if (! empty($data['payment_method']) && is_string($data['payment_method'])) {
+            $update['payment_method'] = $data['payment_method'];
+            $payment = $this->paymentRepository->findByOrderId($order->getKey());
+            if ($payment) {
+                $payment->update(['payment_method' => $data['payment_method']]);
+            }
+        }
+
+        $this->orderRepository->update($order->getKey(), $update);
+
+        return $order->fresh(['customer', 'employee']);
+    }
+
+    /**
+     * Customer accepts non-prepaid warehouse quote (e.g. COD) and sends order back for fulfillment scheduling.
+     */
+    public function confirmOrderQuoteByCustomer(Order $order, Customer $customer): Order
+    {
+        if ((string) $order->customer_id !== (string) $customer->getKey()) {
+            throw new \InvalidArgumentException('Order does not belong to this customer.');
+        }
+
+        $current = OrderStatus::normalizeStored((string) $order->status);
+        if ($current !== OrderStatus::AwaitingCustomerConfirmation) {
+            throw new \InvalidArgumentException('Order is not waiting for customer confirmation.');
+        }
+
+        if ((string) ($order->payment_method ?? '') === 'paypal') {
+            throw new \InvalidArgumentException('Complete PayPal payment to confirm PayPal orders.');
+        }
+
+        $this->orderRepository->update($order->getKey(), [
+            'status' => OrderStatus::ResubmittedToWarehouse->value,
+        ]);
+
+        return $order->fresh(['customer', 'employee']);
+    }
+
+    public function updateStatus(Order $order, string $newStatus): Order
+    {
+        if (! in_array($newStatus, self::VALID_STATUSES, true)) {
+            throw new \InvalidArgumentException("Invalid status: {$newStatus}");
+        }
+
+        $current = OrderStatus::normalizeStored((string) $order->status)
+            ?? throw new \InvalidArgumentException('Unsupported or unknown order status.');
+
+        $next = OrderStatus::tryFrom($newStatus);
+        if ($next === null) {
+            throw new \InvalidArgumentException("Invalid status: {$newStatus}");
+        }
+
+        if ($next === OrderStatus::Cancelled) {
+            if (! $current->canBeCancelled()) {
+                throw new \InvalidArgumentException('Order cannot be cancelled from its current status.');
+            }
+
+            if ($current === OrderStatus::ProcessingFulfillment) {
+                $this->stockService->restore($order->items ?? []);
+            }
+
+            $this->orderRepository->update($order->getKey(), ['status' => OrderStatus::Cancelled->value]);
+
+            return $order->fresh();
+        }
+
+        $this->assertEmployeeWorkflowTransition($current, $next);
+
+        if ($current === OrderStatus::ResubmittedToWarehouse && $next === OrderStatus::ProcessingFulfillment) {
+            $this->stockService->validateAndDeduct($order->items ?? []);
+        }
+
+        $patch = ['status' => $next->value];
+
+        if ($next === OrderStatus::Completed
+            && (string) ($order->payment_method ?? '') === 'cod'
+            && (string) ($order->payment_status ?? '') === Payment::statusPending()) {
+            $this->markOrderPaymentPaid($order->getKey(), null);
+        }
+
+        $this->orderRepository->update($order->getKey(), $patch);
+
+        return $order->fresh(['customer', 'employee']);
+    }
+
+    private function assertEmployeeWorkflowTransition(OrderStatus $current, OrderStatus $next): void
+    {
+        $allowed = match ($current) {
+            OrderStatus::PendingWarehouseReview => [
+                OrderStatus::Cancelled,
+            ],
+            OrderStatus::AwaitingCustomerConfirmation => [
+                OrderStatus::Cancelled,
+            ],
+            OrderStatus::ResubmittedToWarehouse => [
+                OrderStatus::ProcessingFulfillment,
+                OrderStatus::Cancelled,
+            ],
+            OrderStatus::ProcessingFulfillment => [
+                OrderStatus::ShippedCollectingPayment,
+                OrderStatus::Cancelled,
+            ],
+            OrderStatus::ShippedCollectingPayment => [
+                OrderStatus::Completed,
+            ],
+            default => [],
+        };
+
+        if (! in_array($next, $allowed, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Cannot move order from "%s" to "%s".',
+                $current->value,
+                $next->value
+            ));
+        }
     }
 
     /**
@@ -143,24 +275,7 @@ class OrderService extends BaseService implements OrderServiceInterface
             $total += $price * $quantity;
         }
 
-        return $total;
-    }
-
-    public function updateStatus(Order $order, string $newStatus): Order
-    {
-        if (! in_array($newStatus, self::VALID_STATUSES, true)) {
-            throw new \InvalidArgumentException("Invalid status: {$newStatus}");
-        }
-
-        $currentStatus = $order->status;
-
-        if ($newStatus === self::STATUS_CANCELLED && $currentStatus !== self::STATUS_CANCELLED) {
-            $this->stockService->restore($order->items);
-        }
-
-        $this->orderRepository->update($order->getKey(), ['status' => $newStatus]);
-
-        return $order->fresh();
+        return round($total, 2);
     }
 
     public function assignOrder(Order $order, string $employeeId, ?string $warehouseId = null): Order
@@ -174,7 +289,7 @@ class OrderService extends BaseService implements OrderServiceInterface
         return $order->fresh(['customer', 'employee']);
     }
 
-    public function getOrdersForCustomer(Customer $customer, int $perPage = 15): LengthAwarePaginator
+    public function getOrdersForCustomer(Customer $customer, int $perPage = 24): LengthAwarePaginator
     {
         return $this->orderRepository->getByCustomerId($customer->getKey(), $perPage);
     }
@@ -191,17 +306,88 @@ class OrderService extends BaseService implements OrderServiceInterface
             return null;
         }
 
+        $this->enrichOrderItemsWithBookTitles($order);
+
         return $order;
     }
 
-    public function getOrdersForAdmin(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    /**
+     * Add book_title to each line item for API consumers (does not persist).
+     */
+    private function enrichOrderItemsWithBookTitles(Order $order): void
+    {
+        $items = $order->items;
+        if (! is_array($items) || $items === []) {
+            return;
+        }
+
+        $ids = [];
+        foreach ($items as $row) {
+            if (is_array($row) && ! empty($row['book_id'])) {
+                $ids[] = (string) $row['book_id'];
+            }
+        }
+
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return;
+        }
+
+        $books = Book::query()->findMany($ids);
+
+        $byId = [];
+        foreach ($books as $book) {
+            $title = $this->normalizeBookTitleForOrderItem($book->title ?? null);
+            if ($title !== '') {
+                $byId[(string) $book->getKey()] = $title;
+            }
+        }
+
+        foreach ($items as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $bid = isset($row['book_id']) ? (string) $row['book_id'] : '';
+            if ($bid !== '' && isset($byId[$bid])) {
+                $items[$i]['book_title'] = $byId[$bid];
+            }
+        }
+
+        $order->setAttribute('items', $items);
+    }
+
+    private function normalizeBookTitleForOrderItem(mixed $title): string
+    {
+        if (is_string($title)) {
+            return trim($title);
+        }
+
+        if (is_array($title)) {
+            foreach (['en', 'ar'] as $k) {
+                if (isset($title[$k]) && is_string($title[$k]) && trim($title[$k]) !== '') {
+                    return trim($title[$k]);
+                }
+            }
+
+            foreach ($title as $v) {
+                if (is_string($v) && trim($v) !== '') {
+                    return trim($v);
+                }
+            }
+        }
+
+        return '';
+    }
+
+    public function getOrdersForAdmin(array $filters = [], int $perPage = 24): LengthAwarePaginator
     {
         $filters['with'] = ['customer', 'employee'];
 
         return $this->orderRepository->getPaginated($filters, $perPage);
     }
 
-    public function getOrdersForEmployee(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    public function getOrdersForEmployee(array $filters = [], int $perPage = 24): LengthAwarePaginator
     {
         $filters['with'] = ['customer'];
 
@@ -217,8 +403,65 @@ class OrderService extends BaseService implements OrderServiceInterface
         if ($payment) {
             $this->paymentRepository->updateStatus($payment->getKey(), Payment::statusPaid(), $transactionId);
         }
-        $this->orderRepository->update($orderId, [
+
+        $order = $this->orderRepository->findById($orderId);
+        $patch = [
             'payment_status' => Payment::statusPaid(),
-        ]);
+        ];
+
+        if ($order !== null && OrderStatus::normalizeStored((string) $order->status) === OrderStatus::AwaitingCustomerConfirmation
+            && (string) ($order->payment_method ?? '') === 'paypal') {
+            $patch['status'] = OrderStatus::ResubmittedToWarehouse->value;
+        }
+
+        $this->orderRepository->update($orderId, $patch);
+    }
+
+    public function markPayPalOrdersPaid(array $orderIds, ?string $transactionId): void
+    {
+        foreach ($orderIds as $id) {
+            $id = trim((string) $id);
+            if ($id === '') {
+                continue;
+            }
+
+            $order = $this->orderRepository->findById($id);
+            if (! $order) {
+                throw new \InvalidArgumentException("Order not found: {$id}");
+            }
+
+            if ((string) $order->payment_method !== 'paypal') {
+                throw new \InvalidArgumentException('Order is not configured for PayPal.');
+            }
+
+            $payStatus = (string) $order->payment_status;
+            if ($payStatus === Payment::statusPaid()) {
+                continue;
+            }
+
+            if ($payStatus !== Payment::statusPending()) {
+                throw new \InvalidArgumentException("Order {$id} is not awaiting payment.");
+            }
+
+            $workflow = OrderStatus::normalizeStored((string) $order->status);
+
+            if ($workflow === OrderStatus::AwaitingCustomerConfirmation) {
+                $this->markOrderPaymentPaid($id, $transactionId);
+
+                continue;
+            }
+
+            if ($workflow === OrderStatus::ResubmittedToWarehouse) {
+                $payment = $this->paymentRepository->findByOrderId($id);
+                if ($payment) {
+                    $this->paymentRepository->updateStatus($payment->getKey(), Payment::statusPaid(), $transactionId);
+                }
+                $this->orderRepository->update($id, ['payment_status' => Payment::statusPaid()]);
+
+                continue;
+            }
+
+            throw new \InvalidArgumentException("Order {$id} cannot accept PayPal capture in status {$order->status}.");
+        }
     }
 }

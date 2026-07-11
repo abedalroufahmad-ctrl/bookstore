@@ -8,7 +8,9 @@ import '../models/cart.dart';
 import '../providers/auth_provider.dart';
 
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final bool showAppBar;
+
+  const CartScreen({super.key, this.showAppBar = true});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -69,7 +71,7 @@ class _CartScreenState extends State<CartScreen> {
     }
     if (_items.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(t.cartTitle)),
+        appBar: widget.showAppBar ? AppBar(title: Text(t.cartTitle)) : null,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -87,7 +89,7 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text(t.cartTitle)),
+      appBar: widget.showAppBar ? AppBar(title: Text(t.cartTitle)) : null,
       body: Column(
         children: [
           Expanded(

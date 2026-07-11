@@ -12,7 +12,8 @@ return new class extends Migration
     {
         Schema::connection('mongodb')->create('categories', function (Blueprint $collection) {
             $collection->unique('dewey_code', options: ['name' => 'categories_dewey_code_unique']);
-            $collection->index('subject_title');
+            $collection->index('subject_title_en');
+            $collection->index('subject_title_ar');
         });
     }
 

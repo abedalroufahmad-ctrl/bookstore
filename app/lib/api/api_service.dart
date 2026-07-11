@@ -426,27 +426,43 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
-  Future<ApiResponse<Order>> checkout(
+  Future<ApiResponse<Map<String, dynamic>>> checkout(
     Map<String, dynamic> shippingAddress, {
     required String paymentMethod,
     Map<String, dynamic>? paymentInfo,
   }) async {
-    final res = await _client.post<Map<String, dynamic>>(
+    return _client.post<Map<String, dynamic>>(
       '/customers/orders/checkout',
       body: {
         'shipping_address': shippingAddress,
         'payment_method': paymentMethod,
         ...? (paymentInfo != null ? {'payment_info': paymentInfo} : null),
       },
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
     );
-    if (res.success && res.data != null) {
-      return ApiResponse(
-        success: true,
-        message: res.message,
-        data: Order.fromJson(res.data as Map<String, dynamic>),
-      );
-    }
-    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  /// PayPal against warehouse-quoted totals. Call after checkout order is `awaiting_customer_confirmation`.
+  Future<ApiResponse<Map<String, dynamic>>> paypalStartQuoted(List<String> orderIds) async {
+    return _client.post<Map<String, dynamic>>(
+      '/customers/orders/paypal/start',
+      body: {'order_ids': orderIds},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<ApiResponse<Order>> customerOrderGet(String id) async {
+    return _client.get<Order>(
+      '/customers/orders/$id',
+      fromJson: (dynamic d) => Order.fromJson(Map<String, dynamic>.from(d as Map)),
+    );
+  }
+
+  Future<ApiResponse<Order>> customerConfirmQuote(String id) async {
+    return _client.post<Order>(
+      '/customers/orders/$id/confirm-quote',
+      fromJson: (dynamic d) => Order.fromJson(Map<String, dynamic>.from(d as Map)),
+    );
   }
 
   // Admin
@@ -551,7 +567,7 @@ class ApiService {
       String deweyCode, String subjectTitle) async {
     final res = await _client.post<Map<String, dynamic>>(
       '/admin/categories',
-      body: {'dewey_code': deweyCode, 'subject_title': subjectTitle},
+      body: {'dewey_code': deweyCode, 'subject_title_en': subjectTitle},
     );
     if (res.success && res.data != null) {
       return ApiResponse(
@@ -659,6 +675,112 @@ class ApiService {
     final res = await _client.post<Map<String, dynamic>>(
       '/admin/orders/$id/assign',
       body: {'employee_id': employeeId},
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Order.fromJson(res.data as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<Order>> adminOrdersSubmitWarehouseQuote(
+    String id, {
+    required double shippingFee,
+    String? shippingMethod,
+    String? paymentMethod,
+  }) async {
+    final body = <String, dynamic>{'shipping_fee': shippingFee};
+    final sm = shippingMethod?.trim();
+    final pm = paymentMethod?.trim();
+    if (sm != null && sm.isNotEmpty) body['shipping_method'] = sm;
+    if (pm != null && pm.isNotEmpty) body['payment_method'] = pm;
+
+    final res = await _client.post<Map<String, dynamic>>(
+      '/admin/orders/$id/warehouse-quote',
+      body: body,
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Order.fromJson(res.data as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<List<Order>>> employeeOrdersList({
+    String? status,
+    bool assignedToMe = false,
+  }) async {
+    final params = <String, String>{};
+    if (status != null && status.isNotEmpty) params['status'] = status;
+    if (assignedToMe) params['assigned_to_me'] = '1';
+
+    final res = await _client.get<dynamic>(
+      '/employees/orders',
+      params: params.isEmpty ? null : params,
+    );
+    if (res.success && res.data != null) {
+      final d = res.data;
+      List<Order> list = [];
+      if (d is Map && d['data'] != null) {
+        list = (d['data'] as List)
+            .map((e) => Order.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else if (d is List) {
+        list = d.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      return ApiResponse(success: true, message: res.message, data: list);
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<Order>> employeeOrdersGet(String id) async {
+    final res = await _client.get<Map<String, dynamic>>('/employees/orders/$id');
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Order.fromJson(res.data as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<Order>> employeeOrdersUpdateStatus(String id, String status) async {
+    final res = await _client.patch<Map<String, dynamic>>(
+      '/employees/orders/$id/status',
+      body: {'status': status},
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Order.fromJson(res.data as Map<String, dynamic>),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<Order>> employeeOrdersSubmitWarehouseQuote(
+    String id, {
+    required double shippingFee,
+    String? shippingMethod,
+    String? paymentMethod,
+  }) async {
+    final body = <String, dynamic>{'shipping_fee': shippingFee};
+    final sm = shippingMethod?.trim();
+    final pm = paymentMethod?.trim();
+    if (sm != null && sm.isNotEmpty) body['shipping_method'] = sm;
+    if (pm != null && pm.isNotEmpty) body['payment_method'] = pm;
+
+    final res = await _client.post<Map<String, dynamic>>(
+      '/employees/orders/$id/warehouse-quote',
+      body: body,
     );
     if (res.success && res.data != null) {
       return ApiResponse(

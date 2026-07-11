@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class StockService implements StockServiceInterface
 {
-    public function validateAndDeduct(array $items): void
+    public function validateAvailability(array $items): void
     {
         foreach ($items as $item) {
             $bookId = $item['book_id'] ?? null;
@@ -28,8 +28,25 @@ class StockService implements StockServiceInterface
                     "Insufficient stock for '{$book->title}'. Available: {$book->stock_quantity}, requested: {$quantity}"
                 );
             }
+        }
+    }
 
-            $book->decrement('stock_quantity', $quantity);
+    public function validateAndDeduct(array $items): void
+    {
+        $this->validateAvailability($items);
+
+        foreach ($items as $item) {
+            $bookId = $item['book_id'] ?? null;
+            $quantity = (int) ($item['quantity'] ?? 0);
+
+            if (! $bookId || $quantity <= 0) {
+                continue;
+            }
+
+            $book = Book::find($bookId);
+            if ($book) {
+                $book->decrement('stock_quantity', $quantity);
+            }
         }
     }
 

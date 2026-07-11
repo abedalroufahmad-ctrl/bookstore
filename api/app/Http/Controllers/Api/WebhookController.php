@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Order\Interfaces\OrderServiceInterface;
-use App\Http\Controllers\Api\BaseApiController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Stripe\Webhook;
 
 /**
  * Payment gateway webhooks. Validate signatures in production and call markOrderPaymentPaid.
@@ -26,6 +26,7 @@ class WebhookController extends BaseApiController
 
         if ($secret && $sig && ! $this->verifyStripeSignature($payload, $sig, $secret)) {
             Log::warning('Stripe webhook signature verification failed');
+
             return $this->errorResponse('Invalid signature', 400);
         }
 
@@ -54,10 +55,22 @@ class WebhookController extends BaseApiController
         $eventType = $payload['event_type'] ?? '';
         if ($eventType === 'PAYMENT.CAPTURE.COMPLETED') {
             $resource = $payload['resource'] ?? [];
-            $orderId = $resource['custom_id'] ?? $resource['supplementary_data']['related_ids']['order_id'] ?? null;
-            $transactionId = $resource['id'] ?? null;
-            if ($orderId) {
-                $this->orderService->markOrderPaymentPaid($orderId, $transactionId);
+            if (! is_array($resource)) {
+                return $this->successResponse(null, 'OK');
+            }
+
+            $customId = $resource['custom_id'] ?? null;
+            if (! is_string($customId) || $customId === '') {
+                $customId = null;
+            }
+            $transactionId = is_string($resource['id'] ?? null) ? $resource['id'] : null;
+            if (is_string($customId) && $customId !== '') {
+                $ids = array_filter(array_map('trim', explode(',', $customId)));
+                try {
+                    $this->orderService->markPayPalOrdersPaid($ids, $transactionId);
+                } catch (\Throwable $e) {
+                    Log::warning('PayPal webhook could not mark orders paid', ['message' => $e->getMessage()]);
+                }
             }
         }
 
@@ -66,11 +79,12 @@ class WebhookController extends BaseApiController
 
     private function verifyStripeSignature(string $payload, string $sig, string $secret): bool
     {
-        if (! class_exists(\Stripe\Webhook::class)) {
+        if (! class_exists(Webhook::class)) {
             return false;
         }
         try {
-            \Stripe\Webhook::constructEvent($payload, $sig, $secret);
+            Webhook::constructEvent($payload, $sig, $secret);
+
             return true;
         } catch (\Throwable) {
             return false;

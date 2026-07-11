@@ -13,7 +13,8 @@ class Category extends Model
 
     protected $fillable = [
         'dewey_code',
-        'subject_title',
+        'subject_title_en',
+        'subject_title_ar',
         'subject_number',
     ];
 

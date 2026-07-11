@@ -31,7 +31,8 @@ class CategoryRepository implements CategoryRepositoryInterface
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('dewey_code', 'like', "%{$search}%")
-                    ->orWhere('subject_title', 'like', "%{$search}%")
+                    ->orWhere('subject_title_en', 'like', "%{$search}%")
+                    ->orWhere('subject_title_ar', 'like', "%{$search}%")
                     ->orWhere('subject_number', 'like', "%{$search}%");
             });
         }

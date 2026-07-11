@@ -1,16 +1,15 @@
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
 
 import '../api/api_client.dart';
 import '../api/api_service.dart';
 import '../models/book.dart';
-import '../providers/auth_provider.dart';
 import '../widgets/book_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -84,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'حدث خطأ أثناء تحميل البيانات: $e';
+          _error = '${AppLocalizations.of(context).error}: $e';
         });
       }
     }
@@ -113,125 +112,76 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
-    final localeProvider = context.watch<LocaleProvider>();
+    context.watch<LocaleProvider>();
     final featuredBooks = _books.take(5).toList();
     final newestBooks = _books.reversed.take(10).toList();
 
+    final localeCode = Localizations.localeOf(context).languageCode;
+
     final mainTopics = [
-      {'code': '000', 'name': 'Information, Computers, Public Business', 'icon': '💻'},
-      {'code': '100', 'name': 'Philosophy, Psychology, Ideas', 'icon': '🧠'},
-      {'code': '200', 'name': 'Religion', 'icon': '🕌'},
-      {'code': '300', 'name': 'Social Sciences, Society', 'icon': '🌍'},
-      {'code': '400', 'name': 'Language', 'icon': '🗣️'},
-      {'code': '500', 'name': 'Natural Sciences, Mathematics', 'icon': '🔬'},
-      {'code': '600', 'name': 'Technology, Applied Sciences', 'icon': '⚙️'},
-      {'code': '700', 'name': 'Arts, Entertainment, Sports', 'icon': '🎨'},
-      {'code': '800', 'name': 'Literature', 'icon': '📖'},
-      {'code': '900', 'name': 'History, Geography', 'icon': '🗺️'},
+      {'code': '000', 'name': localeCode == 'ar' ? 'المعلومات، الحواسيب، الأعمال العامة' : 'Information, Computers, Public Business', 'icon': '💻'},
+      {'code': '100', 'name': localeCode == 'ar' ? 'الفلسفة، علم النفس، الأفكار' : 'Philosophy, Psychology, Ideas', 'icon': '🧠'},
+      {'code': '200', 'name': localeCode == 'ar' ? 'الدين' : 'Religion', 'icon': '🕌'},
+      {'code': '300', 'name': localeCode == 'ar' ? 'العلوم الاجتماعية، المجتمع' : 'Social Sciences, Society', 'icon': '🌍'},
+      {'code': '400', 'name': localeCode == 'ar' ? 'اللغة' : 'Language', 'icon': '🗣️'},
+      {'code': '500', 'name': localeCode == 'ar' ? 'العلوم الطبيعية، الرياضيات' : 'Natural Sciences, Mathematics', 'icon': '🔬'},
+      {'code': '600', 'name': localeCode == 'ar' ? 'التكنولوجيا، العلوم التطبيقية' : 'Technology, Applied Sciences', 'icon': '⚙️'},
+      {'code': '700', 'name': localeCode == 'ar' ? 'الفنون، الترفيه، الرياضة' : 'Arts, Entertainment, Sports', 'icon': '🎨'},
+      {'code': '800', 'name': localeCode == 'ar' ? 'الأدب' : 'Literature', 'icon': '📖'},
+      {'code': '900', 'name': localeCode == 'ar' ? 'التاريخ، الجغرافيا' : 'History, Geography', 'icon': '🗺️'},
     ];
 
-    return PlatformScaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: PlatformAppBar(
-        title: Text(t.appName),
-        trailingActions: [
-          PlatformIconButton(
-            icon: Icon(context.platformIcon(material: Icons.language, cupertino: CupertinoIcons.globe)),
-            onPressed: () => localeProvider.toggleLanguage(),
-          ),
-          PlatformIconButton(
-            icon: Icon(context.platformIcons.shoppingCart),
-            onPressed: () {
-              final auth = context.read<AuthProvider>();
-              if (!auth.isLoggedIn) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(t.cartLoginMsg),
-                    action: SnackBarAction(
-                      label: t.navLogin,
-                      onPressed: () => Navigator.pushNamed(context, '/login'),
-                    ),
-                  ),
-                );
-              } else {
-                Navigator.pushNamed(context, '/cart');
-              }
-            },
-          ),
-          Consumer<AuthProvider>(
-            builder: (context, auth, _) {
-              if (!auth.isLoggedIn) {
-                return PlatformPopupMenu(
-                  icon: Icon(context.platformIcons.accountCircle),
-                  options: [
-                    PopupMenuOption(
-                      label: t.navLogin,
-                      onTap: (_) => Navigator.pushNamed(context, '/login'),
-                    ),
-                    PopupMenuOption(
-                      label: t.navRegister,
-                      onTap: (_) => Navigator.pushNamed(context, '/register'),
-                    ),
-                  ],
-                );
-              }
-              return PlatformPopupMenu(
-                icon: Icon(context.platformIcons.accountCircle),
-                options: [
-                  PopupMenuOption(
-                    label: t.navOrders,
-                    onTap: (_) => Navigator.pushNamed(context, '/orders'),
-                  ),
-                  PopupMenuOption(
-                    label: t.navLogout,
-                    onTap: (_) {
-                      context.read<AuthProvider>().logout();
-                      Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
+    return ColoredBox(
+      color: theme.scaffoldBackgroundColor,
+      child: RefreshIndicator(
         onRefresh: _loadData,
         child: _isLoading
-            ? const Center(child: GFLoader(type: GFLoaderType.android, size: GFSize.LARGE))
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: const Center(
+                    child: GFLoader(type: GFLoaderType.android, size: GFSize.LARGE),
+                  ),
+                ),
+              )
             : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-                        const SizedBox(height: 16),
-                        GFButton(
-                          onPressed: _loadData,
-                          text: 'إعادة المحاولة',
-                          color: Theme.of(context).colorScheme.primary,
+                ? SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.7,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                            const SizedBox(height: 16),
+                            GFButton(
+                              onPressed: _loadData,
+                              text: t.retry,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   )
                 : SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search Bar
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: SearchBar(
                             hintText: t.heroTitle,
                             leading: Icon(Icons.search, color: theme.colorScheme.outline),
-                            padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-                            elevation: const MaterialStatePropertyAll(0),
+                            padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                            elevation: const WidgetStatePropertyAll(0),
                             backgroundColor: WidgetStatePropertyAll(theme.cardColor),
                             shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                           ),
                         ),
-
-                        // Hero Banner / Carousel
                         if (featuredBooks.isNotEmpty) ...[
                           CarouselSlider(
                             options: CarouselOptions(
@@ -249,8 +199,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             }).toList(),
                           ),
                         ],
-
-                        // Categories
                         _buildSectionHeader(t.navCategories, '/categories'),
                         SizedBox(
                           height: 110,
@@ -266,9 +214,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 80,
                                   child: InkWell(
                                     onTap: () => Navigator.pushNamed(
-                                      context, 
+                                      context,
                                       '/categories',
-                                      arguments: {'topicCode': topic['code']}
+                                      arguments: {'topicCode': topic['code']},
                                     ),
                                     borderRadius: BorderRadius.circular(16),
                                     child: Column(
@@ -306,8 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-
-                        // Warehouses
                         _buildSectionHeader(t.navWarehouses, '/warehouses'),
                         SizedBox(
                           height: 110,
@@ -360,8 +306,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-
-                        // Authors
                         _buildSectionHeader(t.navAuthors, '/authors'),
                         SizedBox(
                           height: 110,
@@ -415,8 +359,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-
-                        // Newest Books
                         _buildSectionHeader(t.newestBooks, '/books'),
                         SizedBox(
                           height: 340,
@@ -431,7 +373,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 160,
                                   child: BookCard(
                                     book: newestBooks[i],
-                                    onTap: () => Navigator.pushNamed(context, '/book/${newestBooks[i].id}', arguments: newestBooks[i]),
+                                    globalDiscount: _globalDiscount,
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/book/${newestBooks[i].id}',
+                                      arguments: newestBooks[i],
+                                    ),
                                   ),
                                 ),
                               );

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/order.dart';
 import '../providers/auth_provider.dart';
+import 'order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -35,6 +37,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final auth = context.watch<AuthProvider>();
     if (auth.userType != UserType.customer) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -45,14 +48,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        appBar: AppBar(title: Text(t.ordersTitle)),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('My Orders')),
+      appBar: AppBar(title: Text(t.ordersTitle)),
       body: _orders.isEmpty
-          ? const Center(child: Text('No orders yet'))
+          ? Center(child: Text(t.noOrders))
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView.builder(
@@ -63,12 +67,31 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
-                      title: Text('Order #${o.id.substring(0, 8)}...'),
-                      subtitle: Text(
-                        '\$${o.total.toStringAsFixed(2)} • ${o.status}',
+                      isThreeLine: true,
+                      title: SelectableText(
+                        '#${o.id}',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {},
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          '\$${o.total.toStringAsFixed(2)} • ${o.status}'
+                          '${(o.paymentStatus != null && o.paymentStatus!.trim().isNotEmpty) ? '\n${t.paymentStatusLabel}: ${o.paymentStatus}' : ''}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                          maxLines: 4,
+                          softWrap: true,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        await Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => OrderDetailScreen(orderId: o.id),
+                          ),
+                        );
+                        if (mounted) await _load();
+                      },
                     ),
                   );
                 },

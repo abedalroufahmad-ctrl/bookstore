@@ -9,6 +9,7 @@ class Book {
     this.isbn,
     this.category,
     this.authors,
+    this.warehouse,
     this.description,
     this.pages,
     this.publishYear,
@@ -28,10 +29,11 @@ class Book {
   final String? isbn;
   final Category? category;
   final List<Author>? authors;
+  final Publisher? publisher;
+  final Warehouse? warehouse;
   final String? description;
   final int? pages;
   final int? publishYear;
-  final String? publisher;
   final String? size;
   final double? weight;
   final String? coverImage;
@@ -65,10 +67,15 @@ class Book {
       isbn: json['isbn'],
       category: json['category'] != null ? Category.fromJson(json['category']) : null,
       authors: (json['authors'] as List?)?.map((e) => Author.fromJson(e)).toList(),
+      warehouse: json['warehouse'] != null ? Warehouse.fromJson(json['warehouse']) : null,
       description: json['description'],
       pages: json['pages'],
       publishYear: json['publish_year'],
-      publisher: json['publisher'],
+      publisher: json['publisher'] != null 
+          ? (json['publisher'] is String 
+              ? Publisher(id: '', name: json['publisher']) 
+              : Publisher.fromJson(json['publisher']))
+          : null,
       size: json['size'],
       weight: (json['weight'] as num?)?.toDouble(),
       coverImage: _fixUrl(json['cover_image']),
@@ -103,19 +110,33 @@ class Book {
 
 
 class Category {
-  Category({required this.id, this.deweyCode, this.subjectTitle});
+  Category({required this.id, this.deweyCode, this.subjectTitleEn, this.subjectTitleAr});
 
   final String id;
   final String? deweyCode;
-  final String? subjectTitle;
+  final String? subjectTitleEn;
+  final String? subjectTitleAr;
 
   factory Category.fromJson(Map<String, dynamic> json) {
     final id = json['_id'] ?? json['id'] ?? '';
     return Category(
       id: id.toString(),
       deweyCode: json['dewey_code'],
-      subjectTitle: json['subject_title'],
+      subjectTitleEn: json['subject_title_en'],
+      subjectTitleAr: json['subject_title_ar'],
     );
+  }
+}
+
+class Publisher {
+  Publisher({required this.id, this.name});
+
+  final String id;
+  final String? name;
+
+  factory Publisher.fromJson(Map<String, dynamic> json) {
+    final id = json['_id'] ?? json['id'] ?? '';
+    return Publisher(id: id.toString(), name: json['name']);
   }
 }
 

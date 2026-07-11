@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MongoDB\Laravel\Eloquent\Model;
 
 /**
- * Order items: [{book_id, quantity, price}]. shipping_address: {address, city, country, ...}
+ * Order items (stored): [{book_id, quantity, price}].
+ * API responses may include book_title on each row when the order is loaded via OrderService::getOrderById().
  */
 class Order extends Model
 {
@@ -20,6 +21,9 @@ class Order extends Model
         'warehouse_id',
         'items',
         'status',
+        'books_subtotal',
+        'shipping_fee',
+        'shipping_method',
         'total',
         'shipping_address',
         'payment_info',
@@ -31,6 +35,8 @@ class Order extends Model
     {
         return [
             'items' => 'array',
+            'books_subtotal' => 'float',
+            'shipping_fee' => 'float',
             'total' => 'float',
             'shipping_address' => 'array',
             'payment_info' => 'array',

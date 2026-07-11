@@ -25,7 +25,7 @@ class PublicCatalogTest extends TestCase
 
         $category = Category::first() ?? Category::create([
             'dewey_code' => '001',
-            'subject_title' => 'Test Category',
+            'subject_title_en' => 'Test Category',
         ]);
 
         $author = Author::first() ?? Author::create([
@@ -61,7 +61,7 @@ class PublicCatalogTest extends TestCase
 
     public function test_public_book_show_returns_book(): void
     {
-        $response = $this->getJson('/api/v1/books/' . $this->book->getKey());
+        $response = $this->getJson('/api/v1/books/'.$this->book->getKey());
 
         $response->assertStatus(200);
         $response->assertJsonPath('data.title', 'Test Book');

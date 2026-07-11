@@ -24,7 +24,8 @@ class BookCard extends StatelessWidget {
 
   static Widget _buildCoverImage(BuildContext context, String? imageUrl, ThemeData theme) {
     final url = imageUrl?.trim();
-    final isNullLike = url != null && url.isNotEmpty &&
+    final isNullLike = url != null &&
+        url.isNotEmpty &&
         (url.toLowerCase() == 'null' || url.toLowerCase() == 'undefined');
     if (url == null || url.isEmpty || isNullLike) {
       return _buildLogoPlaceholder();
@@ -88,7 +89,7 @@ class BookCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                             boxShadow: [
                               BoxShadow(
-                                color: theme.colorScheme.primary.withOpacity(0.35),
+                                color: theme.colorScheme.primary.withValues(alpha: 0.35),
                                 blurRadius: 4,
                                 offset: const Offset(0, 1),
                               ),
@@ -117,66 +118,94 @@ class BookCard extends StatelessWidget {
                 if (hasBoundedHeight) Flexible(child: cover) else cover,
                 const SizedBox(height: 6),
                 Text(
-                book.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-              if (book.authors != null && book.authors!.isNotEmpty)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    final author = book.authors!.first;
-                    Navigator.of(context).pushNamed(
-                      '/author/${author.id}',
-                      arguments: {'name': author.name},
-                    );
-                  },
-                  child: Text(
-                    book.authors!.first.name ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontSize: 11,
-                      decoration: TextDecoration.none,
-                    ),
+                  book.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
                 ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  Flexible(
+                if (book.publisher != null &&
+                    book.publisher!.name != null &&
+                    book.publisher!.name!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      '\$${discountedPrice.toStringAsFixed(2)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                      '🏢 ${book.publisher!.name}',
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
                   ),
-                  if (finalDiscount > 0) ...[
-                    const SizedBox(width: 4),
+                if (book.warehouse != null && book.warehouse!.name != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '🏭 ${book.warehouse!.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                if (book.authors != null && book.authors!.isNotEmpty)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      final author = book.authors!.first;
+                      Navigator.of(context).pushNamed(
+                        '/author/${author.id}',
+                        arguments: {'name': author.name},
+                      );
+                    },
+                    child: Text(
+                      book.authors!.first.name ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontSize: 11,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
                     Flexible(
                       child: Text(
-                        '\$${price.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                          decoration: TextDecoration.lineThrough,
-                          fontSize: 11,
+                        '\$${discountedPrice.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (finalDiscount > 0) ...[
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          '\$${price.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            decoration: TextDecoration.lineThrough,
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ],
+                ),
+              ],
             );
           },
         ),

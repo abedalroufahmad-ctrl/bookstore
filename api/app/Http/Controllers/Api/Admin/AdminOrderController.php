@@ -6,6 +6,7 @@ use App\Domain\Auth\Enums\UserRole;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\AssignOrderRequest;
+use App\Http\Requests\Order\SubmitWarehouseOrderQuoteRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
 use App\Models\Employee;
 use Illuminate\Http\JsonResponse;
@@ -61,6 +62,31 @@ class AdminOrderController extends BaseApiController
         }
 
         return $this->successResponse($order);
+    }
+
+    public function submitWarehouseQuote(SubmitWarehouseOrderQuoteRequest $request, string $id): JsonResponse
+    {
+        try {
+            $order = $this->orderService->getOrderById($id, null, ['employee']);
+
+            if (! $order) {
+                return $this->errorResponse('Order not found', 404);
+            }
+
+            $employee = auth('employee')->user();
+            if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+                $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
+                if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
+                    return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
+                }
+            }
+
+            $order = $this->orderService->submitWarehouseQuote($order, $request->validated());
+
+            return $this->successResponse($order, 'Warehouse quote saved.');
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
     }
 
     public function updateStatus(UpdateOrderStatusRequest $request, string $id): JsonResponse

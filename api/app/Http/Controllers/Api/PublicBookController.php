@@ -59,7 +59,7 @@ class PublicBookController extends BaseApiController
             return $this->errorResponse('Book not found', 404);
         }
 
-        $book->loadMissing(['authors', 'category', 'warehouse']);
+        $book->loadMissing(['authors', 'category', 'warehouse', 'publisher']);
 
         // Fallback: if authors relation is empty but author_ids exists, fetch authors manually
         $authorIds = $book->author_ids ?? [];

@@ -146,18 +146,20 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
     
+    final localeCode = Localizations.localeOf(context).languageCode;
+    
     final topics = [
-      {'range': [0, 99], 'name': 'Information, Computers, Public Business', 'code': '000'},
-      {'range': [100, 199], 'name': 'Philosophy, Psychology, Ideas', 'code': '100'},
-      {'range': [200, 299], 'name': 'Religion', 'code': '200'},
-      {'range': [300, 399], 'name': 'Social Sciences, Society', 'code': '300'},
-      {'range': [400, 499], 'name': 'Language', 'code': '400'},
-      {'range': [500, 599], 'name': 'Natural Sciences, Mathematics', 'code': '500'},
-      {'range': [600, 699], 'name': 'Technology, Applied Sciences', 'code': '600'},
-      {'range': [700, 799], 'name': 'Arts, Entertainment, Sports', 'code': '700'},
-      {'range': [800, 899], 'name': 'Literature', 'code': '800'},
-      {'range': [900, 999], 'name': 'History, Geography', 'code': '900'},
-      {'range': [-1, -1], 'name': 'Other', 'code': 'Other'},
+      {'range': [0, 99], 'name': localeCode == 'ar' ? 'المعلومات، الحواسيب، الأعمال العامة' : 'Information, Computers, Public Business', 'code': '000'},
+      {'range': [100, 199], 'name': localeCode == 'ar' ? 'الفلسفة، علم النفس، الأفكار' : 'Philosophy, Psychology, Ideas', 'code': '100'},
+      {'range': [200, 299], 'name': localeCode == 'ar' ? 'الدين' : 'Religion', 'code': '200'},
+      {'range': [300, 399], 'name': localeCode == 'ar' ? 'العلوم الاجتماعية، المجتمع' : 'Social Sciences, Society', 'code': '300'},
+      {'range': [400, 499], 'name': localeCode == 'ar' ? 'اللغة' : 'Language', 'code': '400'},
+      {'range': [500, 599], 'name': localeCode == 'ar' ? 'العلوم الطبيعية، الرياضيات' : 'Natural Sciences, Mathematics', 'code': '500'},
+      {'range': [600, 699], 'name': localeCode == 'ar' ? 'التكنولوجيا، العلوم التطبيقية' : 'Technology, Applied Sciences', 'code': '600'},
+      {'range': [700, 799], 'name': localeCode == 'ar' ? 'الفنون، الترفيه، الرياضة' : 'Arts, Entertainment, Sports', 'code': '700'},
+      {'range': [800, 899], 'name': localeCode == 'ar' ? 'الأدب' : 'Literature', 'code': '800'},
+      {'range': [900, 999], 'name': localeCode == 'ar' ? 'التاريخ، الجغرافيا' : 'History, Geography', 'code': '900'},
+      {'range': [-1, -1], 'name': localeCode == 'ar' ? 'أخرى' : 'Other', 'code': 'Other'},
     ];
 
     final groupedTopics = <Map<String, dynamic>>[];
@@ -268,10 +270,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                             final cat = cats[j];
                                             return InkWell(
                                               onTap: () {
+                                                final title = localeCode == 'ar' && cat.subjectTitleAr != null && cat.subjectTitleAr!.isNotEmpty ? cat.subjectTitleAr : cat.subjectTitleEn;
                                                 Navigator.pushNamed(
                                                   context,
                                                   '/category/${cat.id}',
-                                                  arguments: {'title': cat.subjectTitle},
+                                                  arguments: {'title': title},
                                                 );
                                               },
                                               borderRadius: BorderRadius.circular(12),
@@ -304,7 +307,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                                     Padding(
                                                       padding: const EdgeInsets.symmetric(horizontal: 8),
                                                       child: Text(
-                                                        cat.subjectTitle ?? '',
+                                                        (localeCode == 'ar' && cat.subjectTitleAr != null && cat.subjectTitleAr!.isNotEmpty ? cat.subjectTitleAr : cat.subjectTitleEn) ?? '',
                                                         textAlign: TextAlign.center,
                                                         maxLines: 2,
                                                         overflow: TextOverflow.ellipsis,

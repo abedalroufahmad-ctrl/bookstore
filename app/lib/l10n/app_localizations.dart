@@ -104,6 +104,41 @@ class AppLocalizations {
   // ── Orders ──────────────────────────────────────────────────────────────────
   String get ordersTitle => _s('طلباتي', 'My Orders');
   String get noOrders => _s('لا توجد طلبات بعد', 'No orders yet');
+  String get staffOrdersTitle => _s('طلبات المستودع', 'Warehouse orders');
+  String get staffOrdersSubtitle =>
+      _s('مراجعة الطلبات وعروض الأسعار', 'Review orders and submit quotes');
+  String get warehouseQuote => _s('عرض المستودع', 'Warehouse quote');
+  String get warehouseQuoteHint => _s(
+        'أكد إجمالي البنود وأضف رسوم الشحن واحفظ لإرسال العرض للعميل.',
+        'Confirm line totals, add shipping fee, and save to send the quote to the customer.',
+      );
+  String get shippingFeeLabel => _s('رسوم الشحن', 'Shipping fee');
+  String get shippingMethodLabel => _s('طريقة الشحن', 'Shipping method');
+  String get shippingMethodHint =>
+      _s('مثال: توصيل عادي', 'e.g. Standard courier');
+  String get paymentMethodLabel => _s('طريقة الدفع', 'Payment method');
+  String get paymentMethodHint => _s('مثال: cod أو paypal', 'e.g. cod, paypal');
+  String get saveQuote => _s('حفظ العرض', 'Save quote');
+  String get booksSubtotalLabel => _s('الكتب', 'Books');
+  String get paymentStatusLabel => _s('حالة الدفع', 'Payment status');
+  String get invalidShippingFee => _s('أدخل رسوم شحن صالحة', 'Enter a valid shipping fee');
+  String get ordersItemTitleCol => _s('العنوان', 'Title');
+  String get ordersItemPriceCol => _s('السعر', 'Price');
+  String get ordersBackToList => _s('عودة إلى الطلبات', 'Back to orders');
+  String get orderDetailHeading => _s('طلب', 'Order');
+  String get orderNotFound => _s('لم يُعثر على الطلب', 'Order not found');
+  String get ordersBooksSubtotal => _s('مجموع الكتب', 'Books subtotal');
+  String get ordersTotalLabel => _s('الإجمالي', 'Total');
+  String get ordersStatusLabel => _s('الحالة', 'Status');
+  String get ordersPayWithPayPal => _s('الدفع عبر PayPal', 'Pay with PayPal');
+  String get ordersConfirmWithWarehouse =>
+      _s('تأكيد وإرسال إلى المستودع', 'Confirm & resubmit to warehouse');
+  String get ordersAwaitingQuoteCustomerHint => _s(
+        'أكّد هذا العرض لمتابعة التنفيذ، أو ادفع عبر PayPal إذا كان ذلك هو خيارك.',
+        'The warehouse finalized this quote. Confirm to continue fulfillment, or pay with PayPal if that is your method.',
+      );
+  String get ordersLineItemsHeading => _s('البنود', 'Items');
+  String get orderBookFallback => _s('كتاب', 'Book');
 
   // ── Authors ─────────────────────────────────────────────────────────────────
   String get authorsTitle => _s('المؤلفون', 'Authors');

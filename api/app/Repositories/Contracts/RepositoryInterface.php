@@ -14,5 +14,5 @@ interface RepositoryInterface
 
     public function delete(string $id);
 
-    public function paginate(int $perPage = 15, array $columns = ['*']);
+    public function paginate(int $perPage = 24, array $columns = ['*']);
 }

@@ -9,7 +9,10 @@ import '../models/book.dart';
 import '../widgets/book_card.dart';
 
 class BookListScreen extends StatefulWidget {
-  const BookListScreen({super.key});
+  /// When embedded in [MainShell], the shell provides the AppBar — hide this one.
+  final bool showAppBar;
+
+  const BookListScreen({super.key, this.showAppBar = true});
 
   @override
   State<BookListScreen> createState() => _BookListScreenState();
@@ -110,7 +113,7 @@ class _BookListScreenState extends State<BookListScreen> {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(t.booksTitle)),
+      appBar: widget.showAppBar ? AppBar(title: Text(t.booksTitle)) : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

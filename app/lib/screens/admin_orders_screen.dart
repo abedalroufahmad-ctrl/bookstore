@@ -1,20 +1,34 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/order.dart';
 import '../models/user.dart';
 
 const _statuses = [
+  'pending_warehouse_review',
+  'awaiting_customer_confirmation',
+  'resubmitted_to_warehouse',
+  'processing_fulfillment',
+  'shipped_collecting_payment',
+  'completed',
+  'cancelled',
   'pending_review',
   'confirmed',
   'preparing',
   'shipped',
   'delivered',
-  'cancelled',
 ];
 
+bool _needsWarehouseQuote(String status) =>
+    status == 'pending_warehouse_review' || status == 'pending_review';
+
+/// Admin JWT: [useEmployeeApi] is false (default). Employee JWT: pass true for staff / warehouse app.
 class AdminOrdersScreen extends StatefulWidget {
-  const AdminOrdersScreen({super.key});
+  const AdminOrdersScreen({super.key, this.useEmployeeApi = false});
+
+  /// When true, uses `/employees/orders` (assign UI hidden).
+  final bool useEmployeeApi;
 
   @override
   State<AdminOrdersScreen> createState() => _AdminOrdersScreenState();
@@ -30,17 +44,23 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   void initState() {
     super.initState();
     _load();
-    _loadEmployees();
+    if (!widget.useEmployeeApi) {
+      _loadEmployees();
+    }
   }
 
   Future<void> _load() async {
     if (!mounted) return;
     setState(() => _loading = true);
-    final res = await ApiService.instance.adminOrdersList(status: _statusFilter);
+    final res = widget.useEmployeeApi
+        ? await ApiService.instance.employeeOrdersList(status: _statusFilter)
+        : await ApiService.instance.adminOrdersList(status: _statusFilter);
     if (!mounted) return;
     setState(() {
       _loading = false;
-      if (res.success && res.data != null) _orders = res.data!;
+      if (res.success && res.data != null) {
+        _orders = res.data!;
+      }
     });
   }
 
@@ -52,11 +72,21 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     }
   }
 
+  Future<Order?> _fetchOrderDetail(String id) async {
+    final res = widget.useEmployeeApi
+        ? await ApiService.instance.employeeOrdersGet(id)
+        : await ApiService.instance.adminOrdersGet(id);
+    return res.success ? res.data : null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final title = widget.useEmployeeApi ? t.staffOrdersTitle : 'Orders';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orders'),
+        title: Text(title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -68,25 +98,32 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Text('Status: '),
-                DropdownButton<String?>(
-                  value: _statusFilter,
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('All')),
-                    ..._statuses.map(
-                      (s) => DropdownMenuItem(
-                        value: s,
-                        child: Text(s.replaceAll('_', ' ')),
+                Text('${t.isAr ? 'الحالة' : 'Status'}: '),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButton<String?>(
+                    isExpanded: true,
+                    value: _statusFilter,
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(t.isAr ? 'الكل' : 'All'),
                       ),
-                    ),
-                  ],
-                  onChanged: (v) {
-                    setState(() {
-                      _statusFilter = v;
-                      _loading = true;
-                    });
-                    _load();
-                  },
+                      ..._statuses.map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(s.replaceAll('_', ' ')),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) {
+                      setState(() {
+                        _statusFilter = v;
+                        _loading = true;
+                      });
+                      _load();
+                    },
+                  ),
                 ),
               ],
             ),
@@ -94,151 +131,530 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _orders.length,
-                    itemBuilder: (context, i) {
-                      final o = _orders[i];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: InkWell(
-                          onTap: () => _showOrderDetail(context, o),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                : _orders.isEmpty
+                    ? Center(child: Text(t.noOrders))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: _orders.length,
+                        itemBuilder: (context, i) {
+                          final o = _orders[i];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: () => _openOrderDetail(context, o),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Order #${o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          o.status.replaceAll('_', ' '),
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      'Order #${o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      'Customer: ${o.customer?.name ?? o.customer?.email ?? '-'}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
                                     ),
                                     Text(
-                                      o.status.replaceAll('_', ' '),
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
+                                      'Total: \$${o.total.toStringAsFixed(2)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
                                     ),
+                                    if (o.paymentStatus != null &&
+                                        o.paymentStatus!.isNotEmpty)
+                                      Text(
+                                        '${t.paymentStatusLabel}: ${o.paymentStatus}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
+                                    if (!widget.useEmployeeApi &&
+                                        o.employee != null)
+                                      Text(
+                                        'Assigned: ${o.employee?.name ?? ""}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Customer: ${o.customer?.name ?? o.id}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                Text(
-                                  'Total: \$${o.total.toStringAsFixed(2)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                if (o.employee != null)
-                                  Text(
-                                    'Assigned: ${o.employee?.name ?? ""}',
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _showOrderDetail(BuildContext context, Order order) async {
-    final ord = await ApiService.instance.adminOrdersGet(order.id);
-    if (!context.mounted || ord.data == null) return;
-    final o = ord.data!;
+  Future<void> _openOrderDetail(BuildContext context, Order order) async {
+    final t = AppLocalizations.of(context);
+    final refreshed = await _fetchOrderDetail(order.id);
+    if (!context.mounted) return;
+    if (refreshed == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.error)),
+      );
+      return;
+    }
 
-    await showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (_, controller) => Padding(
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: _OrderDetailSheet(
+          order: refreshed,
+          employees: _employees,
+          useEmployeeApi: widget.useEmployeeApi,
+          onUpdated: () {
+            _load();
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderDetailSheet extends StatefulWidget {
+  const _OrderDetailSheet({
+    required this.order,
+    required this.employees,
+    required this.useEmployeeApi,
+    required this.onUpdated,
+  });
+
+  final Order order;
+  final List<Employee> employees;
+  final bool useEmployeeApi;
+  final VoidCallback onUpdated;
+
+  @override
+  State<_OrderDetailSheet> createState() => _OrderDetailSheetState();
+}
+
+class _OrderDetailSheetState extends State<_OrderDetailSheet> {
+  late Order _order;
+  late TextEditingController _shippingFeeController;
+  late TextEditingController _shippingMethodController;
+  late TextEditingController _paymentMethodController;
+  String _assignEmployeeId = '';
+  bool _submittingQuote = false;
+  bool _updatingStatus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _order = widget.order;
+    _assignEmployeeId = _order.employee?.id ?? '';
+    _syncQuoteControllersFromOrder();
+  }
+
+  void _syncQuoteControllersFromOrder() {
+    final fee = _order.shippingFee ?? 0;
+    _shippingFeeController = TextEditingController(
+      text: fee == 0 ? '' : fee.toString(),
+    );
+    _shippingMethodController = TextEditingController(
+      text: _order.shippingMethod ?? '',
+    );
+    _paymentMethodController = TextEditingController(
+      text: _order.paymentMethod ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _shippingFeeController.dispose();
+    _shippingMethodController.dispose();
+    _paymentMethodController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitWarehouseQuote() async {
+    final t = AppLocalizations.of(context);
+    final raw = _shippingFeeController.text.trim().replaceAll(',', '.');
+    final fee = double.tryParse(raw);
+    if (fee == null || fee < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.invalidShippingFee)),
+      );
+      return;
+    }
+
+    setState(() => _submittingQuote = true);
+    final api = ApiService.instance;
+    final res = widget.useEmployeeApi
+        ? await api.employeeOrdersSubmitWarehouseQuote(
+            _order.id,
+            shippingFee: fee,
+            shippingMethod: _shippingMethodController.text,
+            paymentMethod: _paymentMethodController.text,
+          )
+        : await api.adminOrdersSubmitWarehouseQuote(
+            _order.id,
+            shippingFee: fee,
+            shippingMethod: _shippingMethodController.text,
+            paymentMethod: _paymentMethodController.text,
+          );
+    if (!mounted) return;
+    setState(() => _submittingQuote = false);
+
+    if (res.success && res.data != null) {
+      widget.onUpdated();
+      if (context.mounted) Navigator.pop(context);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(res.message.isNotEmpty ? res.message : t.error)),
+    );
+  }
+
+  Future<void> _changeStatus(String status) async {
+    if (_updatingStatus || status == _order.status) return;
+    setState(() => _updatingStatus = true);
+    final api = ApiService.instance;
+    final res = widget.useEmployeeApi
+        ? await api.employeeOrdersUpdateStatus(_order.id, status)
+        : await api.adminOrdersUpdateStatus(_order.id, status);
+    if (!mounted) return;
+    setState(() => _updatingStatus = false);
+
+    final t = AppLocalizations.of(context);
+    if (res.success && res.data != null) {
+      setState(() {
+        _order = res.data!;
+        _assignEmployeeId = _order.employee?.id ?? '';
+        final fee = _order.shippingFee ?? 0;
+        _shippingFeeController.text =
+            fee == 0 ? '' : fee.toString();
+        _shippingMethodController.text = _order.shippingMethod ?? '';
+        _paymentMethodController.text = _order.paymentMethod ?? '';
+      });
+      widget.onUpdated();
+      if (context.mounted) Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res.message.isNotEmpty ? res.message : t.error)),
+      );
+    }
+  }
+
+  Future<void> _assign(String employeeId) async {
+    if (widget.useEmployeeApi || employeeId.isEmpty) return;
+    final t = AppLocalizations.of(context);
+    final res = await ApiService.instance.adminOrdersAssign(
+      _order.id,
+      employeeId,
+    );
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      setState(() => _order = res.data!);
+      widget.onUpdated();
+      if (context.mounted) Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(res.message.isNotEmpty ? res.message : t.error)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final o = _order;
+    final needsQuote = _needsWarehouseQuote(o.status);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.65,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollController) {
+        return SingleChildScrollView(
+          controller: scrollController,
           padding: const EdgeInsets.all(16),
-          child: ListView(
-            controller: controller,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 'Order #${o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id}',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 16),
-              Text('Customer: ${o.customer?.name ?? '-'}'),
+              const SizedBox(height: 12),
+              Text('Customer: ${o.customer?.name ?? o.customer?.email ?? '-'}'),
+              Text('${t.paymentStatusLabel}: ${o.paymentStatus ?? '—'}'),
+              if (o.paymentMethod != null && o.paymentMethod!.isNotEmpty)
+                Text('${t.paymentMethodLabel}: ${o.paymentMethod}'),
               Text('Total: \$${o.total.toStringAsFixed(2)}'),
-              Text('Status: ${o.status}'),
-              const SizedBox(height: 16),
-              const Text('Shipping address:'),
+              if (o.booksSubtotal != null)
+                Text(
+                  '${t.booksSubtotalLabel}: \$${o.booksSubtotal!.toStringAsFixed(2)} + ${t.shippingFeeLabel}: \$${(o.shippingFee ?? 0).toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              const SizedBox(height: 8),
+              Text('Status: ${o.status.replaceAll('_', ' ')}'),
+              const SizedBox(height: 12),
+              Text(t.shippingAddress, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
               Text(
                 o.shippingAddress != null
                     ? [
                         o.shippingAddress!['address'],
                         o.shippingAddress!['city'],
                         o.shippingAddress!['country'],
-                      ].whereType<String>().join(', ')
-                    : '-',
+                        o.shippingAddress!['postal_code'],
+                      ].whereType<String>().where((s) => s.isNotEmpty).join(', ')
+                    : '—',
               ),
               const SizedBox(height: 16),
-              const Text('Update status:'),
-              Wrap(
-                spacing: 8,
-                children: _statuses.map((s) {
-                  return ChoiceChip(
-                    label: Text(s.replaceAll('_', ' ')),
-                    selected: o.status == s,
-                    onSelected: (sel) {
-                      if (sel) {
-                        ApiService.instance.adminOrdersUpdateStatus(o.id, s);
-                        Navigator.pop(ctx);
-                        _load();
-                      }
-                    },
-                  );
-                }).toList(),
+              Text(
+                t.isAr ? 'تحديث الحالة' : 'Update status',
+                style: Theme.of(context).textTheme.titleSmall,
               ),
-              const SizedBox(height: 16),
-              const Text('Assign to:'),
-              DropdownButton<String>(
-                value: o.employee?.id ?? '',
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('Unassigned')),
-                  ..._employees.map(
-                    (e) => DropdownMenuItem(
-                      value: e.id,
-                      child: Text('${e.name} (${e.role ?? ''})'),
+              const SizedBox(height: 8),
+              if (_updatingStatus)
+                const LinearProgressIndicator()
+              else
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _statuses.map((s) {
+                    return FilterChip(
+                      label: Text(
+                        s.replaceAll('_', ' '),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      selected: o.status == s,
+                      onSelected: (_) => _changeStatus(s),
+                    );
+                  }).toList(),
+                ),
+              if (needsQuote) ...[
+                const SizedBox(height: 20),
+                Material(
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          t.warehouseQuote,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          t.warehouseQuoteHint,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _shippingFeeController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: t.shippingFeeLabel,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _shippingMethodController,
+                          decoration: InputDecoration(
+                            labelText: t.shippingMethodLabel,
+                            hintText: t.shippingMethodHint,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _paymentMethodController,
+                          decoration: InputDecoration(
+                            labelText: t.paymentMethodLabel,
+                            hintText: t.paymentMethodHint,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        FilledButton(
+                          onPressed:
+                              _submittingQuote ? null : _submitWarehouseQuote,
+                          child: _submittingQuote
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(t.saveQuote),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-                onChanged: (v) {
-                  if (v != null && v.isNotEmpty) {
-                    ApiService.instance.adminOrdersAssign(o.id, v);
-                    Navigator.pop(ctx);
-                    _load();
-                  }
+                ),
+              ],
+              if (!widget.useEmployeeApi) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Assign to',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Employee',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          DropdownButton<String?>(
+                            isExpanded: true,
+                            value: _assignEmployeeId.isEmpty
+                                ? null
+                                : _assignEmployeeId,
+                            hint: const Text('Unassigned'),
+                            items: [
+                              const DropdownMenuItem<String?>(
+                                value: null,
+                                child: Text('Unassigned'),
+                              ),
+                              ...widget.employees.map(
+                                (e) => DropdownMenuItem(
+                                  value: e.id,
+                                  child: Text('${e.name} (${e.role ?? ''})'),
+                                ),
+                              ),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => _assignEmployeeId = v ?? ''),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonal(
+                      onPressed: _assignEmployeeId.isNotEmpty
+                          ? () => _assign(_assignEmployeeId)
+                          : null,
+                      child: const Text('Assign'),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              Text(t.isAr ? 'العناصر' : 'Items',
+                  style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Table(
+                columnWidths: const {
+                  0: FlexColumnWidth(2),
+                  1: FlexColumnWidth(1),
                 },
+                border: TableBorder.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.35),
+                ),
+                children: [
+                  TableRow(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.6),
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          t.ordersItemTitleCol,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          t.ordersItemPriceCol,
+                          textAlign: TextAlign.end,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                    ],
+                  ),
+                  ...o.items.map((item) {
+                    final shortId = item.bookId.length > 8
+                        ? item.bookId.substring(item.bookId.length - 8)
+                        : item.bookId;
+                    final title = (item.bookTitle != null &&
+                            item.bookTitle!.trim().isNotEmpty)
+                        ? item.bookTitle!.trim()
+                        : 'Book …$shortId';
+                    final linePrice =
+                        '${item.quantity} × \$${item.price.toStringAsFixed(2)}';
+                    return TableRow(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          child: Text(title),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            linePrice,
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
               ),
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Close'),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(t.isAr ? 'إغلاق' : 'Close'),
               ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

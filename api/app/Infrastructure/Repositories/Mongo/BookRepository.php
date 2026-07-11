@@ -25,14 +25,17 @@ class BookRepository implements BookRepositoryInterface
 
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->newQuery()->with($filters['with'] ?? ['category', 'warehouse', 'authors']);
+        $query = $this->model->newQuery()->with($filters['with'] ?? ['category', 'warehouse', 'authors', 'publisher']);
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                     ->orWhere('isbn', 'like', "%{$search}%")
-                    ->orWhere('publisher', 'like', "%{$search}%");
+                    ->orWhere('publisher', 'like', "%{$search}%")
+                    ->orWhereHas('publisher', function ($publisherQuery) use ($search) {
+                        $publisherQuery->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 

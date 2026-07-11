@@ -97,7 +97,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(c.subjectTitle ?? ''),
+                    title: Text(c.subjectTitleEn ?? ''),
                     subtitle: Text(c.deweyCode ?? ''),
                   ),
                 );

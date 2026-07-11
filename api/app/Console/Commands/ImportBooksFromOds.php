@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Author;
 use App\Models\Book;
 use App\Models\Category;
+use App\Models\Publisher;
 use App\Models\Warehouse;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -62,7 +63,7 @@ class ImportBooksFromOds extends Command
         $headers = array_map('trim', array_map('strval', $rows[0]));
         $this->detectColumnMap($headers);
         $this->applyColumnOverrides();
-        $this->info('Column mapping: ' . json_encode($this->columnMap, JSON_PRETTY_PRINT));
+        $this->info('Column mapping: '.json_encode($this->columnMap, JSON_PRETTY_PRINT));
 
         $warehouse = $this->getWarehouse();
         if (! $warehouse) {
@@ -108,16 +109,18 @@ class ImportBooksFromOds extends Command
             if (empty($title)) {
                 $this->warn("Row {$rowNum}: Skipping - no title");
                 $skipped++;
+
                 continue;
             }
 
             if (empty($isbn)) {
-                $isbn = 'IMPORT-' . Str::uuid();
+                $isbn = 'IMPORT-'.Str::uuid();
             }
 
             if (! $clear && Book::where('isbn', $isbn)->exists()) {
                 $this->warn("Row {$rowNum}: Skipping - ISBN already exists: {$isbn}");
                 $skipped++;
+
                 continue;
             }
 
@@ -142,20 +145,28 @@ class ImportBooksFromOds extends Command
                 }
 
                 $category = Category::firstOrCreate(
-                    ['subject_title' => $categoryNames[0]],
-                    ['dewey_code' => substr(md5($categoryNames[0]), 0, 3), 'subject_title' => $categoryNames[0]]
+                    ['subject_title_en' => $categoryNames[0]],
+                    ['dewey_code' => substr(md5($categoryNames[0]), 0, 3), 'subject_title_en' => $categoryNames[0]]
                 );
                 foreach (array_slice($categoryNames, 1) as $catName) {
                     Category::firstOrCreate(
-                        ['subject_title' => $catName],
-                        ['dewey_code' => substr(md5($catName), 0, 3), 'subject_title' => $catName]
+                        ['subject_title_en' => $catName],
+                        ['dewey_code' => substr(md5($catName), 0, 3), 'subject_title_en' => $catName]
                     );
                 }
 
                 $price = (float) ($this->getCell($row, 'price') ?: 0);
                 $stock = (int) ($this->getCell($row, 'stock') ?: 10);
                 $description = $this->getCell($row, 'description') ?: '';
-                $publisher = $this->getCell($row, 'publisher') ?: null;
+                $publisherName = trim((string) ($this->getCell($row, 'publisher') ?: ''));
+                $publisherId = null;
+                if ($publisherName !== '') {
+                    $publisher = Publisher::firstOrCreate(
+                        ['name' => $publisherName],
+                        ['name' => $publisherName]
+                    );
+                    $publisherId = (string) $publisher->getKey();
+                }
                 $pages = $this->getCellAsInt($row, 'pages');
                 $year = $this->getCell($row, 'year') ? (int) $this->getCell($row, 'year') : null;
                 $size = $this->getCell($row, 'size') ?: null;
@@ -183,7 +194,7 @@ class ImportBooksFromOds extends Command
                         'price' => $price,
                         'stock_quantity' => $stock,
                         'description' => $description,
-                        'publisher' => $publisher,
+                        'publisher_id' => $publisherId,
                         'pages' => $pages,
                         'publish_year' => $year,
                         'size' => $size,
@@ -417,6 +428,7 @@ class ImportBooksFromOds extends Command
         $existing = $this->getExistingCoverForIsbn($isbn);
         if ($existing !== null) {
             $this->verbose("Cover: using existing for ISBN {$isbn}");
+
             return [$existing, $existing];
         }
 
@@ -424,13 +436,13 @@ class ImportBooksFromOds extends Command
 
         // Link is plain filename: use darfikr base directly
         if (preg_match('#^([a-zA-Z0-9_\-]+\.(?:jpg|jpeg|png|gif|webp))$#i', $link, $m)) {
-            $imgUrl = self::DARFIKR_IMAGE_BASE . '/' . $m[1];
+            $imgUrl = self::DARFIKR_IMAGE_BASE.'/'.$m[1];
         } elseif (preg_match('#^([a-zA-Z0-9_\-]+)$#', $link, $m)) {
-            $imgUrl = self::DARFIKR_IMAGE_BASE . '/' . $m[1] . '.jpg';
+            $imgUrl = self::DARFIKR_IMAGE_BASE.'/'.$m[1].'.jpg';
         }
         // Link is full image URL
         elseif (preg_match('#/large/public/([a-zA-Z0-9_\-\.]+\.(?:jpg|jpeg|png|gif|webp))#i', $link, $m)) {
-            $imgUrl = self::DARFIKR_IMAGE_BASE . '/' . $m[1];
+            $imgUrl = self::DARFIKR_IMAGE_BASE.'/'.$m[1];
         }
         // Link is a page URL: fetch page and extract cover from source
         elseif (str_starts_with($link, 'http://') || str_starts_with($link, 'https://')) {
@@ -439,10 +451,12 @@ class ImportBooksFromOds extends Command
 
         if (empty($imgUrl)) {
             $this->verbose("Cover: could not get image from: {$link}");
+
             return [null, null];
         }
 
         $this->verbose("Cover: trying {$imgUrl}");
+
         return $this->downloadAndStoreCover($imgUrl, $isbn);
     }
 
@@ -454,6 +468,7 @@ class ImportBooksFromOds extends Command
                 ->get($pageUrl);
             if (! $response->successful()) {
                 $this->verbose("Cover: HTTP {$response->status()} fetching page (no redirect to fikr.com)");
+
                 return null;
             }
             $html = $response->body();
@@ -463,7 +478,7 @@ class ImportBooksFromOds extends Command
                 return preg_replace('/\?.*/', '', $m[0]);
             }
             if (preg_match('#["\'](/W684O023R140L985D/public/files/styles/large/public/[^\s"\'<>]+\.(?:jpg|jpeg|png|gif|webp))["\']#i', $html, $m)) {
-                return 'https://darfikr.com' . preg_replace('/\?.*/', '', $m[1]);
+                return 'https://darfikr.com'.preg_replace('/\?.*/', '', $m[1]);
             }
             // og:image only if darfikr.com
             if (preg_match('#<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']#i', $html, $m)) {
@@ -488,7 +503,7 @@ class ImportBooksFromOds extends Command
     private function verbose(string $message): void
     {
         if ($this->option('cover-verbose')) {
-            $this->line('  ' . $message);
+            $this->line('  '.$message);
         }
     }
 
@@ -501,9 +516,10 @@ class ImportBooksFromOds extends Command
         $files = Storage::disk('public')->files('covers');
         foreach ($files as $path) {
             $basename = basename($path);
-            if (str_starts_with($basename, $safeIsbn . '_')) {
+            if (str_starts_with($basename, $safeIsbn.'_')) {
                 $base = rtrim(config('app.url'), '/');
-                return $base . '/storage/' . $path;
+
+                return $base.'/storage/'.$path;
             }
         }
 
@@ -518,12 +534,14 @@ class ImportBooksFromOds extends Command
                 ->get($imgUrl);
             if (! $response->successful()) {
                 $this->verbose("Cover: HTTP {$response->status()} for {$imgUrl}");
+
                 return [null, null];
             }
 
             $contentType = $response->header('Content-Type') ?? '';
             if (! preg_match('#^image/(jpeg|jpg|png|gif|webp)#i', $contentType)) {
                 $this->verbose("Cover: got {$contentType} (not image) - darfikr.com may redirect to fikr.com");
+
                 return [null, null];
             }
 
@@ -538,13 +556,13 @@ class ImportBooksFromOds extends Command
             }
 
             $safeIsbn = preg_replace('/[^a-zA-Z0-9-]/', '_', $isbn);
-            $filename = $safeIsbn . '_' . time() . '_original.' . $ext;
-            $path = 'covers/' . $filename;
+            $filename = $safeIsbn.'_'.time().'_original.'.$ext;
+            $path = 'covers/'.$filename;
 
             Storage::disk('public')->put($path, $content);
 
             $base = rtrim(config('app.url'), '/');
-            $fullUrl = $base . '/storage/' . $path;
+            $fullUrl = $base.'/storage/'.$path;
 
             return [$fullUrl, $fullUrl];
         } catch (\Throwable $e) {

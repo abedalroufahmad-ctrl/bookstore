@@ -59,8 +59,9 @@ class BookController extends BaseApiController
     public function store(BookStoreRequest $request): JsonResponse
     {
         $book = $this->bookService->create($request->validated());
+        $book = $this->bookService->getById((string) $book->getKey());
 
-        return $this->successResponse($book->fresh(), 'Book created', 201);
+        return $this->successResponse($book, 'Book created', 201);
     }
 
     public function show(string $id): JsonResponse
@@ -71,7 +72,7 @@ class BookController extends BaseApiController
             return $this->errorResponse('Book not found', 404);
         }
 
-        $book->loadMissing('authors');
+        $book->loadMissing(['authors', 'publisher']);
 
         return $this->successResponse($book);
     }

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Order\Enums\OrderStatus;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Http\Requests\Order\CheckoutRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
-use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -73,13 +73,31 @@ class OrderController extends BaseApiController
 
             $newStatus = $request->validated('status');
 
-            if ($newStatus !== OrderService::STATUS_CANCELLED) {
+            if ($newStatus !== OrderStatus::Cancelled->value) {
                 return $this->errorResponse('Customers can only cancel orders. Use employee API for other status updates.', 403);
             }
 
             $order = $this->orderService->updateStatus($order, $newStatus);
 
             return $this->successResponse($order, 'Order cancelled');
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+    }
+
+    public function confirmQuote(string $id): JsonResponse
+    {
+        try {
+            $customer = auth('customer')->user();
+            $order = $this->orderService->getOrderById($id, $customer->getKey());
+
+            if (! $order) {
+                return $this->errorResponse('Order not found', 404);
+            }
+
+            $order = $this->orderService->confirmOrderQuoteByCustomer($order, $customer);
+
+            return $this->successResponse($order, 'Order confirmed with warehouse.');
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }

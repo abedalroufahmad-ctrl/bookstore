@@ -11,7 +11,9 @@ import '../providers/profile_provider.dart';
 /// Profile screen: personal info, shipping address, preferences, logout.
 /// Matches the reference design with section cards and edit for shipping/communication data.
 class AccountScreen extends StatelessWidget {
-  const AccountScreen({super.key});
+  final bool showAppBar;
+
+  const AccountScreen({super.key, this.showAppBar = true});
 
   static const String _appVersion = 'v0.1.0';
 
@@ -20,32 +22,60 @@ class AccountScreen extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.myProfile),
-        centerTitle: true,
-        actions: [
-          Consumer<AuthProvider>(
-            builder: (context, auth, _) {
-              if (!auth.isLoggedIn) return const SizedBox.shrink();
-              return IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => _showEditProfileSheet(context),
-                tooltip: t.editProfile,
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: showAppBar
+          ? AppBar(
+              title: Text(t.myProfile),
+              centerTitle: true,
+              actions: [
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    if (!auth.isLoggedIn ||
+                        auth.userType == UserType.employee) {
+                      return const SizedBox.shrink();
+                    }
+                    return IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _showEditProfileSheet(context),
+                      tooltip: t.editProfile,
+                    );
+                  },
+                ),
+              ],
+            )
+          : null,
       body: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           if (!auth.isLoggedIn) {
             return _buildGuestContent(context, t);
+          }
+          if (auth.userType == UserType.employee) {
+            return _buildEmployeeContent(context, auth, t);
           }
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (!showAppBar &&
+                    auth.isLoggedIn &&
+                    auth.userType == UserType.customer)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          t.myProfile,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => _showEditProfileSheet(context),
+                          tooltip: t.editProfile,
+                        ),
+                      ],
+                    ),
+                  ),
                 _buildSectionTitle(context, t.personalInformation),
                 _buildPersonalInfoCard(context, auth, t),
                 const SizedBox(height: 24),
@@ -103,6 +133,69 @@ class AccountScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmployeeContent(
+    BuildContext context,
+    AuthProvider auth,
+    AppLocalizations t,
+  ) {
+    final theme = Theme.of(context);
+    final e = auth.employee;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSectionTitle(context, t.employee),
+          GFCard(
+            elevation: 0,
+            padding: EdgeInsets.zero,
+            margin: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(12),
+            content: Column(
+              children: [
+                _profileRow(theme, Icons.person_outline, t.nameLabel, e?.name ?? t.notSet),
+                _divider(),
+                _profileRow(theme, Icons.email_outlined, t.emailLabel, e?.email ?? t.notSet),
+                _divider(),
+                _profileRow(
+                  theme,
+                  Icons.badge_outlined,
+                  t.isAr ? 'الدور' : 'Role',
+                  e?.role ?? t.notSet,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, t.staffOrdersTitle),
+          GFCard(
+            elevation: 0,
+            padding: EdgeInsets.zero,
+            margin: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(12),
+            content: GFListTile(
+              icon: Icon(Icons.local_shipping_outlined, size: 22, color: theme.colorScheme.primary),
+              titleText: t.staffOrdersTitle,
+              subTitleText: t.staffOrdersSubtitle,
+              onTap: () => Navigator.pushNamed(context, '/staff/orders'),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildLogoutButton(context, auth, t),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              '${t.appVersion} $_appVersion',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

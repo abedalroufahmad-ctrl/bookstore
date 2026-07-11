@@ -30,7 +30,7 @@ class Book extends Model
         'edition_number',
         'binding_type',
         'paper_type',
-        'publisher',
+        'publisher_id',
         'warehouse_id',
         'stock_quantity',
         'discount_percent',
@@ -61,5 +61,10 @@ class Book extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function publisher(): BelongsTo
+    {
+        return $this->belongsTo(Publisher::class);
     }
 }

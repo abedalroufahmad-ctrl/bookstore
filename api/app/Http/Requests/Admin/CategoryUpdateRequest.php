@@ -18,7 +18,8 @@ class CategoryUpdateRequest extends BaseFormRequest
 
         return [
             'dewey_code' => ['sometimes', 'string', 'max:50', Rule::unique('categories', 'dewey_code')->ignore($categoryId, '_id')],
-            'subject_title' => ['sometimes', 'string', 'max:255'],
+            'subject_title_en' => ['sometimes', 'string', 'max:255'],
+            'subject_title_ar' => ['nullable', 'string', 'max:255'],
             'subject_number' => ['nullable', 'string', 'max:50'],
         ];
     }

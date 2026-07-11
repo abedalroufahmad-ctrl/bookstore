@@ -10,6 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(EmployeeSeeder::class);
         $this->call(WarehouseSeeder::class);
+        $this->call(PublisherSeeder::class);
         $this->call(ArabicLocationsSeeder::class);
         $this->call(CatalogSeeder::class);
     }

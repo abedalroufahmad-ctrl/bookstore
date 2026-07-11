@@ -18,6 +18,7 @@ import 'screens/category_books_screen.dart';
 import 'screens/category_list_screen.dart';
 import 'screens/warehouse_books_screen.dart';
 import 'screens/warehouse_list_screen.dart';
+import 'screens/admin_orders_screen.dart';
 import 'screens/admin_warehouses_browse_screen.dart';
 import 'screens/guest_landing_screen.dart';
 import 'screens/main_shell.dart';
@@ -182,6 +183,9 @@ class BookStoreApp extends StatelessWidget {
               '/categories': (context) => const CategoryListScreen(),
               '/warehouses': (context) => const WarehouseListScreen(),
               '/admin/warehouses/browse': (context) => const AdminWarehousesBrowseScreen(),
+              '/admin/orders': (context) => const AdminOrdersScreen(),
+              '/staff/orders': (context) =>
+                  const AdminOrdersScreen(useEmployeeApi: true),
             },
             onGenerateRoute: (settings) {
               if (settings.name?.startsWith('/book/') == true) {

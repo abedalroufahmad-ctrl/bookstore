@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\BaseFormRequest;
-use Illuminate\Validation\Rule;
 
 class CategoryStoreRequest extends BaseFormRequest
 {
@@ -16,7 +15,8 @@ class CategoryStoreRequest extends BaseFormRequest
     {
         return [
             'dewey_code' => ['required', 'string', 'max:50', 'unique:categories,dewey_code'],
-            'subject_title' => ['required', 'string', 'max:255'],
+            'subject_title_en' => ['required', 'string', 'max:255'],
+            'subject_title_ar' => ['nullable', 'string', 'max:255'],
             'subject_number' => ['nullable', 'string', 'max:50'],
         ];
     }
