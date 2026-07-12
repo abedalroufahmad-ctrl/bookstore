@@ -95,6 +95,8 @@ class PublisherController extends BaseApiController
             'support_phone' => 'nullable|string',
             'return_policy' => 'nullable|string',
             'default_discount' => 'nullable|numeric|min:0|max:100',
+            'payment_methods' => 'nullable|array',
+            'payment_methods.*' => 'string',
         ]);
 
         $publisher->settings = array_merge($publisher->settings ?? [], $settings);

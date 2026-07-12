@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { orders, settings, auth } from '../lib/api'
+import { orders, settings, auth, cart } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
 type PaymentMethodOption = { id: string; name: string; enabled: boolean }
@@ -50,6 +50,15 @@ export function Checkout() {
     setInitDone(true)
   }, [customer, initDone])
 
+  const { data: cartData } = useQuery({
+    queryKey: ['cart'],
+    queryFn: async () => {
+      const res = await cart.get()
+      return res.data
+    },
+    enabled: userType === 'customer' || userType === 'employee',
+  })
+
   const { data: settingsData } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
@@ -60,7 +69,32 @@ export function Checkout() {
 
   const rawPaymentMethods = (settingsData?.data as { payment_methods?: unknown })?.payment_methods
   const allMethods = useMemo(() => parsePaymentMethods(rawPaymentMethods), [rawPaymentMethods])
-  const enabledMethods = useMemo(() => allMethods.filter((m) => m.enabled), [allMethods])
+  
+  const enabledMethods = useMemo(() => {
+    // 1. Get globally enabled methods
+    let methods = allMethods.filter((m) => m.enabled)
+
+    // 2. Intersect with publisher settings (if any publishers in cart restrict it)
+    const items = (cartData?.data as { items?: { book?: { publisher?: { settings?: { payment_methods?: string[] } } } }[] })?.items ?? []
+    const publishers = new Set<{ settings?: { payment_methods?: string[] } }>()
+    items.forEach((item) => {
+      if (item.book?.publisher) {
+        publishers.add(item.book.publisher)
+      }
+    })
+
+    publishers.forEach((publisher) => {
+      const pubSettings = publisher.settings
+      if (pubSettings && Array.isArray(pubSettings.payment_methods) && pubSettings.payment_methods.length > 0) {
+        // This publisher has restricted payment methods, intersect with our current list
+        const allowedMethods = pubSettings.payment_methods
+        methods = methods.filter((m) => allowedMethods.includes(m.id))
+      }
+    })
+
+    return methods
+  }, [allMethods, cartData])
+
   const defaultMethod = enabledMethods[0]?.id ?? ''
   const selectedMethod = enabledMethods.some((m) => m.id === paymentMethod) ? paymentMethod : defaultMethod
 

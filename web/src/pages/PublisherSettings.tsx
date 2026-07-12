@@ -3,13 +3,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { api } from '../lib/api'
+import { api, admin } from '../lib/api'
 
 interface PublisherSettingsData {
   support_email?: string
   support_phone?: string
   return_policy?: string
   default_discount?: number
+  payment_methods?: string[]
+}
+
+interface PaymentMethodItem {
+  id: string
+  name: string
+  enabled: boolean
 }
 
 export function PublisherSettings() {
@@ -29,9 +36,38 @@ export function PublisherSettings() {
     support_phone: '',
     return_policy: '',
     default_discount: 0,
+    payment_methods: [],
   })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  const { data: globalSettings, isLoading: isLoadingGlobal } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: async () => {
+      const res = await admin.settings.get()
+      return res.data
+    },
+  })
+
+  const globalPaymentMethods: PaymentMethodItem[] = (() => {
+    if (!globalSettings?.data) return []
+    const raw = (globalSettings.data as Record<string, unknown>).payment_methods
+    if (Array.isArray(raw) && raw.length > 0) {
+      return raw.map((item: Record<string, unknown>) => ({
+        id: String(item.id ?? ''),
+        name: String(item.name ?? item.id ?? ''),
+        enabled: Boolean(item.enabled),
+      }))
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      return Object.entries(raw as Record<string, boolean>).map(([id, enabled]) => ({
+        id,
+        name: id,
+        enabled: Boolean(enabled),
+      }))
+    }
+    return []
+  })()
 
   const { data, isLoading } = useQuery({
     queryKey: ['publisher-settings', targetId],
@@ -49,6 +85,7 @@ export function PublisherSettings() {
         support_phone: data.data.support_phone ?? '',
         return_policy: data.data.return_policy ?? '',
         default_discount: Number(data.data.default_discount) || 0,
+        payment_methods: Array.isArray(data.data.payment_methods) ? data.data.payment_methods : [],
       })
     }
   }, [data])
@@ -85,7 +122,7 @@ export function PublisherSettings() {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingGlobal) {
     return <div className="text-center py-12">{t('common.loading')}</div>
   }
 
@@ -169,6 +206,47 @@ export function PublisherSettings() {
               className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
               placeholder={t('admin.returnPolicyPlaceholder', 'Describe your return policy...')}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-3">
+              {t('admin.paymentMethods', 'Payment Methods')}
+            </label>
+            {globalPaymentMethods.length > 0 ? (
+              <div className="space-y-2 border border-stone-200 rounded-lg p-4 bg-stone-50">
+                {globalPaymentMethods.filter(m => m.enabled).map((method) => (
+                  <label key={method.id} className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={form.payment_methods?.includes(method.id) || false}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked
+                        setForm((prev) => {
+                          const methods = prev.payment_methods || []
+                          if (isChecked) {
+                            return { ...prev, payment_methods: [...methods, method.id] }
+                          } else {
+                            return { ...prev, payment_methods: methods.filter((id) => id !== method.id) }
+                          }
+                        })
+                      }}
+                      className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+                    />
+                    <span className="text-stone-800">{method.name}</span>
+                  </label>
+                ))}
+                {globalPaymentMethods.filter(m => m.enabled).length === 0 && (
+                  <p className="text-stone-500 text-sm">
+                    {t('admin.noGlobalPaymentMethods', 'No payment methods are globally enabled.')}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-stone-500">{t('admin.noGlobalPaymentMethods', 'No payment methods are globally enabled.')}</p>
+            )}
+            <p className="text-sm text-stone-500 mt-2">
+              {t('admin.publisherPaymentMethodsHint', 'Select which global payment methods you want to accept for your orders.')}
+            </p>
           </div>
 
         </div>
