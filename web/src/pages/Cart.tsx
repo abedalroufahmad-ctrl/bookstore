@@ -11,6 +11,7 @@ interface CartItem {
   book?: {
     title?: string
     warehouse?: { id?: string; name?: string }
+    discount_percent?: number
   }
 }
 

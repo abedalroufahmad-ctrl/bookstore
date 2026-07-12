@@ -83,15 +83,16 @@ export function CustomerAccount() {
     }
     setFieldErrors({})
     updateMutation.mutate(payload, {
-      onError: (err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> }; errors?: Record<string, string[]> } } }) => {
-        const errors = err?.response?.data?.data?.errors ?? err?.response?.data?.errors
+      onError: (err: unknown) => {
+        const error = err as { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> }; errors?: Record<string, string[]> } } }
+        const errors = error?.response?.data?.data?.errors ?? error?.response?.data?.errors
         if (errors && typeof errors === 'object') {
           setFieldErrors(errors as FieldErrors)
           const firstMessages = Object.values(errors).flat()
           if (firstMessages.length) alert(firstMessages[0])
           return
         }
-        alert(err?.response?.data?.message ?? t('common.error'))
+        alert(error?.response?.data?.message ?? t('common.error'))
       },
     })
   }
