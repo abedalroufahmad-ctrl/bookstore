@@ -4,6 +4,7 @@ namespace App\Infrastructure\Repositories\Mongo;
 
 use App\Domain\Publisher\Interfaces\PublisherRepositoryInterface;
 use App\Models\Publisher;
+use App\Models\Warehouse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PublisherRepository implements PublisherRepositoryInterface
@@ -32,7 +33,27 @@ class PublisherRepository implements PublisherRepositoryInterface
             $query->where('name', 'like', "%{$search}%");
         }
 
-        return $query->orderBy('name')->paginate($perPage);
+        $paginator = $query->orderBy('name')->paginate($perPage);
+        $publisherIds = collect($paginator->items())
+            ->map(fn (Publisher $publisher) => (string) $publisher->getKey())
+            ->all();
+
+        if (! empty($publisherIds)) {
+            $counts = Warehouse::query()
+                ->whereIn('publisher_id', $publisherIds)
+                ->get(['publisher_id'])
+                ->groupBy('publisher_id')
+                ->map(fn ($group) => $group->count());
+
+            foreach ($paginator->items() as $publisher) {
+                $publisher->setAttribute(
+                    'warehouses_count',
+                    $counts[(string) $publisher->getKey()] ?? 0
+                );
+            }
+        }
+
+        return $paginator;
     }
 
     public function create(array $data): Publisher

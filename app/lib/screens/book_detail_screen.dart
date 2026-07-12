@@ -20,7 +20,7 @@ Widget _buildLogoPlaceholder({double? width, double? height}) {
     width: width,
     height: height,
     fit: BoxFit.cover,
-    errorBuilder: (_, __, ___) => Icon(Icons.menu_book_outlined, size: width != null ? 64 : 40),
+    errorBuilder: (_, _, _) => Icon(Icons.menu_book_outlined, size: width != null ? 64 : 40),
   );
 }
 
@@ -194,7 +194,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                Text('${_s(context, 'الكمية: ', 'Quantity: ')}'),
+                Text(_s(context, 'الكمية: ', 'Quantity: ')),
                 IconButton(
                   icon: const Icon(Icons.remove),
                   onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
@@ -251,7 +251,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             child: const Center(child: CircularProgressIndicator()),
           );
         },
-        errorBuilder: (_, __, ___) => SizedBox(
+        errorBuilder: (_, _, _) => SizedBox(
           width: w,
           height: h,
           child: _buildLogoPlaceholder(width: w, height: h),
@@ -274,7 +274,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               child: Image.network(
                 _resolveCoverUrl(url),
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 64),
+                errorBuilder: (_, _, _) => const Icon(Icons.broken_image, size: 64),
               ),
             ),
             Positioned(

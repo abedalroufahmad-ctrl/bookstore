@@ -49,6 +49,9 @@ class BookController extends BaseApiController
                 $filters['warehouse_ids'] = $managedIds;
             }
         }
+        if ($employee && UserRole::isPublisherScoped($employee->role)) {
+            $filters['publisher_id'] = $employee->getManagedPublisherId() ?? '__none__';
+        }
         $perPage = min((int) $request->get('per_page', 32), 100);
 
         $books = $this->bookService->getAll($filters, $perPage);
@@ -58,7 +61,19 @@ class BookController extends BaseApiController
 
     public function store(BookStoreRequest $request): JsonResponse
     {
-        $book = $this->bookService->create($request->validated());
+        $data = $request->validated();
+
+        // Publisher managers can only create books under their own publisher.
+        $employee = auth('employee')->user();
+        if ($employee && UserRole::isPublisherScoped($employee->role)) {
+            $publisherId = $employee->getManagedPublisherId();
+            if (! $publisherId) {
+                return $this->errorResponse('Forbidden. You are not assigned to a publisher.', 403);
+            }
+            $data['publisher_id'] = $publisherId;
+        }
+
+        $book = $this->bookService->create($data);
         $book = $this->bookService->getById((string) $book->getKey());
 
         return $this->successResponse($book, 'Book created', 201);
@@ -72,6 +87,12 @@ class BookController extends BaseApiController
             return $this->errorResponse('Book not found', 404);
         }
 
+        $employee = auth('employee')->user();
+        if ($employee && UserRole::isPublisherScoped($employee->role)
+            && ! $employee->managesPublisher((string) ($book->publisher_id ?? ''))) {
+            return $this->errorResponse('Forbidden. You can only access your publisher\'s books.', 403);
+        }
+
         $book->loadMissing(['authors', 'publisher']);
 
         return $this->successResponse($book);
@@ -79,7 +100,22 @@ class BookController extends BaseApiController
 
     public function update(BookUpdateRequest $request, string $id): JsonResponse
     {
-        $book = $this->bookService->update($id, $request->validated());
+        $data = $request->validated();
+
+        $employee = auth('employee')->user();
+        if ($employee && UserRole::isPublisherScoped($employee->role)) {
+            $existing = $this->bookService->getById($id);
+            if (! $existing) {
+                return $this->errorResponse('Book not found', 404);
+            }
+            if (! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
+                return $this->errorResponse('Forbidden. You can only update your publisher\'s books.', 403);
+            }
+            // Keep the book under this publisher.
+            $data['publisher_id'] = $employee->getManagedPublisherId();
+        }
+
+        $book = $this->bookService->update($id, $data);
 
         if (! $book) {
             return $this->errorResponse('Book not found', 404);
@@ -90,6 +126,17 @@ class BookController extends BaseApiController
 
     public function destroy(string $id): JsonResponse
     {
+        $employee = auth('employee')->user();
+        if ($employee && UserRole::isPublisherScoped($employee->role)) {
+            $existing = $this->bookService->getById($id);
+            if (! $existing) {
+                return $this->errorResponse('Book not found', 404);
+            }
+            if (! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
+                return $this->errorResponse('Forbidden. You can only delete your publisher\'s books.', 403);
+            }
+        }
+
         if (! $this->bookService->delete($id)) {
             return $this->errorResponse('Book not found', 404);
         }

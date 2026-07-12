@@ -16,6 +16,7 @@ class WarehouseStoreRequest extends BaseFormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'publisher_id' => ['required', 'string'],
             'manager_id' => [
                 'nullable',
                 'string',

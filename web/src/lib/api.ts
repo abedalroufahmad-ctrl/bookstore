@@ -209,6 +209,7 @@ export const admin = {
       role: string
       warehouse_id?: string
       warehouse_ids?: string[]
+      publisher_id?: string
     }) => api.post<ApiResponse<Employee>>('/admin/employees', data),
     update: (id: string, data: {
       name?: string
@@ -218,6 +219,7 @@ export const admin = {
       role?: string
       warehouse_id?: string
       warehouse_ids?: string[]
+      publisher_id?: string
     }) => api.put<ApiResponse<Employee>>(`/admin/employees/${id}`, data),
   },
   customers: {
@@ -265,6 +267,7 @@ export const admin = {
   publishers: {
     list: (params?: Record<string, string | number>) =>
       api.get<ApiResponse<PaginatedResponse<Publisher>>>('/admin/publishers', { params }),
+    get: (id: string) => api.get<ApiResponse<Publisher>>(`/admin/publishers/${id}`),
     create: (data: { name: string; address?: string; phone?: string; email?: string; website?: string }) =>
       api.post<ApiResponse<Publisher>>('/admin/publishers', data),
     update: (id: string, data: { name?: string; address?: string; phone?: string; email?: string; website?: string }) =>
@@ -331,6 +334,8 @@ export interface Warehouse {
   city?: string
   phone?: string
   email?: string
+  publisher_id?: string
+  publisher?: Publisher
   manager_id?: string | null
   manager?: Employee | null
   employees?: Employee[]
@@ -343,6 +348,7 @@ export interface WarehouseFormData {
   city: string
   phone?: string
   email: string
+  publisher_id: string
   manager_id?: string | null
   employee_ids?: string[]
 }
@@ -404,6 +410,8 @@ export interface Publisher {
   phone?: string
   email?: string
   website?: string
+  warehouses_count?: number
+  warehouses?: Warehouse[]
 }
 
 export interface Author {
@@ -435,6 +443,7 @@ export interface Employee {
   role: string
   warehouse_id?: string
   warehouse_ids?: string[]
+  publisher_id?: string
 }
 
 export interface Cart {

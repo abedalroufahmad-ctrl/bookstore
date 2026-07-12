@@ -42,7 +42,6 @@ class ApiClient {
   }) async {
     try {
       final uri = Uri.parse('$_baseUrl$path');
-      print('ApiClient POST: $uri');
       final res = await http.post(
         uri,
         headers: await _headers(),

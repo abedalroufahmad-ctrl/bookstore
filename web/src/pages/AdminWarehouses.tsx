@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { admin, type Warehouse, type WarehouseFormData } from '../lib/api'
+import { admin, type Warehouse, type WarehouseFormData, type Publisher } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
@@ -24,6 +24,7 @@ const emptyForm: WarehouseFormData = {
   city: '',
   phone: '',
   email: '',
+  publisher_id: '',
   manager_id: null,
   employee_ids: [],
 }
@@ -31,11 +32,13 @@ const emptyForm: WarehouseFormData = {
 export function AdminWarehouses() {
   const { t } = useTranslation()
   const { user, userType } = useAuth()
-  const employeeRole = userType === 'employee' ? (user as { role?: string } | null)?.role : undefined
+  const employeeRole = userType === 'employee' ? (user as { role?: string; publisher_id?: string } | null)?.role : undefined
   const isManager = employeeRole === 'manager'
-  // const isWarehouseManagerUser = employeeRole === 'warehouse_manager'
+  const isPublisherManager = employeeRole === 'publisher_manager'
+  const managedPublisherId = isPublisherManager ? String((user as { publisher_id?: string } | null)?.publisher_id ?? '') : ''
+  const canManageWarehouses = isManager || isPublisherManager
   /** Any logged-in employee who is not the global manager (sees only assigned warehouse(s) from API). */
-  const isScopedWarehouseUser = userType === 'employee' && !isManager
+  const isScopedWarehouseUser = userType === 'employee' && !isManager && !isPublisherManager
   const queryClient = useQueryClient()
   const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [showForm, setShowForm] = useState(false)
@@ -69,6 +72,15 @@ export function AdminWarehouses() {
     },
   })
   const employees = extractList<{ _id: string; name: string; email: string }>(employeesData)
+
+  const { data: publishersData } = useQuery({
+    queryKey: ['admin-publishers-all'],
+    queryFn: async () => {
+      const res = await admin.publishers.list({ per_page: 200 })
+      return res.data
+    },
+  })
+  const publishers = extractList<Publisher>(publishersData)
 
   const createMutation = useMutation({
     mutationFn: (d: WarehouseFormData) => admin.warehouses.create(d),
@@ -119,6 +131,7 @@ export function AdminWarehouses() {
         city: full.city ?? '',
         phone: full.phone ?? '',
         email: full.email ?? '',
+        publisher_id: full.publisher_id ?? full.publisher?._id ?? '',
         manager_id: full.manager_id ?? null,
         employee_ids: (full.employees ?? []).map((e) => e._id),
       })
@@ -128,11 +141,15 @@ export function AdminWarehouses() {
   }
 
   const isValidForm = (f: WarehouseFormData) =>
-    f.name.trim() && f.address.trim() && f.country.trim() && f.city.trim() && f.email.trim()
+    f.name.trim() && f.address.trim() && f.country.trim() && f.city.trim() && f.email.trim() &&
+    (isPublisherManager ? !!managedPublisherId : f.publisher_id.trim())
 
   const handleSaveEdit = () => {
     if (!editingId || !isValidForm(editingForm)) return
     const payload = { ...editingForm }
+    if (isPublisherManager && managedPublisherId) {
+      payload.publisher_id = managedPublisherId
+    }
     if (payload.manager_id === '' || payload.manager_id === undefined) payload.manager_id = null
     if (!payload.employee_ids?.length) payload.employee_ids = []
     updateMutation.mutate({ id: editingId, data: payload })
@@ -150,6 +167,9 @@ export function AdminWarehouses() {
       return
     }
     const payload = { ...form }
+    if (isPublisherManager && managedPublisherId) {
+      payload.publisher_id = managedPublisherId
+    }
     if (payload.manager_id === '' || payload.manager_id === undefined) delete payload.manager_id
     if (!payload.employee_ids?.length) delete payload.employee_ids
     createMutation.mutate(payload)
@@ -160,14 +180,37 @@ export function AdminWarehouses() {
     ...employees.map((e) => ({ value: e._id, label: `${e.name} (${e.email})` })),
   ]
 
+  const publisherSelect = (value: string, onChange: (publisherId: string) => void) => (
+    <div>
+      <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisher')}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+      >
+        <option value="">{t('admin.selectPublisher')}</option>
+        {publishers.map((p) => (
+          <option key={p._id} value={p._id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
         <h1 className="text-2xl font-bold text-amber-900">{t('admin.warehouses')}</h1>
-        {isManager && (
+        {canManageWarehouses && (
           <button
             type="button"
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setForm(isPublisherManager && managedPublisherId
+                ? { ...emptyForm, publisher_id: managedPublisherId }
+                : emptyForm)
+              setShowForm(true)
+            }}
             className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
           >
             {t('admin.addWarehouse')}
@@ -256,6 +299,9 @@ export function AdminWarehouses() {
                 className="w-full px-4 py-2 border border-stone-300 rounded-lg"
               />
             </div>
+            {!isPublisherManager && publisherSelect(editingForm.publisher_id, (publisher_id) =>
+              setEditingForm((p) => ({ ...p, publisher_id }))
+            )}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.manager')} ({t('admin.optional')})</label>
               <select
@@ -306,7 +352,7 @@ export function AdminWarehouses() {
           </div>
         </div>
       )}
-      {showForm && isManager && (
+      {showForm && canManageWarehouses && (
         <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
           <h2 className="font-semibold mb-4">{t('admin.newWarehouse')}</h2>
           <div className="grid gap-4 max-w-2xl">
@@ -374,6 +420,9 @@ export function AdminWarehouses() {
                 className="w-full px-4 py-2 border border-stone-300 rounded-lg"
               />
             </div>
+            {!isPublisherManager && publisherSelect(form.publisher_id, (publisher_id) =>
+              setForm((p) => ({ ...p, publisher_id }))
+            )}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.manager')} ({t('admin.optional')})</label>
               <select
@@ -436,6 +485,7 @@ export function AdminWarehouses() {
         <table className="w-full min-w-[600px]">
           <thead className="bg-stone-100">
             <tr>
+              <th className="px-4 py-2 text-left">{t('admin.publisher')}</th>
               <th className="px-4 py-2 text-left">{t('admin.name')}</th>
               <th className="px-4 py-2 text-left">{t('admin.address')}</th>
               <th className="px-4 py-2 text-left">{t('admin.city')}</th>
@@ -448,6 +498,7 @@ export function AdminWarehouses() {
           <tbody>
             {items.map((w) => (
               <tr key={w._id} className="border-t border-stone-200">
+                <td className="px-4 py-2">{w.publisher?.name ?? publishers.find((p) => p._id === w.publisher_id)?.name ?? '—'}</td>
                 <td className="px-4 py-2">{w.name}</td>
                 <td className="px-4 py-2">{w.address ?? '-'}</td>
                 <td className="px-4 py-2">{w.city ?? '-'}</td>
@@ -462,7 +513,7 @@ export function AdminWarehouses() {
                   >
                     {t('admin.edit')}
                   </button>
-                  {isManager && (
+                  {canManageWarehouses && (
                     <button
                       type="button"
                       onClick={() =>

@@ -8,13 +8,14 @@ export function AdminDashboard() {
   const employeeRole = userType === 'employee' ? (user as { role?: string } | null)?.role : undefined
   const isManager = employeeRole === 'manager'
   const isWarehouseManager = employeeRole === 'warehouse_manager'
+  const isPublisherManager = employeeRole === 'publisher_manager'
   const isScopedWarehouseUser = isWarehouseManager || (!isManager && userType === 'employee')
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-amber-900 mb-6">{t('admin.dashboard')}</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(!isScopedWarehouseUser || isWarehouseManager) && (
+        {(!isScopedWarehouseUser || isWarehouseManager || isPublisherManager) && (
           <Link
             to="/admin/books"
             className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
@@ -23,7 +24,7 @@ export function AdminDashboard() {
             <p className="text-sm text-stone-500 mt-1">{t('admin.manageCatalog')}</p>
           </Link>
         )}
-        {!isScopedWarehouseUser && (
+        {(!isScopedWarehouseUser || isPublisherManager) && (
           <Link
             to="/admin/authors"
             className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
@@ -50,7 +51,7 @@ export function AdminDashboard() {
             <p className="text-sm text-stone-500 mt-1">{t('admin.managePublishers') ?? 'Add, edit, or delete publishers'}</p>
           </Link>
         )}
-        {(!isScopedWarehouseUser || isWarehouseManager) && (
+        {(!isScopedWarehouseUser || isWarehouseManager || isPublisherManager) && (
           <Link
             to="/admin/warehouse-books"
             className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
@@ -59,7 +60,7 @@ export function AdminDashboard() {
             <p className="text-sm text-stone-500 mt-1">{t('admin.warehouseBooksHint')}</p>
           </Link>
         )}
-        {(!isScopedWarehouseUser || isWarehouseManager) && (
+        {(!isScopedWarehouseUser || isWarehouseManager || isPublisherManager) && (
           <Link
             to="/admin/warehouses"
             className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
@@ -77,6 +78,7 @@ export function AdminDashboard() {
             <p className="text-sm text-stone-500 mt-1">{t('admin.manageCountries')}</p>
           </Link>
         )}
+        {(!isPublisherManager) && (
         <Link
           to="/admin/orders"
           className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
@@ -84,6 +86,7 @@ export function AdminDashboard() {
           <h2 className="font-semibold text-amber-900">{t('admin.orders')}</h2>
           <p className="text-sm text-stone-500 mt-1">{t('admin.viewManageOrders')}</p>
         </Link>
+        )}
         {(!isScopedWarehouseUser || isWarehouseManager) && (
           <Link
             to="/admin/employees"

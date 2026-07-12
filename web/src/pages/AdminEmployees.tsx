@@ -23,6 +23,7 @@ const EMPLOYEE_ROLES = [
   { value: 'review', labelKey: 'admin.roleReview' },
   { value: 'accounting', labelKey: 'admin.roleAccounting' },
   { value: 'warehouse_manager', labelKey: 'admin.roleWarehouseManager' },
+  { value: 'publisher_manager', labelKey: 'admin.rolePublisherManager' },
 ] as const
 
 /** Roles a warehouse_manager may assign to new staff in their warehouse(s) */
@@ -44,6 +45,7 @@ export function AdminEmployees() {
     role: 'manager',
     warehouse_id: '',
     warehouse_ids: [] as string[],
+    publisher_id: '',
   })
   const [error, setError] = useState('')
 
@@ -71,13 +73,26 @@ export function AdminEmployees() {
     },
   })
 
+  const { data: publishersData } = useQuery({
+    queryKey: ['admin-publishers-all'],
+    queryFn: async () => {
+      const res = await admin.publishers.list({ per_page: 200 })
+      return res.data
+    },
+  })
+
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => {
-      const payload = { ...data }
+      const payload = { ...data } as Record<string, unknown>
       if (data.role === 'warehouse_manager' && data.warehouse_ids?.length) {
-        delete (payload as Record<string, unknown>).warehouse_id
+        delete payload.warehouse_id
+        delete payload.publisher_id
+      } else if (data.role === 'publisher_manager') {
+        delete payload.warehouse_id
+        delete payload.warehouse_ids
       } else {
-        delete (payload as Record<string, unknown>).warehouse_ids
+        delete payload.warehouse_ids
+        delete payload.publisher_id
       }
       return admin.employees.create(payload as Parameters<typeof admin.employees.create>[0])
     },
@@ -91,6 +106,7 @@ export function AdminEmployees() {
         role: isWarehouseManager ? 'shipping' : 'manager',
         warehouse_id: isWarehouseManager ? (warehouses[0]?._id ?? '') : '',
         warehouse_ids: [],
+        publisher_id: '',
       })
       setShowForm(false)
     },
@@ -99,15 +115,17 @@ export function AdminEmployees() {
     },
   })
 
-  type EmployeeItem = { _id: string; name: string; email: string; role: string; warehouse_id?: string; warehouse_ids?: string[]; warehouse?: { _id: string; name: string } }
+  type EmployeeItem = { _id: string; name: string; email: string; role: string; warehouse_id?: string; warehouse_ids?: string[]; publisher_id?: string; warehouse?: { _id: string; name: string } }
   const items = extractList<EmployeeItem>(employeesData)
   const warehouses = extractList<{ _id: string; name: string }>(warehousesData)
+  const publishers = extractList<{ _id: string; name: string }>(publishersData)
   const roleOptions = isWarehouseManager
     ? EMPLOYEE_ROLES.filter((r) =>
         (WAREHOUSE_MANAGER_STAFF_ROLE_VALUES as readonly string[]).includes(r.value)
       )
     : EMPLOYEE_ROLES
   const isWarehouseManagerRole = (r: string) => r === 'warehouse_manager'
+  const isPublisherManagerRole = (r: string) => r === 'publisher_manager'
 
   const managedWarehouseIds = useMemo(() => {
     if (!isWarehouseManager || !user) return [] as string[]
@@ -136,6 +154,7 @@ export function AdminEmployees() {
     role: 'manager',
     warehouse_id: '',
     warehouse_ids: [] as string[],
+    publisher_id: '',
   })
 
   const updateMutation = useMutation({
@@ -143,15 +162,20 @@ export function AdminEmployees() {
       const payload = { ...d }
       if (d.role === 'warehouse_manager' && Array.isArray(d.warehouse_ids) && d.warehouse_ids.length) {
         delete payload.warehouse_id
+        delete payload.publisher_id
+      } else if (d.role === 'publisher_manager') {
+        delete payload.warehouse_id
+        delete payload.warehouse_ids
       } else {
         delete payload.warehouse_ids
+        delete payload.publisher_id
       }
       return admin.employees.update(id, payload as Parameters<typeof admin.employees.update>[1])
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setEditingId(null)
-      setEditingForm({ name: '', email: '', password: '', password_confirmation: '', role: 'manager', warehouse_id: '', warehouse_ids: [] })
+      setEditingForm({ name: '', email: '', password: '', password_confirmation: '', role: 'manager', warehouse_id: '', warehouse_ids: [], publisher_id: '' })
     },
     onError: (err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> } } } }) => {
       const d = err?.response?.data
@@ -192,6 +216,7 @@ export function AdminEmployees() {
       role: validRole,
       warehouse_id: warehouseIdForEdit,
       warehouse_ids: Array.isArray(emp.warehouse_ids) ? emp.warehouse_ids.map(String) : [],
+      publisher_id: String(emp.publisher_id ?? ''),
     })
     setError('')
   }
@@ -199,10 +224,13 @@ export function AdminEmployees() {
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault()
     const isWMRole = editingForm.role === 'warehouse_manager'
-    const hasWarehouse = isWMRole
+    const isPMRole = editingForm.role === 'publisher_manager'
+    const hasScope = isWMRole
       ? (Array.isArray(editingForm.warehouse_ids) && editingForm.warehouse_ids.length > 0)
-      : !!editingForm.warehouse_id
-    if (!editingId || !editingForm.name.trim() || !editingForm.email.trim() || !hasWarehouse) {
+      : isPMRole
+        ? !!editingForm.publisher_id
+        : !!editingForm.warehouse_id
+    if (!editingId || !editingForm.name.trim() || !editingForm.email.trim() || !hasScope) {
       setError(t('admin.fillRequired'))
       return
     }
@@ -210,7 +238,11 @@ export function AdminEmployees() {
       name: editingForm.name,
       email: editingForm.email,
       role: editingForm.role,
-      ...(isWMRole ? { warehouse_ids: editingForm.warehouse_ids } : { warehouse_id: editingForm.warehouse_id }),
+      ...(isWMRole
+        ? { warehouse_ids: editingForm.warehouse_ids }
+        : isPMRole
+          ? { publisher_id: editingForm.publisher_id }
+          : { warehouse_id: editingForm.warehouse_id }),
     }
     if (editingForm.password && editingForm.password.length >= 8) {
       if (editingForm.password !== editingForm.password_confirmation) {
@@ -226,7 +258,7 @@ export function AdminEmployees() {
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    setEditingForm({ name: '', email: '', password: '', password_confirmation: '', role: 'manager', warehouse_id: '', warehouse_ids: [] })
+    setEditingForm({ name: '', email: '', password: '', password_confirmation: '', role: 'manager', warehouse_id: '', warehouse_ids: [], publisher_id: '' })
     setError('')
   }
 
@@ -234,11 +266,14 @@ export function AdminEmployees() {
     e.preventDefault()
     setError('')
     const isWMRole = form.role === 'warehouse_manager'
+    const isPMRole = form.role === 'publisher_manager'
     const hasWarehouse = isWarehouseManager
       ? !!form.warehouse_id
       : isWMRole
         ? (Array.isArray(form.warehouse_ids) && form.warehouse_ids.length > 0)
-        : !!form.warehouse_id
+        : isPMRole
+          ? !!form.publisher_id
+          : !!form.warehouse_id
     if (!form.name.trim() || !form.email.trim() || !form.password || !hasWarehouse) {
       setError(t('admin.fillRequired'))
       return
@@ -365,8 +400,27 @@ export function AdminEmployees() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.warehouse')}</label>
-              {isWarehouseManager ? (
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {isPublisherManagerRole(editingForm.role) ? t('admin.publisher') : t('admin.warehouse')}
+              </label>
+              {isPublisherManagerRole(editingForm.role) ? (
+                <div className="space-y-2">
+                  <select
+                    value={editingForm.publisher_id}
+                    onChange={(e) => setEditingForm((p) => ({ ...p, publisher_id: e.target.value }))}
+                    required
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  >
+                    <option value="">{t('admin.selectPublisher')}</option>
+                    {publishers.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
+                </div>
+              ) : isWarehouseManager ? (
                 <select
                   value={editingForm.warehouse_id}
                   onChange={(e) => setEditingForm((p) => ({ ...p, warehouse_id: e.target.value }))}
@@ -425,7 +479,9 @@ export function AdminEmployees() {
                   !editingForm.email.trim() ||
                   (isWarehouseManagerRole(editingForm.role)
                     ? !(editingForm.warehouse_ids?.length)
-                    : !(isWarehouseManager ? editingForm.warehouse_id : editingForm.warehouse_id))
+                    : isPublisherManagerRole(editingForm.role)
+                      ? !editingForm.publisher_id
+                      : !editingForm.warehouse_id)
                 }
                 className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
               >
@@ -502,8 +558,27 @@ export function AdminEmployees() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.warehouse')}</label>
-              {isWarehouseManager ? (
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                {isPublisherManagerRole(form.role) ? t('admin.publisher') : t('admin.warehouse')}
+              </label>
+              {isPublisherManagerRole(form.role) ? (
+                <div className="space-y-2">
+                  <select
+                    value={form.publisher_id}
+                    onChange={(e) => setForm((p) => ({ ...p, publisher_id: e.target.value }))}
+                    required
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  >
+                    <option value="">{t('admin.selectPublisher')}</option>
+                    {publishers.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
+                </div>
+              ) : isWarehouseManager ? (
                 <select
                   value={form.warehouse_id}
                   onChange={(e) => setForm((p) => ({ ...p, warehouse_id: e.target.value }))}
@@ -578,6 +653,7 @@ export function AdminEmployees() {
                     role: 'manager',
                     warehouse_id: '',
                     warehouse_ids: [],
+                    publisher_id: '',
                   })
                   setError('')
                 }}
@@ -606,7 +682,11 @@ export function AdminEmployees() {
                 <td className="px-4 py-2">{emp.name}</td>
                 <td className="px-4 py-2">{emp.email}</td>
                 <td className="px-4 py-2">{t(EMPLOYEE_ROLES.find((r) => r.value === emp.role)?.labelKey ?? emp.role)}</td>
-                <td className="px-4 py-2">{emp.warehouse?.name ?? '-'}</td>
+                <td className="px-4 py-2">
+                  {emp.role === 'publisher_manager'
+                    ? (publishers.find((p) => p._id === emp.publisher_id)?.name ?? '-')
+                    : (emp.warehouse?.name ?? '-')}
+                </td>
                 <td className="px-4 py-2 text-right">
                   <button
                     type="button"

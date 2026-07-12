@@ -19,7 +19,7 @@ class WarehouseService
         return $this->repository->getPaginated($filters, $perPage);
     }
 
-    public function getById(string $id, array $with = ['employees', 'books', 'manager']): ?Warehouse
+    public function getById(string $id, array $with = ['employees', 'books', 'manager', 'publisher']): ?Warehouse
     {
         return $this->repository->findById($id, $with);
     }
@@ -37,7 +37,7 @@ class WarehouseService
         if (is_array($employeeIds) && ! empty(array_filter($employeeIds, fn ($v) => $v !== '' && $v !== null))) {
             $this->assignEmployeesToWarehouse($warehouse->getKey(), $employeeIds);
         }
-        return $warehouse->fresh(['employees', 'books', 'manager']);
+        return $warehouse->fresh(['employees', 'books', 'manager', 'publisher']);
     }
 
     public function update(string $id, array $data, $currentEmployee = null): ?Warehouse
@@ -55,7 +55,7 @@ class WarehouseService
             $setRoleShipping = $currentEmployee && $currentEmployee->role === \App\Domain\Auth\Enums\UserRole::WarehouseManager->value;
             $this->assignEmployeesToWarehouse($id, $employeeIds, $setRoleShipping);
         }
-        return $updated ? $this->repository->findById($id, ['employees', 'books', 'manager']) : null;
+        return $updated ? $this->repository->findById($id, ['employees', 'books', 'manager', 'publisher']) : null;
     }
 
     /**

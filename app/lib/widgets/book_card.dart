@@ -37,7 +37,7 @@ class BookCard extends StatelessWidget {
         if (loadingProgress == null) return child;
         return _buildLogoPlaceholder();
       },
-      errorBuilder: (_, __, ___) => _buildLogoPlaceholder(),
+      errorBuilder: (_, _, _) => _buildLogoPlaceholder(),
     );
   }
 
@@ -45,7 +45,7 @@ class BookCard extends StatelessWidget {
     return Image.asset(
       'assets/app_icon.png',
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const Icon(Icons.menu_book_outlined, size: 40),
+      errorBuilder: (_, _, _) => const Icon(Icons.menu_book_outlined, size: 40),
     );
   }
 

@@ -10,6 +10,7 @@ enum UserRole: string
     case Accounting = 'accounting';
     case Driver = 'driver';
     case WarehouseManager = 'warehouse_manager';
+    case PublisherManager = 'publisher_manager';
     case Customer = 'customer';
 
     public function label(): string
@@ -21,6 +22,7 @@ enum UserRole: string
             self::Accounting => 'Accounting',
             self::Driver => 'Driver',
             self::WarehouseManager => 'Warehouse Manager',
+            self::PublisherManager => 'Publisher Manager',
             self::Customer => 'Customer',
         };
     }
@@ -36,6 +38,7 @@ enum UserRole: string
             self::Review->value,
             self::Accounting->value,
             self::WarehouseManager->value,
+            self::PublisherManager->value,
         ];
     }
 
@@ -58,6 +61,15 @@ enum UserRole: string
     public static function isWarehouseScoped(string $role): bool
     {
         return $role === self::WarehouseManager->value;
+    }
+
+    /**
+     * Role scoped to a single publisher: manages only warehouses and books
+     * belonging to that publisher (plus the shared author library).
+     */
+    public static function isPublisherScoped(string $role): bool
+    {
+        return $role === self::PublisherManager->value;
     }
 
     /**

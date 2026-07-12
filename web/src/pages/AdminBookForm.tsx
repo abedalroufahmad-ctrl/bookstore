@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { admin, type Book, type BookFormData } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
 import { useSettings, gramsToDisplay, displayToGrams } from '../contexts/SettingsContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const emptyForm: BookFormData = {
   title: '',
@@ -47,6 +48,10 @@ function normalizeId(value: unknown): string | null {
 
 export function AdminBookForm() {
     const { t } = useTranslation()
+    const { user, userType } = useAuth()
+    const employeeRole = userType === 'employee' ? user?.role : undefined
+    const isPublisherManager = employeeRole === 'publisher_manager'
+    const managedPublisherId = isPublisherManager ? String(user?.publisher_id ?? '') : ''
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const queryClient = useQueryClient()
@@ -276,6 +281,12 @@ export function AdminBookForm() {
     }
   }, [bookData])
 
+  useEffect(() => {
+    if (!isEdit && isPublisherManager && managedPublisherId) {
+      setForm((prev) => ({ ...prev, publisher_id: managedPublisherId }))
+    }
+  }, [isEdit, isPublisherManager, managedPublisherId])
+
   const createMutation = useMutation({
     mutationFn: (data: BookFormData) => admin.books.create(data),
     onSuccess: () => {
@@ -311,7 +322,9 @@ export function AdminBookForm() {
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
       category_id: form.category_id,
       warehouse_id: (form.warehouse_id || warehouseList[0]?._id) ?? '',
-      publisher_id: form.publisher_id || undefined,
+      publisher_id: isPublisherManager && managedPublisherId
+        ? managedPublisherId
+        : (form.publisher_id || undefined),
     }
     if (isEdit) {
       updateMutation.mutate(payload)
@@ -987,6 +1000,7 @@ export function AdminBookForm() {
             />
           </div>
         </div>
+        {!isPublisherManager && (
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.publisher')}
@@ -1062,6 +1076,7 @@ export function AdminBookForm() {
             )}
           </div>
         </div>
+        )}
         {error && (
           <p className="text-red-600 text-sm">{error}</p>
         )}

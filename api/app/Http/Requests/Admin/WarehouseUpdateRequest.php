@@ -16,6 +16,7 @@ class WarehouseUpdateRequest extends BaseFormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
+            'publisher_id' => ['sometimes', 'string'],
             'manager_id' => [
                 'nullable',
                 'string',

@@ -30,3 +30,9 @@ my-books.ods
 # General
 .DS_Store
 .env
+
+# SSH keys (must not be committed)
+api/d_ed25519
+api/d_ed25519.pub
+api/*.pem
+api/*.key

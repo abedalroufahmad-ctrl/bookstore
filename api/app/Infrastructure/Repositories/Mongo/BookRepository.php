@@ -50,6 +50,10 @@ class BookRepository implements BookRepositoryInterface
             $query->whereIn('warehouse_id', array_values($filters['warehouse_ids']));
         }
 
+        if (! empty($filters['publisher_id'])) {
+            $query->where('publisher_id', $filters['publisher_id']);
+        }
+
         if (! empty($filters['author_id'])) {
             $query->where('author_ids', $filters['author_id']);
         }

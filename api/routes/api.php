@@ -44,7 +44,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     Route::get('settings', [SettingController::class, 'index']);
 
     // Admin Management (manager, shipping, review, accounting, employee, warehouse_manager)
-    Route::prefix('admin')->middleware(['auth:employee', 'role:manager,shipping,review,accounting,employee,warehouse_manager', 'restrict.warehouse_manager'])->group(function () {
+    Route::prefix('admin')->middleware(['auth:employee', 'role:manager,shipping,review,accounting,employee,warehouse_manager,publisher_manager', 'restrict.warehouse_manager', 'restrict.publisher_manager'])->group(function () {
         Route::post('upload-cover', UploadCoverController::class);
         Route::post('upload-author-photo', UploadAuthorPhotoController::class);
         Route::get('books', [BookController::class, 'index']);

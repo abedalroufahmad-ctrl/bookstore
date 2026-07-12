@@ -34,7 +34,7 @@ class PublisherController extends BaseApiController
 
     public function show(string $id): JsonResponse
     {
-        $publisher = $this->publisherService->getById($id);
+        $publisher = $this->publisherService->getById($id, ['warehouses']);
 
         if (! $publisher) {
             return $this->errorResponse('Publisher not found', 404);

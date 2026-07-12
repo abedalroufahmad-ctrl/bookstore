@@ -26,6 +26,7 @@ class Warehouse extends Model
         'payment_methods',
         'shipping_options',
         'manager_id',
+        'publisher_id',
     ];
 
     protected function casts(): array
@@ -39,6 +40,11 @@ class Warehouse extends Model
     public function manager(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'manager_id');
+    }
+
+    public function publisher(): BelongsTo
+    {
+        return $this->belongsTo(Publisher::class);
     }
 
     public function employees(): HasMany

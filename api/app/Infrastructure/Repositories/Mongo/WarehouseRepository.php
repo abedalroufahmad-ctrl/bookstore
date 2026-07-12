@@ -25,7 +25,7 @@ class WarehouseRepository implements WarehouseRepositoryInterface
 
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->newQuery();
+        $query = $this->model->newQuery()->with($filters['with'] ?? ['publisher', 'manager']);
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
@@ -35,6 +35,10 @@ class WarehouseRepository implements WarehouseRepositoryInterface
                     ->orWhere('city', 'like', "%{$search}%")
                     ->orWhere('country', 'like', "%{$search}%");
             });
+        }
+
+        if (! empty($filters['publisher_id'])) {
+            $query->where('publisher_id', $filters['publisher_id']);
         }
 
         if (! empty($filters['country'])) {

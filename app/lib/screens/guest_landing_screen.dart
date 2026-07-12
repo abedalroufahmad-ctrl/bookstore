@@ -37,7 +37,7 @@ class GuestLandingScreen extends StatelessWidget {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -121,7 +121,7 @@ class GuestLandingScreen extends StatelessWidget {
                     child: Text(
                       t.get('create_account'),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 15,
                         decoration: TextDecoration.underline,
                         decorationColor: Colors.white54,

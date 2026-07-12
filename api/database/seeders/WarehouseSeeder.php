@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Publisher;
 use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
@@ -9,6 +10,9 @@ class WarehouseSeeder extends Seeder
 {
     public function run(): void
     {
+        $defaultPublisher = Publisher::orderBy('created_at')->first();
+        $publisherId = $defaultPublisher ? (string) $defaultPublisher->getKey() : null;
+
         $warehouses = [
             [
                 'name' => 'Test Warehouse',
@@ -22,7 +26,6 @@ class WarehouseSeeder extends Seeder
                     'coordinates' => [-118.243683, 34.052235],
                 ],
             ],
-            // Syria
             [
                 'name' => 'Damascus Warehouse',
                 'address' => 'Bab Touma',
@@ -47,7 +50,6 @@ class WarehouseSeeder extends Seeder
                 'phone' => '+963312345678',
                 'email' => 'homs-warehouse@bookstore.test',
             ],
-            // Other Arabic countries
             [
                 'name' => 'Cairo Warehouse',
                 'address' => 'Downtown',
@@ -91,6 +93,10 @@ class WarehouseSeeder extends Seeder
         ];
 
         foreach ($warehouses as $data) {
+            if ($publisherId) {
+                $data['publisher_id'] = $publisherId;
+            }
+
             Warehouse::firstOrCreate(
                 ['name' => $data['name'], 'city' => $data['city']],
                 $data
