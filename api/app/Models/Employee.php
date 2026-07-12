@@ -11,7 +11,7 @@ class Employee extends Authenticatable implements JWTSubject
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'employees';
+    protected $table = 'employees';
 
     protected $fillable = [
         'name',

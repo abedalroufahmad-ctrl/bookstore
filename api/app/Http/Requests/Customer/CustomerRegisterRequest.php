@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Customer;
 
 use App\Http\Requests\BaseFormRequest;
-use Illuminate\Validation\Rule;
 
 class CustomerRegisterRequest extends BaseFormRequest
 {

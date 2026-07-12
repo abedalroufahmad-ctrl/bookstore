@@ -39,13 +39,16 @@ export function Checkout() {
   })
 
   const customer = profileData?.data as { address?: string; city?: string; country?: string; postal_code?: string } | undefined
+  const [initDone, setInitDone] = useState(false)
+
   useEffect(() => {
-    if (!customer) return
+    if (!customer || initDone) return
     setAddress((prev) => (prev === '' && customer.address != null ? customer.address : prev))
     setCity((prev) => (prev === '' && customer.city != null ? customer.city : prev))
     setCountry((prev) => (prev === '' && customer.country != null ? customer.country : prev))
     setPostalCode((prev) => (prev === '' && customer.postal_code != null ? customer.postal_code : prev))
-  }, [customer])
+    setInitDone(true)
+  }, [customer, initDone])
 
   const { data: settingsData } = useQuery({
     queryKey: ['settings'],

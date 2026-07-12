@@ -3,9 +3,10 @@
 namespace App\Infrastructure\Services;
 
 use App\Domain\Customer\Interfaces\CustomerRepositoryInterface;
-use App\Models\Employee;
 use App\Models\Customer;
+use App\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
 class CustomerService
 {
     public function __construct(

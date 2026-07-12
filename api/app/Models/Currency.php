@@ -8,7 +8,7 @@ class Currency extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'currencies';
+    protected $table = 'currencies';
 
     protected $fillable = [
         'code', 'symbol', 'name', 'nameArabic',

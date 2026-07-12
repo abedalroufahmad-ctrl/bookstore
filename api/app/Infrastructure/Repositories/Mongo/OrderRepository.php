@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Repositories\Mongo;
 
 use App\Domain\Order\Interfaces\OrderRepositoryInterface;
+use App\Models\Customer;
 use App\Models\Order;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -37,7 +38,7 @@ class OrderRepository implements OrderRepositoryInterface
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
-            $customerIds = \App\Models\Customer::where('name', 'like', "%{$search}%")
+            $customerIds = Customer::where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")
                 ->limit(500)
                 ->pluck('_id');

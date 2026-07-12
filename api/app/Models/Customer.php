@@ -10,7 +10,7 @@ class Customer extends Authenticatable implements JWTSubject
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'customers';
+    protected $table = 'customers';
 
     protected $fillable = [
         'name',

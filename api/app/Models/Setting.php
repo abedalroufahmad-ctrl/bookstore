@@ -8,7 +8,7 @@ class Setting extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'settings';
+    protected $table = 'settings';
 
     protected $fillable = ['key', 'value'];
 

@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 class UploadCoverController extends BaseApiController
 {
     private const THUMB_WIDTH = 340;
+
     private const THUMB_HEIGHT = 480;
 
     public function __invoke(Request $request): JsonResponse
@@ -20,12 +21,12 @@ class UploadCoverController extends BaseApiController
         ]);
 
         $file = $request->file('cover_image');
-        $baseName = Str::uuid() . '_' . time();
+        $baseName = Str::uuid().'_'.time();
 
         // Store original
         $originalPath = $file->storeAs(
             'covers',
-            $baseName . '_original.' . $file->getClientOriginalExtension(),
+            $baseName.'_original.'.$file->getClientOriginalExtension(),
             'public'
         );
 
@@ -33,8 +34,8 @@ class UploadCoverController extends BaseApiController
         $thumbPath = $this->createThumbnail($file, $baseName);
 
         $base = rtrim(config('app.url'), '/');
-        $originalUrl = $base . '/storage/' . $originalPath;
-        $thumbUrl = $thumbPath ? $base . '/storage/' . $thumbPath : $originalUrl;
+        $originalUrl = $base.'/storage/'.$originalPath;
+        $thumbUrl = $thumbPath ? $base.'/storage/'.$thumbPath : $originalUrl;
 
         return $this->successResponse([
             'cover_image' => $originalUrl,
@@ -55,7 +56,7 @@ class UploadCoverController extends BaseApiController
             default => null,
         };
 
-        if (!$source) {
+        if (! $source) {
             return null;
         }
 
@@ -63,12 +64,14 @@ class UploadCoverController extends BaseApiController
         $srcH = imagesy($source);
         if ($srcW <= 0 || $srcH <= 0) {
             imagedestroy($source);
+
             return null;
         }
 
         $thumb = imagecreatetruecolor(self::THUMB_WIDTH, self::THUMB_HEIGHT);
-        if (!$thumb) {
+        if (! $thumb) {
             imagedestroy($source);
+
             return null;
         }
 
@@ -81,12 +84,12 @@ class UploadCoverController extends BaseApiController
         imagedestroy($source);
 
         $ext = $file->getClientOriginalExtension();
-        $thumbFilename = $baseName . '_thumb.' . $ext;
-        $storagePath = 'covers/' . $thumbFilename;
+        $thumbFilename = $baseName.'_thumb.'.$ext;
+        $storagePath = 'covers/'.$thumbFilename;
 
         $fullPath = Storage::disk('public')->path($storagePath);
         $dir = dirname($fullPath);
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
 

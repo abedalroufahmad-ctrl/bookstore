@@ -1,5 +1,8 @@
 <?php
 
+use Tymon\JWTAuth\Providers\Auth\Illuminate;
+use Tymon\JWTAuth\Providers\JWT\Lcobucci;
+
 return [
     'secret' => env('JWT_SECRET'),
     'keys' => [
@@ -26,8 +29,8 @@ return [
     'show_black_list_exception' => env('JWT_SHOW_BLACKLIST_EXCEPTION', true),
     'decrypt_cookies' => false,
     'providers' => [
-        'jwt' => Tymon\JWTAuth\Providers\JWT\Lcobucci::class,
-        'auth' => Tymon\JWTAuth\Providers\Auth\Illuminate::class,
+        'jwt' => Lcobucci::class,
+        'auth' => Illuminate::class,
         'storage' => Tymon\JWTAuth\Providers\Storage\Illuminate::class,
     ],
 ];

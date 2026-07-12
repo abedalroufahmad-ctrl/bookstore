@@ -30,6 +30,7 @@ class PaymentRepository
         if ($transactionId !== null) {
             $update['transaction_id'] = $transactionId;
         }
+
         return $payment->update($update);
     }
 

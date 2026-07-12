@@ -1,8 +1,15 @@
 <?php
 
+use App\Exceptions\Handler;
+use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\RestrictPublisherManagerToScopedRoutes;
+use App\Http\Middleware\RestrictWarehouseManagerToScopedRoutes;
+use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Tymon\JWTAuth\Http\Middleware\Authenticate;
+use Tymon\JWTAuth\Http\Middleware\RefreshToken;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,19 +21,19 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'restrict.warehouse_manager' => \App\Http\Middleware\RestrictWarehouseManagerToScopedRoutes::class,
-            'restrict.publisher_manager' => \App\Http\Middleware\RestrictPublisherManagerToScopedRoutes::class,
-            'force.json' => \App\Http\Middleware\ForceJsonResponse::class,
-            'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
-            'jwt.refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
+            'role' => RoleMiddleware::class,
+            'restrict.warehouse_manager' => RestrictWarehouseManagerToScopedRoutes::class,
+            'restrict.publisher_manager' => RestrictPublisherManagerToScopedRoutes::class,
+            'force.json' => ForceJsonResponse::class,
+            'jwt.auth' => Authenticate::class,
+            'jwt.refresh' => RefreshToken::class,
         ]);
-        $middleware->appendToGroup('api', \App\Http\Middleware\ForceJsonResponse::class);
+        $middleware->appendToGroup('api', ForceJsonResponse::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (\Throwable $e, $request) {
+        $exceptions->render(function (Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return app(\App\Exceptions\Handler::class)->render($request, $e);
+                return app(Handler::class)->render($request, $e);
             }
         });
     })->create();

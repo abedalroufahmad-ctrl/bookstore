@@ -16,15 +16,15 @@ class UploadAuthorPhotoController extends BaseApiController
         ]);
 
         $file = $request->file('photo');
-        $baseName = Str::uuid() . '_' . time();
+        $baseName = Str::uuid().'_'.time();
         $path = $file->storeAs(
             'authors',
-            $baseName . '.' . $file->getClientOriginalExtension(),
+            $baseName.'.'.$file->getClientOriginalExtension(),
             'public'
         );
 
         $base = rtrim(config('app.url'), '/');
-        $url = $base . '/storage/' . $path;
+        $url = $base.'/storage/'.$path;
 
         return $this->successResponse(['photo' => $url]);
     }

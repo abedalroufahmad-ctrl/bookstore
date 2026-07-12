@@ -13,7 +13,7 @@ class Order extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'orders';
+    protected $table = 'orders';
 
     protected $fillable = [
         'customer_id',

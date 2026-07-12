@@ -83,7 +83,7 @@ export function CustomerAccount() {
     }
     setFieldErrors({})
     updateMutation.mutate(payload, {
-      onError: (err: any) => {
+      onError: (err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> }; errors?: Record<string, string[]> } } }) => {
         const errors = err?.response?.data?.data?.errors ?? err?.response?.data?.errors
         if (errors && typeof errors === 'object') {
           setFieldErrors(errors as FieldErrors)

@@ -7,6 +7,16 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSettings, formatWeight } from '../contexts/SettingsContext'
 import { calculateDiscountedPrice, resolveCoverUrl, getPublisherLabel } from '../lib/utils'
 
+const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
+  const show = alwaysShow || (value != null && value !== '')
+  return show ? (
+    <div className="flex gap-2 py-1">
+      <span className="font-medium w-28" style={{ color: 'var(--color-text-muted)' }}>{label}:</span>
+      <span style={{ color: 'var(--color-text)' }}>{value ?? '—'}</span>
+    </div>
+  ) : null
+}
+
 export function BookDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -62,16 +72,6 @@ export function BookDetail() {
       : book.warehouse_id
         ? '—'
         : null
-
-  const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
-    const show = alwaysShow || (value != null && value !== '')
-    return show ? (
-      <div className="flex gap-2 py-1">
-        <span className="font-medium w-28" style={{ color: 'var(--color-text-muted)' }}>{label}:</span>
-        <span style={{ color: 'var(--color-text)' }}>{value ?? '—'}</span>
-      </div>
-    ) : null
-  }
 
   const thumbUrl = book.cover_image_thumb ?? book.cover_image
   const originalUrl = book.cover_image

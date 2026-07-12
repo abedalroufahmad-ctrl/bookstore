@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Contracts\Foundation\Application;
 
 trait CreatesApplication
@@ -9,7 +10,7 @@ trait CreatesApplication
     public function createApplication(): Application
     {
         $app = require __DIR__.'/../bootstrap/app.php';
-        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        $app->make(Kernel::class)->bootstrap();
 
         return $app;
     }

@@ -28,4 +28,3 @@ class CustomerUpdateRequest extends BaseFormRequest
         ];
     }
 }
-

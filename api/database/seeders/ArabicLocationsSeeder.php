@@ -44,12 +44,13 @@ class ArabicLocationsSeeder extends Seeder
     {
         $basePath = base_path('database/seeders/data/arabic-locations');
 
-        $countriesPath = $basePath . '/countries.json';
-        $statesPath = $basePath . '/states.json';
-        $citiesPath = $basePath . '/cities.json';
+        $countriesPath = $basePath.'/countries.json';
+        $statesPath = $basePath.'/states.json';
+        $citiesPath = $basePath.'/cities.json';
 
         if (! file_exists($countriesPath) || ! file_exists($statesPath) || ! file_exists($citiesPath)) {
             $this->command?->warn('Arabic locations JSON not found. Run ./import-arabic-locations.sh first.');
+
             return;
         }
 
@@ -59,6 +60,7 @@ class ArabicLocationsSeeder extends Seeder
 
         if (! is_array($countriesJson) || ! is_array($statesJson) || ! is_array($citiesJson)) {
             $this->command?->error('Invalid JSON in arabic-locations files.');
+
             return;
         }
 
@@ -146,6 +148,6 @@ class ArabicLocationsSeeder extends Seeder
 
         $bar?->finish();
         $this->command?->newLine();
-        $this->command?->info("Arabic locations seeded: " . count($countryIdByRepoId) . " countries, {$created} cities.");
+        $this->command?->info('Arabic locations seeded: '.count($countryIdByRepoId)." countries, {$created} cities.");
     }
 }

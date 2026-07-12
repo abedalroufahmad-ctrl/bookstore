@@ -9,7 +9,7 @@ class Country extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'countries';
+    protected $table = 'countries';
 
     protected $fillable = ['name', 'code', 'translations'];
 
@@ -29,8 +29,10 @@ class Country extends Model
         }
         if (is_string($value)) {
             $decoded = json_decode($value, true);
+
             return is_array($decoded) ? $decoded : [];
         }
+
         return [];
     }
 }

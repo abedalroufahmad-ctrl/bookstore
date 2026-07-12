@@ -164,7 +164,7 @@ class CartService extends BaseService implements CartServiceInterface
     protected function calculateDiscountedPrice(Book $book): float
     {
         $discount = $book->discount_percent;
-        if (!$discount || $discount <= 0) {
+        if (! $discount || $discount <= 0) {
             $discount = Setting::get('global_discount', 0);
         }
 

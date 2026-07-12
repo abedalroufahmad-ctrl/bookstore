@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { admin } from '../lib/api'
 import { useTranslation } from 'react-i18next'
 
-export type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
+type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
 
-export type PaymentMethodItem = { id: string; name: string; enabled: boolean }
+type PaymentMethodItem = { id: string; name: string; enabled: boolean }
 
 const DEFAULT_PAYMENT_METHODS: PaymentMethodItem[] = [
   { id: 'cod', name: 'Cash on Delivery (COD)', enabled: true },
@@ -57,7 +57,8 @@ export function AdminSettings() {
   useEffect(() => {
     if (data?.data) {
       const d = data.data as Record<string, unknown>
-      setGlobalDiscount(Number(d.global_discount) ?? 0)
+      const val = Number(d.global_discount)
+      setGlobalDiscount(Number.isNaN(val) ? 0 : val)
       setWeightUnit((d.weight_unit as WeightUnit) || 'kg')
       const perPage = Number(d.catalog_items_per_page)
       setCatalogItemsPerPage(perPage >= 1 && perPage <= 100 ? Math.round(perPage) : 24)

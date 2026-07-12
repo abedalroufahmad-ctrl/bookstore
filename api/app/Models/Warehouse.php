@@ -13,7 +13,7 @@ class Warehouse extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'warehouses';
+    protected $table = 'warehouses';
 
     protected $fillable = [
         'name',

@@ -86,8 +86,6 @@ export function AdminReportsBooksWithoutCover() {
     }
   }
 
-  if (isLoading && !data) return <div className="text-center py-12">{t('common.loading')}</div>
-
   const paginated = data?.data
   const items: Book[] = paginated?.data ?? []
   const meta = paginated && 'current_page' in paginated ? paginated : null
@@ -102,6 +100,8 @@ export function AdminReportsBooksWithoutCover() {
       el.indeterminate = someSelected && !allSelected
     }
   }, [someSelected, allSelected])
+
+  if (isLoading && !data) return <div className="text-center py-12">{t('common.loading')}</div>
 
   const toggleSelectAllOnPage = () => {
     setSelectedIds((prev) => {

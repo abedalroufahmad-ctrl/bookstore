@@ -12,7 +12,7 @@ class Cart extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'carts';
+    protected $table = 'carts';
 
     protected $fillable = [
         'customer_id',

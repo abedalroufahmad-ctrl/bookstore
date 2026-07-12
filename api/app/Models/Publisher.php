@@ -9,7 +9,7 @@ class Publisher extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'publishers';
+    protected $table = 'publishers';
 
     protected $fillable = [
         'name',

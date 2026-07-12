@@ -5,8 +5,6 @@ namespace Tests;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Warehouse;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 
 abstract class ApiTestCase extends TestCase
 {
@@ -81,7 +79,7 @@ abstract class ApiTestCase extends TestCase
 
         return Employee::create(array_merge([
             'name' => 'Test Employee',
-            'email' => 'employee' . uniqid() . '@test.test',
+            'email' => 'employee'.uniqid().'@test.test',
             'password' => 'password',
             'role' => 'manager',
             'warehouse_id' => $warehouse->getKey(),
@@ -95,7 +93,7 @@ abstract class ApiTestCase extends TestCase
     {
         return Customer::create(array_merge([
             'name' => 'Test Customer',
-            'email' => 'customer' . uniqid() . '@test.test',
+            'email' => 'customer'.uniqid().'@test.test',
             'password' => 'password',
             'address' => '123 Test St',
             'country' => 'USA',

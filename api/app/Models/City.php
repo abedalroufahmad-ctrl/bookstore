@@ -9,7 +9,7 @@ class City extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'cities';
+    protected $table = 'cities';
 
     protected $fillable = ['name', 'countryId', 'translations'];
 

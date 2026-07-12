@@ -13,10 +13,10 @@ return new class extends Migration
         Schema::connection('mongodb')->table('books', function (Blueprint $collection) {
             // Index for category filtering
             $collection->index('category_id');
-            
+
             // Multikey index for author filtering (author_ids is an array)
             $collection->index('author_ids');
-            
+
             // Index for sorting by discount (Sale/Special offers)
             $collection->index(['discount_percent' => -1]);
         });

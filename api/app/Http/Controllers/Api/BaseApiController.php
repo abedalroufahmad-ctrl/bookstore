@@ -9,7 +9,7 @@ use Illuminate\Routing\Controller as BaseController;
 
 abstract class BaseApiController extends BaseController
 {
+    use ApiResponseTrait;
     use AuthorizesRequests;
     use ValidatesRequests;
-    use ApiResponseTrait;
 }

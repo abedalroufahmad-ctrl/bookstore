@@ -9,7 +9,7 @@ class Category extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'categories';
+    protected $table = 'categories';
 
     protected $fillable = [
         'dewey_code',

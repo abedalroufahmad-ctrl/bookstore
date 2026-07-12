@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Repositories\Contracts\RepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 abstract class BaseRepository implements RepositoryInterface
 {
@@ -12,7 +13,7 @@ abstract class BaseRepository implements RepositoryInterface
         protected Model $model
     ) {}
 
-    public function all(array $columns = ['*']): \Illuminate\Support\Collection
+    public function all(array $columns = ['*']): Collection
     {
         return $this->model->all($columns);
     }

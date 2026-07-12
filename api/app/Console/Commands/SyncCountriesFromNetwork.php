@@ -49,6 +49,7 @@ class SyncCountriesFromNetwork extends Command
             $code = $item['cca2'] ?? null;
             if (empty($code) || ! is_string($code)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -62,6 +63,7 @@ class SyncCountriesFromNetwork extends Command
 
             if ($dryRun) {
                 $this->line("  [dry-run] {$name} ({$code}) | currency: {$currencyCode} | capitals: ".implode(', ', $capitals));
+
                 continue;
             }
 

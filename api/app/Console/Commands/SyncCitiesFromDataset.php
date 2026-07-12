@@ -58,6 +58,7 @@ class SyncCitiesFromDataset extends Command
             $datasetKey = self::COUNTRY_NAME_ALIASES[$countryName] ?? $countryName;
             if (! isset($dataset[$datasetKey]) || ! is_array($dataset[$datasetKey])) {
                 $skippedNoMatch++;
+
                 continue;
             }
 
@@ -82,6 +83,7 @@ class SyncCitiesFromDataset extends Command
 
                 if ($exists) {
                     $skippedExists++;
+
                     continue;
                 }
 

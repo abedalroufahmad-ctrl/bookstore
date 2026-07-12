@@ -9,7 +9,7 @@ class Payment extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'payments';
+    protected $table = 'payments';
 
     protected $fillable = [
         'order_id',

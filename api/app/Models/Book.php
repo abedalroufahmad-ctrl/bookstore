@@ -10,7 +10,7 @@ class Book extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'books';
+    protected $table = 'books';
 
     public $timestamps = true;
 

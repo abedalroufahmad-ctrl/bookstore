@@ -37,6 +37,7 @@ class WarehouseService
         if (is_array($employeeIds) && ! empty(array_filter($employeeIds, fn ($v) => $v !== '' && $v !== null))) {
             $this->assignEmployeesToWarehouse($warehouse->getKey(), $employeeIds);
         }
+
         return $warehouse->fresh(['employees', 'books', 'manager', 'publisher']);
     }
 
@@ -52,9 +53,10 @@ class WarehouseService
             $this->syncManagerToWarehouse($managerId, $id);
         }
         if ($updated && is_array($employeeIds)) {
-            $setRoleShipping = $currentEmployee && $currentEmployee->role === \App\Domain\Auth\Enums\UserRole::WarehouseManager->value;
+            $setRoleShipping = $currentEmployee && $currentEmployee->role === UserRole::WarehouseManager->value;
             $this->assignEmployeesToWarehouse($id, $employeeIds, $setRoleShipping);
         }
+
         return $updated ? $this->repository->findById($id, ['employees', 'books', 'manager', 'publisher']) : null;
     }
 
@@ -69,7 +71,7 @@ class WarehouseService
         }
         $update = ['warehouse_id' => $warehouseId];
         if ($setRoleShipping) {
-            $update['role'] = \App\Domain\Auth\Enums\UserRole::Shipping->value;
+            $update['role'] = UserRole::Shipping->value;
         }
         Employee::whereIn('_id', $ids)->update($update);
     }

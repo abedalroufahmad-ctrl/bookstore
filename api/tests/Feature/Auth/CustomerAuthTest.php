@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\Customer;
 use Tests\ApiTestCase;
 
 class CustomerAuthTest extends ApiTestCase
@@ -11,7 +10,7 @@ class CustomerAuthTest extends ApiTestCase
     {
         $response = $this->postJson('/api/v1/customers/register', [
             'name' => 'New Customer',
-            'email' => 'newcustomer' . uniqid() . '@test.test',
+            'email' => 'newcustomer'.uniqid().'@test.test',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);

@@ -9,7 +9,7 @@ class Author extends Model
 {
     protected $connection = 'mongodb';
 
-    protected $collection = 'authors';
+    protected $table = 'authors';
 
     protected $fillable = [
         'name',

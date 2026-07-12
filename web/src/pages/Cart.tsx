@@ -4,6 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { cart } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
+interface CartItem {
+  book_id: string
+  quantity: number
+  price: number
+  book?: {
+    title?: string
+    warehouse?: { id?: string; name?: string }
+  }
+}
+
 export function CartPage() {
   const { userType } = useAuth()
   const navigate = useNavigate()
@@ -49,7 +59,7 @@ export function CartPage() {
     )
   }
 
-  const groupedItems = items.reduce((acc: Record<string, { name: string; items: any[]; subtotal: number }>, item: any) => {
+  const groupedItems = items.reduce((acc: Record<string, { name: string; items: CartItem[]; subtotal: number }>, item: CartItem) => {
     const warehouseId = item.book?.warehouse?.id ?? 'unknown'
     const warehouseName = item.book?.warehouse?.name ?? t('cart.unknownWarehouse', 'Unknown Warehouse')
     if (!acc[warehouseId]) {
@@ -81,7 +91,7 @@ export function CartPage() {
             </div>
             
             <div className="p-4 space-y-4">
-              {group.items.map((item: any) => (
+              {group.items.map((item: CartItem) => (
                 <div
                   key={item.book_id}
                   className="flex items-center justify-between pb-4 border-b border-stone-100 last:border-0 last:pb-0"

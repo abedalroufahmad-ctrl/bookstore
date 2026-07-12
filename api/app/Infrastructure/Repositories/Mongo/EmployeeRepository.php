@@ -67,6 +67,7 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             return null;
         }
         $employee->update($data);
+
         return $employee->fresh(['warehouse']);
     }
 

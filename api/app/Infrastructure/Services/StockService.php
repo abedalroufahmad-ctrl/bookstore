@@ -4,7 +4,6 @@ namespace App\Infrastructure\Services;
 
 use App\Domain\Order\Interfaces\StockServiceInterface;
 use App\Models\Book;
-use Illuminate\Support\Facades\DB;
 
 class StockService implements StockServiceInterface
 {

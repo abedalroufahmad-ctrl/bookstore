@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Domain\Auth\Enums\UserRole;
 use App\Http\Requests\BaseFormRequest;
+use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Warehouse;
 use Illuminate\Validation\Rule;
@@ -44,7 +45,7 @@ class CustomerConvertToEmployeeRequest extends BaseFormRequest
             }
 
             $customer = $this->route('id')
-                ? \App\Models\Customer::query()->find((string) $this->route('id'))
+                ? Customer::query()->find((string) $this->route('id'))
                 : null;
             if ($customer && Employee::query()->where('email', $customer->email)->exists()) {
                 $validator->errors()->add('email', 'An employee with this email already exists.');
@@ -52,4 +53,3 @@ class CustomerConvertToEmployeeRequest extends BaseFormRequest
         });
     }
 }
-
