@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { admin, type Publisher, type Warehouse, type WarehouseFormData } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
@@ -251,6 +252,12 @@ export function AdminPublishers() {
               <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-stone-300 rounded-lg">
                 {t('admin.cancel')}
               </button>
+              <Link 
+                to={`/admin/publishers/${editingId}/settings`} 
+                className="px-4 py-2 bg-stone-100 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-200 ml-auto"
+              >
+                ⚙️ {t('admin.publisherSettings', 'Settings')}
+              </Link>
             </div>
             {error && <p className="text-red-600 text-sm">{error}</p>}
           </div>

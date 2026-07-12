@@ -76,6 +76,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         Route::get('publishers/{id}', [PublisherController::class, 'show']);
         Route::put('publishers/{id}', [PublisherController::class, 'update']);
         Route::delete('publishers/{id}', [PublisherController::class, 'destroy']);
+        Route::get('publishers/{id}/settings', [PublisherController::class, 'getSettings']);
+        Route::put('publishers/{id}/settings', [PublisherController::class, 'updateSettings']);
 
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::post('employees', [EmployeeController::class, 'store']);

@@ -17,6 +17,11 @@ class Publisher extends Model
         'phone',
         'email',
         'website',
+        'settings',
+    ];
+
+    protected $casts = [
+        'settings' => 'array',
     ];
 
     public function warehouses(): HasMany

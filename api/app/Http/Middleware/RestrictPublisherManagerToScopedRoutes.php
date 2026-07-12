@@ -40,6 +40,11 @@ class RestrictPublisherManagerToScopedRoutes
             }
         }
 
+        // Allow publisher settings PUT
+        if (str_contains($path, 'admin/publishers/') && str_ends_with($path, '/settings') && $request->isMethod('PUT')) {
+            return $next($request);
+        }
+
         return response()->json([
             'success' => false,
             'message' => 'Forbidden. Publisher managers can only manage their publisher\'s warehouses, books, and authors.',

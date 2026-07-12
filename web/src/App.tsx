@@ -31,6 +31,7 @@ import {
   WarehouseList,
   WarehouseBooks,
   AdminSettings,
+  PublisherSettings,
   AdminCountries,
   AdminReportsBooksWithoutCover,
   AdminWarehouseBrowse,
@@ -234,6 +235,22 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/publisher-settings"
+          element={
+            <AdminRoute>
+              <PublisherSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/publishers/:id/settings"
+          element={
+            <AdminRoute>
+              <PublisherSettings />
             </AdminRoute>
           }
         />

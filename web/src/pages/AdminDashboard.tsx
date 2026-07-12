@@ -105,13 +105,24 @@ export function AdminDashboard() {
             <p className="text-sm text-stone-500 mt-1">{t('admin.manageCustomers')}</p>
           </Link>
         )}
-        <Link
-          to="/admin/settings"
-          className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
-        >
-          <h2 className="font-semibold text-amber-900">{t('admin.settingsLabel')}</h2>
-          <p className="text-sm text-stone-500 mt-1">{t('admin.globalSettings')}</p>
-        </Link>
+        {!isScopedWarehouseUser && (
+          <Link
+            to="/admin/settings"
+            className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
+          >
+            <h2 className="font-semibold text-amber-900">{t('admin.settingsLabel')}</h2>
+            <p className="text-sm text-stone-500 mt-1">{t('admin.globalSettings')}</p>
+          </Link>
+        )}
+        {isPublisherManager && (
+          <Link
+            to="/admin/publisher-settings"
+            className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
+          >
+            <h2 className="font-semibold text-amber-900">{t('admin.publisherSettings', 'Publisher Settings')}</h2>
+            <p className="text-sm text-stone-500 mt-1">{t('admin.configurePublisher', 'Configure return policy, support contact, and discounts')}</p>
+          </Link>
+        )}
         {!isScopedWarehouseUser && (
           <Link
             to="/admin/reports/books-without-cover"
