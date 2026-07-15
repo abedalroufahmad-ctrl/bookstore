@@ -131,7 +131,17 @@ export function BookDetail() {
 
         {/* Book Details */}
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>{book.title}</h1>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{book.title}</h1>
+            {userType === 'employee' && (
+              <Link
+                to={`/admin/books/${book._id}/edit`}
+                className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg border border-stone-300 transition-colors flex-shrink-0"
+              >
+                ✏️ {t('admin.edit', 'Edit')}
+              </Link>
+            )}
+          </div>
           <div className="flex items-baseline gap-3 mb-6">
             {discountUsed > 0 && (
               <span className="text-xl line-through" style={{ color: 'var(--color-text-muted)' }}>

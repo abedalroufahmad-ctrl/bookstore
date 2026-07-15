@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { authors as authorsApi, books as booksApi } from '../lib/api'
 import { resolveCoverUrl, getPublisherLabel } from '../lib/utils'
 import { useSettings } from '../contexts/SettingsContext'
+import { useAuth } from '../contexts/AuthContext'
 import { BookCard } from '../components/BookCard'
 import { Pagination } from '../components/Pagination'
 import { useAddToCart } from '../hooks/useAddToCart'
@@ -13,6 +14,7 @@ export function AuthorBooks() {
     const { id } = useParams<{ id: string }>()
     const [searchParams, setSearchParams] = useSearchParams()
     const { handleAddToCart, isAddingToCart, isInCart } = useAddToCart()
+    const { userType } = useAuth()
 
     const search = searchParams.get('search') ?? ''
     const page = parseInt(searchParams.get('page') ?? '1', 10)
@@ -169,29 +171,39 @@ export function AuthorBooks() {
                         </div>
                     </div>
 
-                    <div>
-                        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', margin: 0 }}>
-                            {author.name}
-                        </h1>
-                        {(author.date_of_birth || author.date_of_death) && (
-                            <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 4 }}>
-                                {author.date_of_birth && (
-                                    <span>{t('authors.born')}: {new Date(author.date_of_birth).toLocaleDateString()}</span>
-                                )}
-                                {author.date_of_birth && author.date_of_death && ' · '}
-                                {author.date_of_death && (
-                                    <span>{t('authors.died')}: {new Date(author.date_of_death).toLocaleDateString()}</span>
-                                )}
+                    <div className="flex-1 min-w-0 flex justify-between items-start gap-4">
+                        <div>
+                            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', margin: 0 }}>
+                                {author.name}
+                            </h1>
+                            {(author.date_of_birth || author.date_of_death) && (
+                                <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 4 }}>
+                                    {author.date_of_birth && (
+                                        <span>{t('authors.born')}: {new Date(author.date_of_birth).toLocaleDateString()}</span>
+                                    )}
+                                    {author.date_of_birth && author.date_of_death && ' · '}
+                                    {author.date_of_death && (
+                                        <span>{t('authors.died')}: {new Date(author.date_of_death).toLocaleDateString()}</span>
+                                    )}
+                                </p>
+                            )}
+                            {author.biography && (
+                                <p style={{ fontSize: 14, color: '#78716c', marginTop: 6, lineHeight: 1.6 }}>
+                                    {author.biography}
+                                </p>
+                            )}
+                            <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 6 }}>
+                                {t('authors.booksByAuthor', { name: '' }).replace('{{name}}', '').trim()} {meta?.total ?? bookItems.length}
                             </p>
+                        </div>
+                        {userType === 'employee' && (
+                            <Link
+                                to={`/admin/authors/${author._id}/edit`}
+                                className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg border border-stone-300 transition-colors flex-shrink-0"
+                            >
+                                ✏️ {t('admin.edit', 'Edit')}
+                            </Link>
                         )}
-                        {author.biography && (
-                            <p style={{ fontSize: 14, color: '#78716c', marginTop: 6, lineHeight: 1.6 }}>
-                                {author.biography}
-                            </p>
-                        )}
-                        <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 6 }}>
-                            {t('authors.booksByAuthor', { name: '' }).replace('{{name}}', '').trim()} {meta?.total ?? bookItems.length}
-                        </p>
                     </div>
                 </div>
             )}
