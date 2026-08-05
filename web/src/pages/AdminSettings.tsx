@@ -37,7 +37,7 @@ export function AdminSettings() {
   const queryClient = useQueryClient()
   const [globalDiscount, setGlobalDiscount] = useState<number>(0)
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg')
-  const [catalogItemsPerPage, setCatalogItemsPerPage] = useState<number>(24)
+  const [catalogItemsPerPage, setCatalogItemsPerPage] = useState<number>(25)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>(DEFAULT_PAYMENT_METHODS)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -61,7 +61,7 @@ export function AdminSettings() {
       setGlobalDiscount(Number.isNaN(val) ? 0 : val)
       setWeightUnit((d.weight_unit as WeightUnit) || 'kg')
       const perPage = Number(d.catalog_items_per_page)
-      setCatalogItemsPerPage(perPage >= 1 && perPage <= 100 ? Math.round(perPage) : 24)
+      setCatalogItemsPerPage(perPage >= 1 && perPage <= 100 ? Math.round(perPage) : 25)
       setPaymentMethods(normalizePaymentMethods(d.payment_methods))
     }
   }, [data])
@@ -175,7 +175,7 @@ export function AdminSettings() {
               min={1}
               max={100}
               value={catalogItemsPerPage}
-              onChange={(e) => setCatalogItemsPerPage(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 24)))}
+              onChange={(e) => setCatalogItemsPerPage(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 25)))}
               className="w-32 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
             />
           </div>

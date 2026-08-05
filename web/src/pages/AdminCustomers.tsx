@@ -70,7 +70,7 @@ export function AdminCustomers() {
     queryFn: async () => {
       const res = await admin.customers.list({
         page,
-        per_page: 24,
+        per_page: 25,
         ...(committedSearch ? { search: committedSearch } : {}),
       })
       return res.data

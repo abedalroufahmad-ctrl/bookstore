@@ -57,7 +57,7 @@ export function AdminWarehouses() {
     queryFn: async () => {
       const res = await admin.warehouses.list({
         page,
-        per_page: 24,
+        per_page: 25,
         ...(committedSearch ? { search: committedSearch } : {}),
       })
       return res.data

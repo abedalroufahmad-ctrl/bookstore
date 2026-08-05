@@ -56,7 +56,7 @@ export function AdminOrders() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin-orders', statusFilter, paymentStatusFilter, page, committedSearch],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page, per_page: 24 }
+      const params: Record<string, string | number> = { page, per_page: 25 }
       if (statusFilter) params.status = statusFilter
       if (paymentStatusFilter) params.payment_status = paymentStatusFilter
       if (committedSearch) params.search = committedSearch

@@ -14,7 +14,7 @@ export function Orders() {
   const { data, isLoading } = useQuery({
     queryKey: ['orders', page],
     queryFn: async () => {
-      const res = await orders.list({ page, per_page: 24 })
+      const res = await orders.list({ page, per_page: 25 })
       return res.data
     },
     enabled: userType === 'customer',
