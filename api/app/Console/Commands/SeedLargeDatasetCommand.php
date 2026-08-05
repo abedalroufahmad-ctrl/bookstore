@@ -94,6 +94,8 @@ class SeedLargeDatasetCommand extends Command
                 'pages' => rand(100, 1000),
                 'isbn' => $faker->isbn13(),
                 'publish_year' => rand(1900, 2026),
+                'cover_image' => 'https://via.placeholder.com/600x800.png?text=Book+Cover',
+                'cover_image_thumb' => 'https://via.placeholder.com/300x400.png?text=Thumb',
                 'created_at' => new \MongoDB\BSON\UTCDateTime(now()),
                 'updated_at' => new \MongoDB\BSON\UTCDateTime(now()),
             ];
