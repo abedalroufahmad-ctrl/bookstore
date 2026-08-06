@@ -26,6 +26,8 @@ export function AuthorList() {
             const res = await authorsApi.list(queryParams)
             return res.data
         },
+        placeholderData: (previousData) => previousData,
+        staleTime: 60_000,
     })
 
     const paginated = data?.data

@@ -5,9 +5,13 @@ namespace App\Infrastructure\Repositories\Mongo;
 use App\Domain\Author\Interfaces\AuthorRepositoryInterface;
 use App\Models\Author;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\Cache;
 
 class AuthorRepository implements AuthorRepositoryInterface
 {
+    private const COUNT_CACHE_TTL = 600;
+
     public function __construct(
         protected Author $model
     ) {}
@@ -28,14 +32,31 @@ class AuthorRepository implements AuthorRepositoryInterface
         $query = $this->model->newQuery();
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('biography', 'like', "%{$search}%");
-            });
+            $search = trim((string) $filters['search']);
+            if ($search !== '') {
+                // Name-only search keeps author listing fast at 100k+ scale.
+                $query->where('name', 'like', "%{$search}%");
+            }
         }
 
-        return $query->orderBy('name')->paginate($perPage);
+        $page = max(1, (int) (request()->get('page') ?: 1));
+        $total = $this->cachedTotal(clone $query, $filters);
+
+        $items = (clone $query)
+            ->orderBy('name')
+            ->forPage($page, $perPage)
+            ->get();
+
+        return new Paginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => Paginator::resolveCurrentPath(),
+                'pageName' => 'page',
+            ]
+        );
     }
 
     public function create(array $data): Author
@@ -63,5 +84,15 @@ class AuthorRepository implements AuthorRepositoryInterface
         }
 
         return $model->delete();
+    }
+
+    private function cachedTotal($query, array $filters): int
+    {
+        $version = (int) Cache::get('bookstore_catalog_version', 0);
+        $key = 'bookstore_authors_total_v'.$version.'_'.md5(json_encode($filters));
+
+        return (int) Cache::remember($key, self::COUNT_CACHE_TTL, function () use ($query) {
+            return (int) $query->toBase()->getCountForPagination();
+        });
     }
 }

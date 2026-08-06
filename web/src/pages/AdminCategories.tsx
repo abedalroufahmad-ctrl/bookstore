@@ -16,7 +16,6 @@ export function AdminCategories() {
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingForm, setEditingForm] = useState({ dewey_code: '', subject_title_en: '', subject_title_ar: '' })
-  const [booksCounts, setBooksCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     setPage(1)
@@ -70,46 +69,6 @@ export function AdminCategories() {
   const paginated = data?.data
   const items: Category[] = paginated?.data ?? []
   const meta = paginated && 'current_page' in paginated ? paginated : null
-
-  useEffect(() => {
-    let cancelled = false
-    const loadCounts = async () => {
-      if (!items.length) return
-      try {
-        const entries = await Promise.all(
-          items.map(async (c) => {
-            try {
-              const res = await admin.books.list({ category_id: c._id, per_page: 1 })
-              const paginatedBooks = res.data.data
-              const total =
-                paginatedBooks && typeof (paginatedBooks as any).total === 'number'
-                  ? (paginatedBooks as any).total
-                  : Array.isArray((paginatedBooks as any)?.data)
-                    ? (paginatedBooks as any).data.length
-                    : 0
-              return [c._id, total] as const
-            } catch {
-              return [c._id, 0] as const
-            }
-          })
-        )
-        if (cancelled) return
-        setBooksCounts((prev) => {
-          const next = { ...prev }
-          for (const [id, total] of entries) {
-            next[id] = total
-          }
-          return next
-        })
-      } catch {
-        // ignore errors; counts just won't show
-      }
-    }
-    loadCounts()
-    return () => {
-      cancelled = true
-    }
-  }, [items])
 
   const handleStartEdit = (c: Category) => {
     setEditingId(c._id)
@@ -263,7 +222,7 @@ export function AdminCategories() {
                   )}
                 </td>
                 <td className="px-4 py-2 text-center text-sm text-stone-700">
-                  {booksCounts[c._id] ?? '—'}
+                  {typeof c.books_count === 'number' ? c.books_count : '—'}
                 </td>
                 <td className="px-4 py-2 text-right">
                   {editingId === c._id ? (

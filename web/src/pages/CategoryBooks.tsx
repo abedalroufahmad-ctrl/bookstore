@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { categories as categoriesApi, books as booksApi } from '../lib/api'
-import { getPublisherLabel } from '../lib/utils'
+import { getPublisherLabel, getPublisherId, getWarehouseId } from '../lib/utils'
 import { BookCard } from '../components/BookCard'
 import { useSettings } from '../contexts/SettingsContext'
 import { Pagination } from '../components/Pagination'
@@ -32,6 +32,7 @@ export function CategoryBooks() {
             return res.data
         },
         enabled: !!id,
+        staleTime: 60_000,
     })
 
     const { data: booksData, isLoading: booksLoading } = useQuery({
@@ -43,6 +44,8 @@ export function CategoryBooks() {
             return res.data
         },
         enabled: !!id,
+        placeholderData: (previousData) => previousData,
+        staleTime: 60_000,
     })
 
     const category: Category | undefined = categoryData?.data
@@ -178,7 +181,9 @@ export function CategoryBooks() {
                             authorName={book.authors?.map((a) => a.name).join('، ')}
                             authors={book.authors}
                             publisher={getPublisherLabel(book)}
+                            publisherId={getPublisherId(book)}
                             warehouseName={book.warehouse?.name}
+                            warehouseId={getWarehouseId(book)}
                             discountPercent={book.discount_percent ?? 0}
                             globalDiscount={settings.global_discount ?? 0}
                             onAddToCart={handleAddToCart}

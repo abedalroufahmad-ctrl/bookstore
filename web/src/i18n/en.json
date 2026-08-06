@@ -181,6 +181,10 @@
     "loadError": "Failed to load warehouses",
     "noBooks": "No books found for this warehouse."
   },
+  "publishers": {
+    "title": "Publishers",
+    "noBooks": "No books found for this publisher."
+  },
   "categories": {
     "title": "Categories",
     "deweyCode": "Dewey: {{code}}",

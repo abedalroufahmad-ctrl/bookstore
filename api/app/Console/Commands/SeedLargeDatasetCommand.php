@@ -96,6 +96,7 @@ class SeedLargeDatasetCommand extends Command
                 'publish_year' => rand(1900, 2026),
                 'cover_image' => 'https://via.placeholder.com/600x800.png?text=Book+Cover',
                 'cover_image_thumb' => 'https://via.placeholder.com/300x400.png?text=Thumb',
+                'has_cover' => true,
                 'created_at' => new \MongoDB\BSON\UTCDateTime(now()),
                 'updated_at' => new \MongoDB\BSON\UTCDateTime(now()),
             ];

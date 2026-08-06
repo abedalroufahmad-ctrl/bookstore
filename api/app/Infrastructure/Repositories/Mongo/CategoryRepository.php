@@ -3,8 +3,10 @@
 namespace App\Infrastructure\Repositories\Mongo;
 
 use App\Domain\Category\Interfaces\CategoryRepositoryInterface;
+use App\Models\Book;
 use App\Models\Category;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class CategoryRepository implements CategoryRepositoryInterface
 {
@@ -37,7 +39,13 @@ class CategoryRepository implements CategoryRepositoryInterface
             });
         }
 
-        return $query->orderBy('dewey_code')->paginate($perPage);
+        $paginator = $query->orderBy('dewey_code')->paginate($perPage);
+
+        if (! empty($filters['with_books_count'])) {
+            $this->attachBooksCounts($paginator->getCollection());
+        }
+
+        return $paginator;
     }
 
     public function create(array $data): Category
@@ -65,5 +73,32 @@ class CategoryRepository implements CategoryRepositoryInterface
         }
 
         return $model->delete();
+    }
+
+    /**
+     * One aggregation instead of N book-list requests for category book counts.
+     */
+    private function attachBooksCounts($categories): void
+    {
+        $ids = $categories->map(fn (Category $c) => (string) $c->getKey())->filter()->values()->all();
+        if ($ids === []) {
+            return;
+        }
+
+        $rows = DB::connection('mongodb')
+            ->getCollection((new Book)->getTable())
+            ->aggregate([
+                ['$match' => ['category_id' => ['$in' => $ids]]],
+                ['$group' => ['_id' => '$category_id', 'count' => ['$sum' => 1]]],
+            ]);
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['_id']] = (int) $row['count'];
+        }
+
+        foreach ($categories as $category) {
+            $category->setAttribute('books_count', $counts[(string) $category->getKey()] ?? 0);
+        }
     }
 }

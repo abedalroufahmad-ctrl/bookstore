@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { books as booksApi, warehousesPublic as warehousesApi } from '../lib/api'
-import { resolveCoverUrl, getPublisherLabel } from '../lib/utils'
+import { resolveCoverUrl, getPublisherLabel, getPublisherId } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/SettingsContext'
 import type { Book, Warehouse } from '../lib/api'
@@ -16,6 +16,7 @@ export function HomePage() {
             const res = await booksApi.list({ per_page: settings.catalog_items_per_page })
             return res.data
         },
+        staleTime: 60_000,
     })
 
     const { data: warehousesData } = useQuery({
@@ -24,6 +25,7 @@ export function HomePage() {
             const res = await warehousesApi.list({ per_page: settings.catalog_items_per_page })
             return res.data
         },
+        staleTime: 300_000,
     })
 
     const paginated = data?.data
@@ -228,15 +230,14 @@ export function HomePage() {
                 </h3>
                 <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 480 }}>
                     {youMightLike.map((book) => (
-                        <Link
+                        <div
                             key={book._id}
-                            to={`/books/${book._id}`}
                             className="flex gap-3 p-2 rounded-lg hover:bg-[var(--color-primary-light)] transition-colors"
-                            style={{ textDecoration: 'none', color: 'inherit' }}
                         >
-                            <div
+                            <Link
+                                to={`/books/${book._id}`}
                                 className="shrink-0 rounded overflow-hidden relative"
-                                style={{ width: 56, height: 80, background: '#f0f0f0' }}
+                                style={{ width: 56, height: 80, background: '#f0f0f0', textDecoration: 'none' }}
                             >
                                 {(() => {
                                     const c = (book.cover_image_thumb || book.cover_image)?.trim()
@@ -266,24 +267,35 @@ export function HomePage() {
                                             : 'block',
                                     }}
                                 />
-                            </div>
+                            </Link>
                             <div className="min-w-0 flex-1">
-                                <div
-                                    className="text-sm font-medium truncate"
-                                    style={{ color: 'var(--color-text)' }}
+                                <Link
+                                    to={`/books/${book._id}`}
+                                    className="text-sm font-medium truncate block"
+                                    style={{ color: 'var(--color-text)', textDecoration: 'none' }}
                                 >
                                     {book.title}
-                                </div>
+                                </Link>
                                 {getPublisherLabel(book) && (
-                                    <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
-                                        🏢 {getPublisherLabel(book)}
-                                    </div>
+                                    getPublisherId(book) ? (
+                                        <Link
+                                            to={`/publishers/${getPublisherId(book)}`}
+                                            className="text-xs mt-0.5 truncate block hover:underline"
+                                            style={{ color: 'var(--color-primary)' }}
+                                        >
+                                            🏢 {getPublisherLabel(book)}
+                                        </Link>
+                                    ) : (
+                                        <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                                            🏢 {getPublisherLabel(book)}
+                                        </div>
+                                    )
                                 )}
                                 <div className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>
                                     ${book.price?.toFixed(2) ?? '—'}
                                 </div>
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             </aside>

@@ -6,7 +6,7 @@ import { BookCard } from '../components/BookCard'
 import { Pagination } from '../components/Pagination'
 import { useSettings } from '../contexts/SettingsContext'
 import { useAddToCart } from '../hooks/useAddToCart'
-import { getPublisherLabel } from '../lib/utils'
+import { getPublisherLabel, getPublisherId, getWarehouseId } from '../lib/utils'
 
 export function BookList() {
   const { t } = useTranslation()
@@ -29,6 +29,8 @@ export function BookList() {
       const res = await books.list(params)
       return res.data
     },
+    placeholderData: (previousData) => previousData,
+    staleTime: 60_000,
   })
 
   if (isLoading) return <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>{t('common.loading')}</div>
@@ -55,7 +57,9 @@ export function BookList() {
             authorName={book.authors?.map((a: any) => a.name).join('، ') || ''}
             authors={book.authors}
             publisher={getPublisherLabel(book)}
+            publisherId={getPublisherId(book)}
             warehouseName={book.warehouse?.name}
+            warehouseId={getWarehouseId(book)}
             discountPercent={book.discount_percent}
             globalDiscount={settings.global_discount}
             onAddToCart={handleAddToCart}

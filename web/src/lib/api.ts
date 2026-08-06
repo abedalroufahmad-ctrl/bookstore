@@ -68,6 +68,10 @@ export const warehousesPublic = {
   get: (id: string) => api.get<ApiResponse<Warehouse>>(`/warehouses/${id}`),
 }
 
+export const publishersPublic = {
+  get: (id: string) => api.get<ApiResponse<Publisher>>(`/publishers/${id}`),
+}
+
 export const authors = {
   list: (params?: Record<string, string | number>) =>
     api.get<ApiResponse<PaginatedResponse<Author>>>('/authors', { params }),

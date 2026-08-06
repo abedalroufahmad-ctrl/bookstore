@@ -17,6 +17,7 @@ import 'screens/category_books_screen.dart';
 import 'screens/category_list_screen.dart';
 import 'screens/warehouse_books_screen.dart';
 import 'screens/warehouse_list_screen.dart';
+import 'screens/publisher_books_screen.dart';
 import 'screens/admin_orders_screen.dart';
 import 'screens/admin_warehouses_browse_screen.dart';
 import 'screens/guest_landing_screen.dart';
@@ -222,6 +223,17 @@ class BookStoreApp extends StatelessWidget {
                   builder: (_) => WarehouseBooksScreen(
                     warehouseId: id,
                     warehouseName: args?['name'] as String?,
+                  ),
+                  settings: settings,
+                );
+              }
+              if (settings.name?.startsWith('/publisher/') == true) {
+                final id = settings.name!.replaceFirst('/publisher/', '');
+                final args = settings.arguments as Map<String, dynamic>?;
+                return MaterialPageRoute(
+                  builder: (_) => PublisherBooksScreen(
+                    publisherId: id,
+                    publisherName: args?['name'] as String?,
                   ),
                   settings: settings,
                 );

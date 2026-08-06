@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { books, cart } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings, formatWeight } from '../contexts/SettingsContext'
-import { calculateDiscountedPrice, resolveCoverUrl, getPublisherLabel } from '../lib/utils'
+import { calculateDiscountedPrice, resolveCoverUrl, getPublisherLabel, getPublisherId, getWarehouseId } from '../lib/utils'
 
 const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
   const show = alwaysShow || (value != null && value !== '')
@@ -66,12 +66,13 @@ export function BookDetail() {
   const authors = Array.isArray(book.authors) ? book.authors : []
   const category = book.category
   const warehouse = book.warehouse
-  const warehouseDisplay =
+  const publisherId = getPublisherId(book)
+  const warehouseId = getWarehouseId(book)
+  const publisherLabel = getPublisherLabel(book)
+  const warehouseLabel =
     warehouse != null
       ? [warehouse.name, [warehouse.city, warehouse.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')
-      : book.warehouse_id
-        ? '—'
-        : null
+      : null
 
   const thumbUrl = book.cover_image_thumb ?? book.cover_image
   const originalUrl = book.cover_image
@@ -199,7 +200,21 @@ export function BookDetail() {
               }
             />
             <InfoRow label={t('bookDetail.isbn')} value={book.isbn} />
-            <InfoRow label={t('bookDetail.publisher')} alwaysShow value={getPublisherLabel(book) ?? '—'} />
+            <InfoRow
+              label={t('bookDetail.publisher')}
+              alwaysShow
+              value={
+                publisherLabel
+                  ? publisherId
+                    ? (
+                      <Link to={`/publishers/${publisherId}`} style={{ color: 'var(--color-primary)' }} className="hover:underline">
+                        {publisherLabel}
+                      </Link>
+                      )
+                    : publisherLabel
+                  : '—'
+              }
+            />
             <InfoRow label={t('bookDetail.year')} value={book.publish_year} />
             <InfoRow label={t('bookDetail.pages')} value={book.pages != null ? String(book.pages) : null} />
             <InfoRow label={t('bookDetail.size')} value={book.size} />
@@ -207,7 +222,20 @@ export function BookDetail() {
             <InfoRow label={t('bookDetail.edition')} value={book.edition_number != null ? String(book.edition_number) : null} />
             <InfoRow label={t('bookDetail.bindingType')} value={book.binding_type} />
             <InfoRow label={t('bookDetail.paperType')} value={book.paper_type} />
-            <InfoRow label={t('bookDetail.warehouse')} value={warehouseDisplay} />
+            <InfoRow
+              label={t('bookDetail.warehouse')}
+              value={
+                warehouseLabel
+                  ? warehouseId
+                    ? (
+                      <Link to={`/warehouses/${warehouseId}`} style={{ color: 'var(--color-primary)' }} className="hover:underline">
+                        {warehouseLabel}
+                      </Link>
+                      )
+                    : warehouseLabel
+                  : null
+              }
+            />
             <InfoRow
               label={t('bookDetail.stock')}
               value={

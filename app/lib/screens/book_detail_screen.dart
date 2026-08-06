@@ -167,9 +167,29 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             if (b.isbn != null && b.isbn!.isNotEmpty)
               _buildInfoRow(t.bookIsbn, b.isbn!),
             if (b.publisher != null && b.publisher!.name != null && b.publisher!.name!.isNotEmpty)
-              _buildInfoRow(t.bookPublisher, b.publisher!.name!),
+              b.publisher!.id.isNotEmpty
+                  ? _buildLinkRow(
+                      t.bookPublisher,
+                      b.publisher!.name!,
+                      () => Navigator.pushNamed(
+                        context,
+                        '/publisher/${b.publisher!.id}',
+                        arguments: {'name': b.publisher!.name},
+                      ),
+                    )
+                  : _buildInfoRow(t.bookPublisher, b.publisher!.name!),
             if (b.warehouse != null && b.warehouse!.name != null)
-              _buildInfoRow(_s(context, 'المستودع', 'Warehouse'), b.warehouse!.name!),
+              b.warehouse!.id.isNotEmpty
+                  ? _buildLinkRow(
+                      _s(context, 'المستودع', 'Warehouse'),
+                      b.warehouse!.name!,
+                      () => Navigator.pushNamed(
+                        context,
+                        '/warehouse/${b.warehouse!.id}',
+                        arguments: {'name': b.warehouse!.name},
+                      ),
+                    )
+                  : _buildInfoRow(_s(context, 'المستودع', 'Warehouse'), b.warehouse!.name!),
             if (b.publishYear != null)
               _buildInfoRow(t.bookYear, b.publishYear.toString()),
             if (b.pages != null)
@@ -308,6 +328,43 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ),
           ),
           Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLinkRow(String label, String value, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

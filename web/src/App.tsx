@@ -30,6 +30,7 @@ import {
   CategoryBooks,
   WarehouseList,
   WarehouseBooks,
+  PublisherBooks,
   AdminSettings,
   PublisherSettings,
   AdminCountries,
@@ -39,7 +40,14 @@ import {
 } from './route-pages'
 import { SettingsProvider } from './contexts/SettingsContext'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { userType, isLoading } = useAuth()
@@ -68,6 +76,7 @@ function AppRoutes() {
         <Route path="categories/:id" element={<CategoryBooks />} />
         <Route path="warehouses" element={<WarehouseList />} />
         <Route path="warehouses/:id" element={<WarehouseBooks />} />
+        <Route path="publishers/:id" element={<PublisherBooks />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route

@@ -5,6 +5,7 @@ namespace App\Infrastructure\Services;
 use App\Domain\Book\Interfaces\BookRepositoryInterface;
 use App\Models\Book;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 
 class BookService
 {
@@ -26,18 +27,39 @@ class BookService
 
     public function create(array $data): Book
     {
-        return $this->repository->create($data);
+        $book = $this->repository->create($data);
+        $this->bustCatalogCache();
+
+        return $book;
     }
 
     public function update(string $id, array $data): ?Book
     {
         $updated = $this->repository->update($id, $data);
 
-        return $updated ? $this->repository->findById($id, ['category', 'warehouse', 'authors', 'publisher']) : null;
+        if (! $updated) {
+            return null;
+        }
+
+        $this->bustCatalogCache();
+
+        return $this->repository->findById($id, ['category', 'warehouse', 'authors', 'publisher']);
     }
 
     public function delete(string $id): bool
     {
-        return $this->repository->delete($id);
+        $deleted = $this->repository->delete($id);
+
+        if ($deleted) {
+            $this->bustCatalogCache();
+        }
+
+        return $deleted;
+    }
+
+    private function bustCatalogCache(): void
+    {
+        $version = (int) Cache::get('bookstore_catalog_version', 0);
+        Cache::put('bookstore_catalog_version', $version + 1, now()->addYears(1));
     }
 }

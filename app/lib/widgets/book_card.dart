@@ -131,28 +131,66 @@ class BookCard extends StatelessWidget {
                     book.publisher!.name!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      '🏢 ${book.publisher!.name}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
+                    child: book.publisher!.id.isNotEmpty
+                        ? GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              Navigator.of(context).pushNamed(
+                                '/publisher/${book.publisher!.id}',
+                                arguments: {'name': book.publisher!.name},
+                              );
+                            },
+                            child: Text(
+                              '🏢 ${book.publisher!.name}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            '🏢 ${book.publisher!.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
                   ),
                 if (book.warehouse != null && book.warehouse!.name != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      '🏭 ${book.warehouse!.name}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
+                    child: book.warehouse!.id.isNotEmpty
+                        ? GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              Navigator.of(context).pushNamed(
+                                '/warehouse/${book.warehouse!.id}',
+                                arguments: {'name': book.warehouse!.name},
+                              );
+                            },
+                            child: Text(
+                              '🏭 ${book.warehouse!.name}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            '🏭 ${book.warehouse!.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
                   ),
                 if (book.authors != null && book.authors!.isNotEmpty)
                   GestureDetector(

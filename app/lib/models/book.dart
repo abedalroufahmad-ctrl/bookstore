@@ -67,15 +67,33 @@ class Book {
       isbn: json['isbn'],
       category: json['category'] != null ? Category.fromJson(json['category']) : null,
       authors: (json['authors'] as List?)?.map((e) => Author.fromJson(e)).toList(),
-      warehouse: json['warehouse'] != null ? Warehouse.fromJson(json['warehouse']) : null,
+      warehouse: json['warehouse'] != null
+          ? Warehouse.fromJson({
+              ...Map<String, dynamic>.from(json['warehouse'] as Map),
+              if ((json['warehouse'] as Map)['_id'] == null &&
+                  (json['warehouse'] as Map)['id'] == null &&
+                  json['warehouse_id'] != null)
+                '_id': json['warehouse_id'],
+            })
+          : (json['warehouse_id'] != null
+              ? Warehouse(id: '${json['warehouse_id']}', name: null)
+              : null),
       description: json['description'],
       pages: json['pages'],
       publishYear: json['publish_year'],
-      publisher: json['publisher'] != null 
-          ? (json['publisher'] is String 
-              ? Publisher(id: '', name: json['publisher']) 
-              : Publisher.fromJson(json['publisher']))
-          : null,
+      publisher: json['publisher'] != null
+          ? (json['publisher'] is String
+              ? Publisher(id: '${json['publisher_id'] ?? ''}', name: json['publisher'])
+              : Publisher.fromJson({
+                  ...Map<String, dynamic>.from(json['publisher'] as Map),
+                  if ((json['publisher'] as Map)['_id'] == null &&
+                      (json['publisher'] as Map)['id'] == null &&
+                      json['publisher_id'] != null)
+                    '_id': json['publisher_id'],
+                }))
+          : (json['publisher_id'] != null
+              ? Publisher(id: '${json['publisher_id']}', name: null)
+              : null),
       size: json['size'],
       weight: (json['weight'] as num?)?.toDouble(),
       coverImage: _fixUrl(json['cover_image']),

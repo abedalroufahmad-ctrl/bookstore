@@ -21,11 +21,12 @@ export function CategoryList() {
     const { data, isLoading, error } = useQuery({
         queryKey: ['categories', page, search],
         queryFn: async () => {
-            const queryParams: Record<string, string | number> = { page, per_page: 1000 }
+            const queryParams: Record<string, string | number> = { page, per_page: 200 }
             if (search) queryParams.search = search
             const res = await categoriesApi.list(queryParams)
             return res.data
         },
+        staleTime: 60_000,
     })
 
     useEffect(() => {

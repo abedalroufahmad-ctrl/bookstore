@@ -42,6 +42,23 @@ export function getPublisherLabel(
   return typeof book.publisher === 'string' ? book.publisher : book.publisher.name
 }
 
+export function getPublisherId(
+  book: { publisher_id?: string; publisher?: string | { _id?: string; id?: string } | null }
+): string | undefined {
+  if (book.publisher_id) return String(book.publisher_id)
+  if (!book.publisher || typeof book.publisher === 'string') return undefined
+  const id = book.publisher._id ?? book.publisher.id
+  return id ? String(id) : undefined
+}
+
+export function getWarehouseId(
+  book: { warehouse_id?: string; warehouse?: { _id?: string; id?: string } | null }
+): string | undefined {
+  if (book.warehouse_id) return String(book.warehouse_id)
+  const id = book.warehouse?._id ?? book.warehouse?.id
+  return id ? String(id) : undefined
+}
+
 export function calculateDiscountedPrice(
     originalPrice: number,
     bookDiscount: number | undefined,

@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\PayPalController;
 use App\Http\Controllers\Api\PublicAuthorController;
 use App\Http\Controllers\Api\PublicBookController;
 use App\Http\Controllers\Api\PublicCategoryController;
+use App\Http\Controllers\Api\PublicPublisherController;
 use App\Http\Controllers\Api\PublicWarehouseController;
 use App\Http\Controllers\Api\WebhookController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     Route::get('categories/{id}', [PublicCategoryController::class, 'show']);
     Route::get('warehouses', [PublicWarehouseController::class, 'index']);
     Route::get('warehouses/{id}', [PublicWarehouseController::class, 'show']);
+    Route::get('publishers/{id}', [PublicPublisherController::class, 'show']);
     Route::get('authors', [PublicAuthorController::class, 'index']);
     Route::get('authors/{id}', [PublicAuthorController::class, 'show']);
     Route::get('settings', [SettingController::class, 'index']);

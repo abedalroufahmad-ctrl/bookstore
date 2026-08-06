@@ -17,7 +17,7 @@ class AuthorService
         return $this->repository->getPaginated($filters, $perPage);
     }
 
-    public function getById(string $id, array $with = ['books']): ?Author
+    public function getById(string $id, array $with = []): ?Author
     {
         return $this->repository->findById($id, $with);
     }
@@ -31,7 +31,7 @@ class AuthorService
     {
         $updated = $this->repository->update($id, $data);
 
-        return $updated ? $this->repository->findById($id, ['books']) : null;
+        return $updated ? $this->repository->findById($id) : null;
     }
 
     public function delete(string $id): bool

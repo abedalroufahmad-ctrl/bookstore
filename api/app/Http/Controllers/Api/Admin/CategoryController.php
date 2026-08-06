@@ -17,7 +17,10 @@ class CategoryController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
-        $filters = ['search' => $request->get('search')];
+        $filters = [
+            'search' => $request->get('search'),
+            'with_books_count' => true,
+        ];
         $perPage = min((int) $request->get('per_page', 32), 100);
 
         $categories = $this->categoryService->getAll($filters, $perPage);

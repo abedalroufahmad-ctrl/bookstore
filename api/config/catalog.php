@@ -20,7 +20,7 @@ return [
     'cache_ttl' => [
         'categories' => (int) env('CACHE_CATEGORIES_TTL', 3600),      // 1 hour
         'authors' => (int) env('CACHE_AUTHORS_TTL', 3600),            // 1 hour
-        'books' => (int) env('CACHE_BOOKS_TTL', 300),                 // 5 minutes
+        'books' => (int) env('CACHE_BOOKS_TTL', 900),                 // 15 minutes
         'warehouses' => (int) env('CACHE_WAREHOUSES_TTL', 3600),      // 1 hour
     ],
 

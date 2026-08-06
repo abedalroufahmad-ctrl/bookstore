@@ -32,6 +32,9 @@ class PublicBookController extends BaseApiController
         if ($request->filled('warehouse_id')) {
             $filters['warehouse_id'] = $request->get('warehouse_id');
         }
+        if ($request->filled('publisher_id')) {
+            $filters['publisher_id'] = $request->get('publisher_id');
+        }
         if ($request->filled('author_id')) {
             $filters['author_id'] = $request->get('author_id');
         }
@@ -43,6 +46,8 @@ class PublicBookController extends BaseApiController
         }
         $filters['in_stock'] = $request->boolean('in_stock', true);
         $filters['has_cover'] = true;
+        // Load only relations needed by catalog cards.
+        $filters['with'] = ['authors', 'warehouse', 'publisher', 'category'];
 
         $perPage = min((int) $request->get('per_page', 32), 100);
 

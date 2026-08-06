@@ -21,7 +21,9 @@ interface BookCardProps {
   authorName?: string
   authors?: AuthorRef[]
   publisher?: string
+  publisherId?: string
   warehouseName?: string
+  warehouseId?: string
   discountPercent?: number
   globalDiscount: number
   /** When provided, an "Add to cart" button is shown. Call with book id on click. */
@@ -54,7 +56,9 @@ export function BookCard({
   authorName,
   authors,
   publisher,
+  publisherId,
   warehouseName,
+  warehouseId,
   discountPercent,
   globalDiscount,
   onAddToCart,
@@ -135,13 +139,39 @@ export function BookCard({
         </div>
 
         <div className="book-title-text">{title}</div>
-        {(publisher || warehouseName) && (
-          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {publisher && <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏢 {publisher}</div>}
-            {warehouseName && <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏭 {warehouseName}</div>}
-          </div>
-        )}
       </Link>
+      {(publisher || warehouseName) && (
+        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {publisher && (
+            publisherId ? (
+              <Link
+                to={`/publishers/${publisherId}`}
+                onClick={(e) => e.stopPropagation()}
+                className="hover:underline"
+                style={{ color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
+                🏢 {publisher}
+              </Link>
+            ) : (
+              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏢 {publisher}</div>
+            )
+          )}
+          {warehouseName && (
+            warehouseId ? (
+              <Link
+                to={`/warehouses/${warehouseId}`}
+                onClick={(e) => e.stopPropagation()}
+                className="hover:underline"
+                style={{ color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
+                🏭 {warehouseName}
+              </Link>
+            ) : (
+              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏭 {warehouseName}</div>
+            )
+          )}
+        </div>
+      )}
       {onAddToCart && (
         <div className="mt-3" style={{ position: 'relative', zIndex: 1 }}>
           <button

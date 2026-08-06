@@ -22,6 +22,7 @@ class Book extends Model
         'weight',
         'cover_image',
         'cover_image_thumb',
+        'has_cover',
         'description',
         'price',
         'pages',
@@ -45,7 +46,17 @@ class Book extends Model
             'publish_year' => 'integer',
             'edition_number' => 'integer',
             'discount_percent' => 'float',
+            'has_cover' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Book $book) {
+            $cover = trim((string) ($book->cover_image ?? ''));
+            $thumb = trim((string) ($book->cover_image_thumb ?? ''));
+            $book->has_cover = $cover !== '' || $thumb !== '';
+        });
     }
 
     public function authors(): BelongsToMany
