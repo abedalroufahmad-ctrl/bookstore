@@ -65,7 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (d is List) {
             list = d.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
           }
-          _books = list;
+          // Front page: only books with a real cover image.
+          _books = list.where((b) => b.hasCover).toList();
         }
 
         if (warehousesRes.success && warehousesRes.data != null) {

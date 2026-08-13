@@ -178,6 +178,7 @@ export function AuthorList() {
                         total={meta.total}
                         perPage={meta.per_page}
                         onPageChange={setPage}
+                        maxNavigablePage={200}
                     />
                 </div>
             )}

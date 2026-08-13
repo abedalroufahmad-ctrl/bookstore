@@ -78,6 +78,9 @@ export function BookList() {
           total={meta.total}
           perPage={meta.per_page}
           onPageChange={setPage}
+          maxNavigablePage={typeof (meta as { max_page?: number }).max_page === 'number'
+            ? (meta as { max_page: number }).max_page
+            : 200}
         />
       )}
     </div>

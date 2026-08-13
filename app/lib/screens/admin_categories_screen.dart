@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 
 class AdminCategoriesScreen extends StatefulWidget {
@@ -33,37 +34,38 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
   Future<void> _addCategory() async {
     if (!context.mounted) return;
+    final t = AppLocalizations.of(context);
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (ctx) {
         final codeC = TextEditingController();
         final titleC = TextEditingController();
         return AlertDialog(
-          title: const Text('Add category'),
+          title: Text(t.adminAddCategory),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: codeC,
-                decoration: const InputDecoration(labelText: 'Dewey code'),
+                decoration: InputDecoration(labelText: t.adminDeweyCode),
               ),
               TextField(
                 controller: titleC,
-                decoration: const InputDecoration(labelText: 'Subject title'),
+                decoration: InputDecoration(labelText: t.adminSubjectTitle),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(t.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, {
                 'code': codeC.text.trim(),
                 'title': titleC.text.trim(),
               }),
-              child: const Text('Add'),
+              child: Text(t.add),
             ),
           ],
         );
@@ -79,9 +81,10 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categories'),
+        title: Text(t.adminCategories),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

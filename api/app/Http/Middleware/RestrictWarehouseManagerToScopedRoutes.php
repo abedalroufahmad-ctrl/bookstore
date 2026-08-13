@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\MessageLocalizer;
+
 use App\Domain\Auth\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
@@ -40,7 +42,7 @@ class RestrictWarehouseManagerToScopedRoutes
         if (! $isAllowed) {
             return response()->json([
                 'success' => false,
-                'message' => 'Forbidden. Warehouse managers can only manage their assigned warehouse, its employees, and its orders.',
+                'message' => MessageLocalizer::localize('Forbidden. Warehouse managers can only manage their assigned warehouse, its employees, and its orders.'),
                 'data' => (object) [],
             ], 403);
         }

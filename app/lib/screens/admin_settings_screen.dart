@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -38,21 +40,21 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     _formKey.currentState?.save();
 
     setState(() => _isSaving = true);
-    // Note: This endpoint is protected, ApiClient handles token from AuthProvider/secure storage
+    final t = AppLocalizations.of(context);
     final res = await ApiService.instance.adminUpdateSettings({'global_discount': _globalDiscount});
-    
-    if (mounted) {
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res.success ? 'Settings saved' : res.message)),
-      );
-    }
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(res.success ? t.adminSettingsSaved : res.message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Settings')),
+      appBar: AppBar(title: Text(t.adminSettingsTitle)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -62,24 +64,24 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Global Settings',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      t.adminGlobalSettingsHeading,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       initialValue: _globalDiscount.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Global Discount (%)',
-                        border: OutlineInputBorder(),
-                        helperText: 'Applied to all books that do not have a special discount.',
+                      decoration: InputDecoration(
+                        labelText: t.adminGlobalDiscount,
+                        border: const OutlineInputBorder(),
+                        helperText: t.adminGlobalDiscountHint,
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Required';
+                        if (value == null || value.isEmpty) return t.fieldRequired;
                         final val = double.tryParse(value);
-                        if (val == null) return 'Invalid number';
-                        if (val < 0 || val > 100) return 'Must be between 0 and 100';
+                        if (val == null) return t.invalidNumber;
+                        if (val < 0 || val > 100) return t.mustBeBetween0And100;
                         return null;
                       },
                       onSaved: (value) => _globalDiscount = double.tryParse(value ?? '') ?? 0,
@@ -91,7 +93,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                         onPressed: _isSaving ? null : _save,
                         child: _isSaving
                             ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Save Changes'),
+                            : Text(t.saveChanges),
                       ),
                     ),
                   ],

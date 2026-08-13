@@ -9,14 +9,29 @@ class ApiClient {
 
   final String _baseUrl;
 
+  Future<bool> _isArabic() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('app_locale') ?? 'ar';
+    return lang.startsWith('ar');
+  }
+
   Future<Map<String, String>> _headers() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
+    final lang = prefs.getString('app_locale') ?? 'ar';
+    final locale = lang.startsWith('ar') ? 'ar' : 'en';
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Accept-Language': locale,
+      'X-Locale': locale,
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  Future<String> _connectionError(Object e) async {
+    final ar = await _isArabic();
+    return ar ? 'خطأ في الاتصال: $e' : 'Connection error: $e';
   }
 
   Future<ApiResponse<T>> get<T>(
@@ -31,7 +46,7 @@ class ApiClient {
       final res = await http.get(uri, headers: await _headers());
       return _parseResponse<T>(res, fromJson);
     } catch (e) {
-      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+      return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
   }
 
@@ -49,7 +64,7 @@ class ApiClient {
       );
       return _parseResponse<T>(res, fromJson);
     } catch (e) {
-      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+      return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
   }
 
@@ -66,7 +81,7 @@ class ApiClient {
       );
       return _parseResponse<T>(res, fromJson);
     } catch (e) {
-      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+      return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
   }
 
@@ -83,7 +98,7 @@ class ApiClient {
       );
       return _parseResponse<T>(res, fromJson);
     } catch (e) {
-      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+      return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
   }
 
@@ -98,15 +113,23 @@ class ApiClient {
       );
       return _parseResponse<T>(res, fromJson);
     } catch (e) {
-      return ApiResponse(success: false, message: 'Connection error: $e', data: null);
+      return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
   }
 
-  ApiResponse<T> _parseResponse<T>(http.Response res, T Function(dynamic)? fromJson) {
+  Future<ApiResponse<T>> _parseResponse<T>(
+    http.Response res,
+    T Function(dynamic)? fromJson,
+  ) async {
     try {
       final map = jsonDecode(res.body) as Map<String, dynamic>?;
       if (map == null) {
-        return ApiResponse(success: false, message: 'Invalid response', data: null);
+        final ar = await _isArabic();
+        return ApiResponse(
+          success: false,
+          message: ar ? 'استجابة غير صالحة' : 'Invalid response',
+          data: null,
+        );
       }
       final success = map['success'] as bool? ?? false;
       var message = map['message'] as String? ?? '';
@@ -126,9 +149,10 @@ class ApiClient {
       }
       return ApiResponse(success: success, message: message, data: parsed);
     } catch (e) {
+      final ar = await _isArabic();
       return ApiResponse(
         success: false,
-        message: 'Error parsing response: $e',
+        message: ar ? 'خطأ في تحليل الاستجابة: $e' : 'Error parsing response: $e',
         data: null,
       );
     }

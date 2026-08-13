@@ -152,13 +152,13 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          'Order #${o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id}',
+                                          t.orderNumber(o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                         Text(
-                                          o.status.replaceAll('_', ' '),
+                                          t.orderStatus(o.status),
                                           style: TextStyle(
                                             color: Theme.of(context)
                                                 .colorScheme
@@ -169,13 +169,13 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Customer: ${o.customer?.name ?? o.customer?.email ?? '-'}',
+                                      '${t.customerLabel}: ${o.customer?.name ?? o.customer?.email ?? '-'}',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall,
                                     ),
                                     Text(
-                                      'Total: \$${o.total.toStringAsFixed(2)}',
+                                      '${t.totalLabel}: \$${o.total.toStringAsFixed(2)}',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall,
@@ -191,7 +191,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                     if (!widget.useEmployeeApi &&
                                         o.employee != null)
                                       Text(
-                                        'Assigned: ${o.employee?.name ?? ""}',
+                                        t.assignedTo(o.employee?.name ?? ''),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall,
@@ -405,18 +405,18 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
-              Text('Customer: ${o.customer?.name ?? o.customer?.email ?? '-'}'),
+              Text('${t.customerLabel}: ${o.customer?.name ?? o.customer?.email ?? '-'}'),
               Text('${t.paymentStatusLabel}: ${o.paymentStatus ?? '—'}'),
               if (o.paymentMethod != null && o.paymentMethod!.isNotEmpty)
                 Text('${t.paymentMethodLabel}: ${o.paymentMethod}'),
-              Text('Total: \$${o.total.toStringAsFixed(2)}'),
+              Text('${t.totalLabel}: \$${o.total.toStringAsFixed(2)}'),
               if (o.booksSubtotal != null)
                 Text(
                   '${t.booksSubtotalLabel}: \$${o.booksSubtotal!.toStringAsFixed(2)} + ${t.shippingFeeLabel}: \$${(o.shippingFee ?? 0).toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               const SizedBox(height: 8),
-              Text('Status: ${o.status.replaceAll('_', ' ')}'),
+              Text('${t.statusLabel}: ${t.orderStatus(o.status)}'),
               const SizedBox(height: 12),
               Text(t.shippingAddress, style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 4),
@@ -432,7 +432,7 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
               ),
               const SizedBox(height: 16),
               Text(
-                t.isAr ? 'تحديث الحالة' : 'Update status',
+                t.updateStatus,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
@@ -445,7 +445,7 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
                   children: _statuses.map((s) {
                     return FilterChip(
                       label: Text(
-                        s.replaceAll('_', ' '),
+                        t.orderStatus(s),
                         style: const TextStyle(fontSize: 12),
                       ),
                       selected: o.status == s,
@@ -518,7 +518,7 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
               if (!widget.useEmployeeApi) ...[
                 const SizedBox(height: 20),
                 Text(
-                  'Assign to',
+                  t.assignTo,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
@@ -529,7 +529,7 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Employee',
+                            t.employeeLabel,
                             style: Theme.of(context).textTheme.labelMedium,
                           ),
                           const SizedBox(height: 4),
@@ -538,11 +538,11 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
                             value: _assignEmployeeId.isEmpty
                                 ? null
                                 : _assignEmployeeId,
-                            hint: const Text('Unassigned'),
+                            hint: Text(t.unassigned),
                             items: [
-                              const DropdownMenuItem<String?>(
+                              DropdownMenuItem<String?>(
                                 value: null,
-                                child: Text('Unassigned'),
+                                child: Text(t.unassigned),
                               ),
                               ...widget.employees.map(
                                 (e) => DropdownMenuItem(
@@ -562,13 +562,13 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
                       onPressed: _assignEmployeeId.isNotEmpty
                           ? () => _assign(_assignEmployeeId)
                           : null,
-                      child: const Text('Assign'),
+                      child: Text(t.assign),
                     ),
                   ],
                 ),
               ],
               const SizedBox(height: 16),
-              Text(t.isAr ? 'العناصر' : 'Items',
+              Text(t.itemsLabel,
                   style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               Table(

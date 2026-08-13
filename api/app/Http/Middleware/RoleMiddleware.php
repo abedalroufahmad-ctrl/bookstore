@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\MessageLocalizer;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +29,7 @@ class RoleMiddleware
         if (! $user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated.',
+                'message' => MessageLocalizer::localize('Unauthenticated.'),
                 'data' => (object) [],
             ], 401);
         }
@@ -38,7 +39,7 @@ class RoleMiddleware
         if (! $userRole || ! in_array($userRole, $roles, true)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Forbidden. Insufficient role.',
+                'message' => MessageLocalizer::localize('Forbidden. Insufficient role.'),
                 'data' => (object) [],
             ], 403);
         }

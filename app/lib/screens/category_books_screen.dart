@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../widgets/book_card.dart';
 
@@ -57,14 +58,15 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.categoryTitle ?? 'كتب التصنيف')),
+      appBar: AppBar(title: Text(widget.categoryTitle ?? t.booksByCategoryFallback)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error ?? ''))
               : _books.isEmpty
-                  ? const Center(child: Text('لا توجد كتب في هذا التصنيف'))
+                  ? Center(child: Text(t.noBooksInCategory))
                   : GridView.builder(
                       padding: const EdgeInsets.all(12),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

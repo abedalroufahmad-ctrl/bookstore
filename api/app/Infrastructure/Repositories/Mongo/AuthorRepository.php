@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 class AuthorRepository implements AuthorRepositoryInterface
 {
-    private const COUNT_CACHE_TTL = 600;
+    private const COUNT_CACHE_TTL = 3600;
 
     public function __construct(
         protected Author $model
@@ -39,8 +39,15 @@ class AuthorRepository implements AuthorRepositoryInterface
             }
         }
 
-        $page = max(1, (int) (request()->get('page') ?: 1));
+        $requestedPage = max(1, (int) (request()->get('page') ?: 1));
+        $maxPage = (int) ($filters['max_page'] ?? 0);
+        $page = $maxPage > 0 ? min($requestedPage, $maxPage) : $requestedPage;
         $total = $this->cachedTotal(clone $query, $filters);
+        $lastPage = max(1, (int) ceil($total / max(1, $perPage)));
+        if ($maxPage > 0) {
+            $lastPage = min($lastPage, $maxPage);
+        }
+        $page = min($page, $lastPage);
 
         $items = (clone $query)
             ->orderBy('name')

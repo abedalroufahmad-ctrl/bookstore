@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../widgets/book_card.dart';
 
@@ -57,14 +58,15 @@ class _AuthorBooksScreenState extends State<AuthorBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.authorName ?? 'كتب المؤلف')),
+      appBar: AppBar(title: Text(widget.authorName ?? t.booksByAuthorFallback)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(child: Text(_error ?? ''))
               : _books.isEmpty
-                  ? const Center(child: Text('لا توجد كتب لهذا المؤلف'))
+                  ? Center(child: Text(t.noBooksForAuthor))
                   : GridView.builder(
                       padding: const EdgeInsets.all(16),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

@@ -20,6 +20,11 @@ class BookService
         return $this->repository->getPaginated($filters, $perPage);
     }
 
+    public function encodeListCursor(Book $book): string
+    {
+        return $this->repository->encodeCursor($book);
+    }
+
     public function getById(string $id, array $with = ['category', 'warehouse', 'authors', 'publisher']): ?Book
     {
         return $this->repository->findById($id, $with);

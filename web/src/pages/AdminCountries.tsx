@@ -89,11 +89,11 @@ export function AdminCountries() {
     mutationFn: (dryRun?: boolean) => admin.countries.syncFromNetwork(dryRun),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['admin-countries'] })
-      const msg = res.data?.data?.output ?? res.data?.data?.message ?? 'Sync completed.'
+      const msg = res.data?.data?.output ?? res.data?.data?.message ?? t('admin.syncCompleted')
       alert(msg)
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? 'Sync failed.')
+      setError(err?.response?.data?.message ?? t('admin.syncFailed'))
     },
   })
 
@@ -102,11 +102,11 @@ export function AdminCountries() {
       admin.countries.syncCitiesFromDataset(opts),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['admin-countries'] })
-      const msg = res.data?.data?.output ?? res.data?.data?.message ?? 'Cities sync completed.'
+      const msg = res.data?.data?.output ?? res.data?.data?.message ?? t('admin.citiesSyncCompleted')
       alert(msg)
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? 'Cities sync failed.')
+      setError(err?.response?.data?.message ?? t('admin.citiesSyncFailed'))
     },
   })
 

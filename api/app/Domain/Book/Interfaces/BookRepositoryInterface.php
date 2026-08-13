@@ -11,6 +11,8 @@ interface BookRepositoryInterface
 
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator;
 
+    public function encodeCursor(Book $book): string;
+
     public function create(array $data): Book;
 
     public function update(string $id, array $data): bool;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import 'admin_warehouses_browse_screen.dart';
 
@@ -9,9 +10,10 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin'),
+        title: Text(t.adminTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -30,26 +32,26 @@ class AdminDashboardScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _AdminTile(
-            title: 'Books',
-            subtitle: 'Manage catalog',
+            title: t.adminBooks,
+            subtitle: t.adminManageCatalog,
             icon: Icons.menu_book,
             onTap: () => Navigator.pushNamed(context, '/admin/books'),
           ),
           _AdminTile(
-            title: 'Authors',
-            subtitle: 'Add and manage authors',
+            title: t.adminAuthors,
+            subtitle: t.adminManageAuthors,
             icon: Icons.person,
             onTap: () => Navigator.pushNamed(context, '/admin/authors'),
           ),
           _AdminTile(
-            title: 'Categories',
-            subtitle: 'Add and manage categories',
+            title: t.adminCategories,
+            subtitle: t.adminManageCategories,
             icon: Icons.category,
             onTap: () => Navigator.pushNamed(context, '/admin/categories'),
           ),
           _AdminTile(
-            title: 'Books by warehouse',
-            subtitle: 'Browse catalog per warehouse',
+            title: t.adminBooksByWarehouse,
+            subtitle: t.adminBooksByWarehouseHint,
             icon: Icons.warehouse,
             onTap: () => Navigator.push(
               context,
@@ -57,14 +59,14 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
           ),
           _AdminTile(
-            title: 'Orders',
-            subtitle: 'View and manage orders',
+            title: t.adminOrders,
+            subtitle: t.adminManageOrders,
             icon: Icons.receipt_long,
             onTap: () => Navigator.pushNamed(context, '/admin/orders'),
           ),
           _AdminTile(
-            title: 'Settings',
-            subtitle: 'Global site configurations',
+            title: t.adminSettings,
+            subtitle: t.adminGlobalSettings,
             icon: Icons.settings,
             onTap: () => Navigator.pushNamed(context, '/admin/settings'),
           ),
@@ -92,10 +94,10 @@ class _AdminTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        leading: Icon(icon),
         title: Text(title),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
     );

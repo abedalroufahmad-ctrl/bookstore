@@ -100,21 +100,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Book Store',
+                      t.appName,
                       style: theme.textTheme.headlineMedium,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Login',
+                      t.loginTitle,
                       style: theme.textTheme.titleLarge,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text(
-                        t.isAr ? 'نوع الدخول' : 'Signing in as',
+                        t.signingInAs,
                         style: theme.textTheme.labelLarge,
                       ),
                     ),
@@ -145,18 +145,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(labelText: 'Email'),
+                      decoration: InputDecoration(labelText: t.emailLabel),
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) =>
-                          v == null || v.isEmpty ? 'Email required' : null,
+                          v == null || v.isEmpty ? t.emailRequired : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
-                      decoration: const InputDecoration(labelText: 'Password'),
+                      decoration: InputDecoration(labelText: t.passwordLabel),
                       obscureText: true,
                       validator: (v) =>
-                          v == null || v.isEmpty ? 'Password required' : null,
+                          v == null || v.isEmpty ? t.passwordRequired : null,
                     ),
                     const SizedBox(height: 8),
                     if (!_loginAsStaff)
@@ -166,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             setState(() => _rememberMe = v ?? false),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
-                        title: const Text('Remember me'),
+                        title: Text(t.rememberMe),
                         controlAffinity: ListTileControlAffinity.leading,
                       ),
                     if (_error != null) ...[
@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               width: 24,
                               child: GFLoader(type: GFLoaderType.android, size: GFSize.SMALL),
                             )
-                          : const Text('Login'),
+                          : Text(t.loginBtn),
                     ),
                     if (!_loginAsStaff) ...[
                       const SizedBox(height: 16),
@@ -203,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (_) => const RegisterScreen(),
                           ),
                         ).then((_) => _formKey.currentState?.reset()),
-                        text: 'Register',
+                        text: t.registerBtn,
                         type: GFButtonType.outline,
                         fullWidthButton: true,
                       ),

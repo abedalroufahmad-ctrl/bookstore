@@ -1,4 +1,5 @@
 import axios from 'axios'
+import i18n from '../i18n'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
@@ -10,6 +11,11 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+  const lang = (i18n.language || localStorage.getItem('lang') || 'ar').startsWith('ar')
+    ? 'ar'
+    : 'en'
+  config.headers['Accept-Language'] = lang
+  config.headers['X-Locale'] = lang
   return config
 })
 
@@ -48,6 +54,10 @@ export interface PaginatedResponse<T> {
   total: number
   from: number | null
   to: number | null
+  /** Public catalog: max offset page the API will serve. */
+  max_page?: number
+  /** Optional seek token for the next page (avoids deep SKIP). */
+  next_cursor?: string
 }
 
 export const books = {

@@ -48,12 +48,29 @@ class PublicBookController extends BaseApiController
         $filters['has_cover'] = true;
         // Load only relations needed by catalog cards.
         $filters['with'] = ['authors', 'warehouse', 'publisher', 'category'];
+        // Deep OFFSET is slow at 1M+ docs — clamp public offset navigation.
+        $filters['max_page'] = max(1, (int) config('catalog.max_offset_page', 200));
 
         $perPage = min((int) $request->get('per_page', 32), 100);
 
         $books = $this->catalogService->getCachedBooks($filters, $perPage);
 
-        return $this->successResponse($books);
+        $payload = $books->toArray();
+        $payload['max_page'] = $filters['max_page'];
+        // Keep accurate `total`, but clamp last_page so clients stop offset-paging.
+        $payload['last_page'] = min(
+            (int) ($payload['last_page'] ?? 1),
+            $filters['max_page']
+        );
+        $items = $books->items();
+        if (count($items) >= $perPage && (int) $payload['current_page'] < (int) $payload['last_page']) {
+            $last = $items[array_key_last($items)];
+            if ($last) {
+                $payload['next_cursor'] = $this->bookService->encodeListCursor($last);
+            }
+        }
+
+        return $this->successResponse($payload);
     }
 
     public function show(string $id): JsonResponse

@@ -115,7 +115,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         (r) => r.settings.name == '/',
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order placed successfully')),
+        SnackBar(content: Text(AppLocalizations.of(context).orderPlacedSuccess)),
       );
     } else {
       if (mounted) setState(() => _error = res.message);
@@ -139,8 +139,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
+      appBar: AppBar(title: Text(t.checkoutTitle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -148,37 +149,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Shipping address', style: TextStyle(fontSize: 18)),
+              Text(t.shippingAddress, style: const TextStyle(fontSize: 18)),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _addressController,
-                decoration: const InputDecoration(labelText: 'Address'),
+                decoration: InputDecoration(labelText: t.addressLabel),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'Address required' : null,
+                    v == null || v.isEmpty ? t.addressRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cityController,
-                decoration: const InputDecoration(labelText: 'City'),
+                decoration: InputDecoration(labelText: t.cityLabel),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'City required' : null,
+                    v == null || v.isEmpty ? t.cityRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _countryController,
-                decoration: const InputDecoration(labelText: 'Country'),
+                decoration: InputDecoration(labelText: t.countryLabel),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'Country required' : null,
+                    v == null || v.isEmpty ? t.countryRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _postalController,
-                decoration: const InputDecoration(labelText: 'Postal code'),
+                decoration: InputDecoration(labelText: t.postalCodeLabel),
                 keyboardType: TextInputType.streetAddress,
               ),
               if (_paymentMethods.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text('Payment method', style: TextStyle(fontSize: 18)),
+                Text(t.paymentMethodLabel, style: const TextStyle(fontSize: 18)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   key: ValueKey(
@@ -192,17 +193,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   items: _paymentMethods
-                      .map((m) => DropdownMenuItem<String>(
-                            value: m['id'] as String,
-                            child: Text(m['name'] as String? ?? m['id'] as String),
-                          ))
+                      .map((m) {
+                        final id = m['id'] as String;
+                        final name = m['name'] as String? ?? id;
+                        return DropdownMenuItem<String>(
+                          value: id,
+                          child: Text(t.paymentMethodDisplayName(id, name)),
+                        );
+                      })
                       .toList(),
                   onChanged: (v) => setState(() => _selectedPaymentMethod = v ?? _selectedPaymentMethod),
                 ),
               ] else if (_paymentMethods.isEmpty && !_loading) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'No payment method available. Please try again later.',
+                  t.noPaymentMethodsAvailable,
                   style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
                 ),
               ],

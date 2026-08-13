@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -52,8 +53,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: Text(t.registerTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -64,38 +66,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(labelText: t.nameLabel),
                   validator: (v) =>
-                      v == null || v.isEmpty ? 'Name required' : null,
+                      v == null || v.isEmpty ? t.nameRequired : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(labelText: t.emailLabel),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) =>
-                      v == null || v.isEmpty ? 'Email required' : null,
+                      v == null || v.isEmpty ? t.emailRequired : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: InputDecoration(labelText: t.passwordLabel),
                   obscureText: true,
                   validator: (v) =>
-                      v == null || v.length < 8
-                          ? 'Password must be at least 8 characters'
-                          : null,
+                      v == null || v.length < 8 ? t.passwordMinLength : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _confirmController,
-                  decoration: const InputDecoration(
-                      labelText: 'Confirm password'),
+                  decoration: InputDecoration(labelText: t.passwordConfirm),
                   obscureText: true,
                   validator: (v) =>
-                      v != _passwordController.text
-                          ? 'Passwords do not match'
-                          : null,
+                      v != _passwordController.text ? t.passwordMismatch : null,
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 16),
@@ -117,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Register'),
+                      : Text(t.registerBtn),
                 ),
               ],
             ),

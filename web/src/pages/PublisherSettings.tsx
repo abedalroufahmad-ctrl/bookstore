@@ -117,7 +117,7 @@ export function PublisherSettings() {
   if (!targetId) {
     return (
       <div className="text-center py-12 text-stone-500">
-        No publisher selected or you do not have permission.
+        {t('admin.noPublisherSelected')}
       </div>
     )
   }

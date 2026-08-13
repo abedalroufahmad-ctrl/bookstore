@@ -200,7 +200,7 @@ export function BookCard({
           {authors && authors.length > 0
             ? authors.slice(0, 3).map((a) => {
                 const id = authorId(a)
-                const name = a.name ?? 'Unknown'
+                const name = a.name ?? t('common.unknown')
                 return (
                   <div key={id ?? name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ position: 'relative', width: 24, height: 24, flexShrink: 0 }}>

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\MessageLocalizer;
+
 use App\Domain\Auth\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
@@ -47,7 +49,7 @@ class RestrictPublisherManagerToScopedRoutes
 
         return response()->json([
             'success' => false,
-            'message' => 'Forbidden. Publisher managers can only manage their publisher\'s warehouses, books, and authors.',
+            'message' => MessageLocalizer::localize('Forbidden. Publisher managers can only manage their publisher\'s warehouses, books, and authors.'),
             'data' => (object) [],
         ], 403);
     }

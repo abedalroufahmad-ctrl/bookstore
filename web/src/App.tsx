@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Layout } from './components/Layout'
 import {
@@ -51,14 +52,16 @@ const queryClient = new QueryClient({
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { userType, isLoading } = useAuth()
-  if (isLoading) return <div className="py-12 text-center">Loading...</div>
+  const { t } = useTranslation()
+  if (isLoading) return <div className="py-12 text-center">{t('common.loading')}</div>
   if (userType !== 'employee') return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
 function CustomerRoute({ children }: { children: React.ReactNode }) {
   const { userType, isLoading } = useAuth()
-  if (isLoading) return <div className="py-12 text-center">Loading...</div>
+  const { t } = useTranslation()
+  if (isLoading) return <div className="py-12 text-center">{t('common.loading')}</div>
   if (userType !== 'customer') return <Navigate to="/login" replace />
   return <>{children}</>
 }

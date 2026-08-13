@@ -75,7 +75,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          '\$${o.total.toStringAsFixed(2)} • ${o.status}'
+                          '\$${o.total.toStringAsFixed(2)} • ${t.orderStatus(o.status)}'
                           '${(o.paymentStatus != null && o.paymentStatus!.trim().isNotEmpty) ? '\n${t.paymentStatusLabel}: ${o.paymentStatus}' : ''}',
                           style: Theme.of(context).textTheme.bodySmall,
                           maxLines: 4,

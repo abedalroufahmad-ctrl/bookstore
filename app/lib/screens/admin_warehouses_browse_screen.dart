@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import 'admin_warehouse_books_screen.dart';
 
 /// Lists warehouses (admin API); tap opens books for that warehouse.
@@ -35,9 +36,10 @@ class _AdminWarehousesBrowseScreenState extends State<AdminWarehousesBrowseScree
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Books by warehouse'),
+        title: Text(t.adminBooksByWarehouse),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

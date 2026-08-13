@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 
 class AdminAuthorsScreen extends StatefulWidget {
@@ -32,25 +33,26 @@ class _AdminAuthorsScreenState extends State<AdminAuthorsScreen> {
   }
 
   Future<void> _addAuthor() async {
+    final t = AppLocalizations.of(context);
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) {
         final c = TextEditingController();
         return AlertDialog(
-          title: const Text('Add author'),
+          title: Text(t.adminAddAuthor),
           content: TextField(
             controller: c,
-            decoration: const InputDecoration(labelText: 'Name'),
+            decoration: InputDecoration(labelText: t.nameLabel),
             autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(t.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, c.text.trim()),
-              child: const Text('Add'),
+              child: Text(t.add),
             ),
           ],
         );
@@ -64,19 +66,20 @@ class _AdminAuthorsScreenState extends State<AdminAuthorsScreen> {
 
   Future<void> _delete(Author a) async {
     if (!context.mounted) return;
+    final t = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete author'),
-        content: Text('Delete "${a.name}"?'),
+        title: Text(t.adminDeleteAuthor),
+        content: Text(t.deleteNamed(a.name ?? '')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(t.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(t.delete),
           ),
         ],
       ),
@@ -89,9 +92,10 @@ class _AdminAuthorsScreenState extends State<AdminAuthorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Authors'),
+        title: Text(t.adminAuthors),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

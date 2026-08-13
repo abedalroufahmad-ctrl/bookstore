@@ -175,10 +175,10 @@ export function BookDetail() {
                           {i > 0 && ', '}
                           {authorId ? (
                             <Link to={`/authors/${authorId}`} style={{ color: 'var(--color-primary)' }} className="hover:underline">
-                              {a.name || 'Unknown'}
+                              {a.name || t('common.unknown')}
                             </Link>
                           ) : (
-                            <span>{a.name || 'Unknown'}</span>
+                            <span>{a.name || t('common.unknown')}</span>
                           )}
                         </span>
                       )

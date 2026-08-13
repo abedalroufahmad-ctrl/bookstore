@@ -43,7 +43,13 @@ class CachedCatalogService
     public function getCachedBooks(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $page = (int) (request()->get('page') ?: 1);
+        $cursor = (string) (request()->get('cursor') ?: '');
         if (! config('catalog.cache_enabled', true)) {
+            return $this->bookService->getAll($filters, $perPage);
+        }
+
+        // Do not cache cursor seeks (one-off); cache common offset pages.
+        if ($cursor !== '') {
             return $this->bookService->getAll($filters, $perPage);
         }
 

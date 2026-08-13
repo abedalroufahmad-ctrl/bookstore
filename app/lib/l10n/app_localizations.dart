@@ -47,6 +47,10 @@ class AppLocalizations {
   String get nameRequired => _s('الاسم مطلوب', 'Name required');
   String get passwordConfirm => _s('تأكيد كلمة المرور', 'Confirm Password');
   String get passwordMismatch => _s('كلمتا المرور غير متطابقتين', 'Passwords do not match');
+  String get passwordMinLength =>
+      _s('يجب أن تكون كلمة المرور 8 أحرف على الأقل', 'Password must be at least 8 characters');
+  String get rememberMe => _s('تذكرني', 'Remember me');
+  String get signingInAs => _s('نوع الدخول', 'Signing in as');
   String get alreadyAccount => _s('لديك حساب؟', 'Already have an account?');
   String get noAccount => _s('ليس لديك حساب؟', "Don't have an account?");
 
@@ -100,6 +104,11 @@ class AppLocalizations {
   String get addressRequired => _s('العنوان مطلوب', 'Address required');
   String get cityRequired => _s('المدينة مطلوبة', 'City required');
   String get countryRequired => _s('البلد مطلوب', 'Country required');
+  String get orderPlacedSuccess => _s('تم تأكيد الطلب بنجاح', 'Order placed successfully');
+  String get noPaymentMethodsAvailable =>
+      _s('لا توجد طريقة دفع متاحة. يرجى المحاولة لاحقاً.', 'No payment method available. Please try again later.');
+  String get connectionError => _s('خطأ في الاتصال', 'Connection error');
+  String get invalidResponse => _s('استجابة غير صالحة', 'Invalid response');
 
   // ── Orders ──────────────────────────────────────────────────────────────────
   String get ordersTitle => _s('طلباتي', 'My Orders');
@@ -166,6 +175,109 @@ class AppLocalizations {
   String get loginRequired => _s('سجّل دخولك للمتابعة', 'Login required to continue');
   String get cartLoginMsg => _s('سجّل دخولك للوصول إلى السلة', 'Login to access cart');
   String get loginAction => _s('تسجيل الدخول', 'Login');
+  String get cancel => _s('إلغاء', 'Cancel');
+  String get add => _s('إضافة', 'Add');
+  String get delete => _s('حذف', 'Delete');
+  String get assign => _s('إسناد', 'Assign');
+  String get unassigned => _s('غير مسند', 'Unassigned');
+  String get saveChanges => _s('حفظ التغييرات', 'Save Changes');
+
+  // ── Admin ───────────────────────────────────────────────────────────────────
+  String get adminTitle => _s('الإدارة', 'Admin');
+  String get adminBooks => _s('الكتب', 'Books');
+  String get adminManageCatalog => _s('إدارة الكتالوج', 'Manage catalog');
+  String get adminAuthors => _s('المؤلفون', 'Authors');
+  String get adminManageAuthors => _s('إضافة وإدارة المؤلفين', 'Add and manage authors');
+  String get adminCategories => _s('التصنيفات', 'Categories');
+  String get adminManageCategories => _s('إضافة وإدارة التصنيفات', 'Add and manage categories');
+  String get adminBooksByWarehouse => _s('كتب حسب المستودع', 'Books by warehouse');
+  String get adminBooksByWarehouseHint =>
+      _s('تصفح الكتالوج حسب المستودع', 'Browse catalog per warehouse');
+  String get adminOrders => _s('الطلبات', 'Orders');
+  String get adminManageOrders => _s('عرض وإدارة الطلبات', 'View and manage orders');
+  String get adminSettings => _s('الإعدادات', 'Settings');
+  String get adminGlobalSettings =>
+      _s('إعدادات الموقع العامة', 'Global site configurations');
+  String get adminAddAuthor => _s('إضافة مؤلف', 'Add author');
+  String get adminDeleteAuthor => _s('حذف المؤلف', 'Delete author');
+  String get adminAddCategory => _s('إضافة تصنيف', 'Add category');
+  String get adminDeweyCode => _s('رمز ديوي', 'Dewey code');
+  String get adminSubjectTitle => _s('عنوان الموضوع', 'Subject title');
+  String get adminDeleteBook => _s('حذف الكتاب', 'Delete book');
+  String get adminSettingsTitle => _s('إعدادات الإدارة', 'Admin Settings');
+  String get adminGlobalSettingsHeading => _s('الإعدادات العامة', 'Global Settings');
+  String get adminGlobalDiscount => _s('الخصم العام (%)', 'Global Discount (%)');
+  String get adminGlobalDiscountHint => _s(
+        'يُطبَّق على كل الكتب التي ليس لها خصم خاص.',
+        'Applied to all books that do not have a special discount.',
+      );
+  String get adminSettingsSaved => _s('تم حفظ الإعدادات', 'Settings saved');
+  String get fieldRequired => _s('مطلوب', 'Required');
+  String get invalidNumber => _s('رقم غير صالح', 'Invalid number');
+  String get mustBeBetween0And100 =>
+      _s('يجب أن يكون بين 0 و 100', 'Must be between 0 and 100');
+  String deleteNamed(String name) =>
+      isAr ? 'حذف «$name»؟' : 'Delete "$name"?';
+  String get assignTo => _s('إسناد إلى', 'Assign to');
+  String get employeeLabel => _s('الموظف', 'Employee');
+  String assignedTo(String name) =>
+      isAr ? 'المسند: $name' : 'Assigned: $name';
+  String get itemsLabel => _s('العناصر', 'Items');
+  String orderNumber(String id) => isAr ? 'طلب #$id' : 'Order #$id';
+  String paymentMethodDisplayName(String id, String fallback) {
+    switch (id) {
+      case 'cod':
+        return _s('الدفع عند الاستلام', 'Cash on Delivery (COD)');
+      case 'card':
+      case 'stripe':
+        return _s('بطاقة ائتمان/خصم', 'Credit/Debit Card');
+      case 'paypal':
+        return 'PayPal';
+      default:
+        return fallback;
+    }
+  }
+
+  String get booksByAuthorFallback => _s('كتب المؤلف', 'Author books');
+  String get noBooksForAuthor => _s('لا توجد كتب لهذا المؤلف', 'No books for this author');
+  String get booksByCategoryFallback => _s('كتب التصنيف', 'Category books');
+  String get noBooksInCategory =>
+      _s('لا توجد كتب في هذا التصنيف', 'No books in this category');
+  String get statusLabel => _s('الحالة', 'Status');
+  String get totalLabel => _s('الإجمالي', 'Total');
+  String get customerLabel => _s('العميل', 'Customer');
+  String get updateStatus => _s('تحديث الحالة', 'Update status');
+
+  String orderStatus(String status) {
+    switch (status) {
+      case 'pending_warehouse_review':
+        return _s('أُرسل للمستودع (بانتظار التسعير)', 'Sent to warehouse (pending pricing)');
+      case 'awaiting_customer_confirmation':
+        return _s('بانتظار تأكيد العميل', 'Awaiting customer confirmation');
+      case 'resubmitted_to_warehouse':
+        return _s('أُعيد للمستودع (وافق العميل)', 'Returned to warehouse (customer accepted)');
+      case 'processing_fulfillment':
+        return _s('قيد التجهيز / الشحن', 'Processing / preparing shipment');
+      case 'shipped_collecting_payment':
+        return _s('تم الشحن / تحصيل الدفع', 'Shipped / collecting payment');
+      case 'completed':
+        return _s('مكتمل', 'Completed');
+      case 'cancelled':
+        return _s('ملغى', 'Cancelled');
+      case 'pending_review':
+        return _s('بانتظار المراجعة (قديم)', 'Pending review (legacy)');
+      case 'confirmed':
+        return _s('مؤكد (قديم)', 'Confirmed (legacy)');
+      case 'preparing':
+        return _s('قيد التجهيز (قديم)', 'Preparing (legacy)');
+      case 'shipped':
+        return _s('تم الشحن (قديم)', 'Shipped (legacy)');
+      case 'delivered':
+        return _s('تم التسليم (قديم)', 'Delivered (legacy)');
+      default:
+        return status.replaceAll('_', ' ');
+    }
+  }
 
   // ── Profile ───────────────────────────────────────────────────────────────
   String get myProfile => _s('الملف الشخصي', 'My Profile');

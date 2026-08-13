@@ -7,6 +7,13 @@ import { useAuth } from '../contexts/AuthContext'
 
 type PaymentMethodOption = { id: string; name: string; enabled: boolean }
 
+function paymentMethodLabel(id: string, fallback: string, t: (key: string) => string): string {
+  if (id === 'cod') return t('checkout.paymentCOD')
+  if (id === 'card') return t('checkout.paymentCard')
+  if (id === 'paypal') return t('checkout.paymentPayPal')
+  return fallback
+}
+
 function parsePaymentMethods(raw: unknown): PaymentMethodOption[] {
   if (!Array.isArray(raw)) return []
   return raw
@@ -189,7 +196,7 @@ export function Checkout() {
                     onChange={() => setPaymentMethod(m.id)}
                     className="rounded-full border-stone-300 text-amber-900 focus:ring-amber-500"
                   />
-                  <span>{m.name}</span>
+                  <span>{paymentMethodLabel(m.id, m.name, t)}</span>
                 </label>
               ))}
             </div>

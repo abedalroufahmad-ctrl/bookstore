@@ -246,7 +246,15 @@ export function AdminSettings() {
                 ) : (
                   <>
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium text-stone-800">{method.name}</span>
+                      <span className="font-medium text-stone-800">
+                        {method.id === 'cod'
+                          ? t('checkout.paymentCOD')
+                          : method.id === 'stripe' || method.id === 'card'
+                            ? t('admin.settings.paymentCardStripe')
+                            : method.id === 'paypal'
+                              ? t('checkout.paymentPayPal')
+                              : method.name}
+                      </span>
                       <span className="ml-2 text-xs text-stone-500 font-mono">({method.id})</span>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded ${method.enabled ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-600'}`}>

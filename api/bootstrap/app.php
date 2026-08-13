@@ -5,6 +5,7 @@ use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\RestrictPublisherManagerToScopedRoutes;
 use App\Http\Middleware\RestrictWarehouseManagerToScopedRoutes;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SetLocaleFromAcceptLanguage;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,7 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => Authenticate::class,
             'jwt.refresh' => RefreshToken::class,
         ]);
-        $middleware->appendToGroup('api', ForceJsonResponse::class);
+        $middleware->appendToGroup('api', [
+            SetLocaleFromAcceptLanguage::class,
+            ForceJsonResponse::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (Throwable $e, $request) {

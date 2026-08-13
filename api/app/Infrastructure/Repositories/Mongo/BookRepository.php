@@ -10,10 +10,32 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use MongoDB\BSON\ObjectId;
+use MongoDB\BSON\UTCDateTime;
 
 class BookRepository implements BookRepositoryInterface
 {
-    private const COUNT_CACHE_TTL = 600;
+    /** Columns needed for catalog cards / admin lists. */
+    private const LIST_COLUMNS = [
+        '_id',
+        'title',
+        'price',
+        'stock_quantity',
+        'isbn',
+        'author_ids',
+        'category_id',
+        'warehouse_id',
+        'publisher_id',
+        'cover_image',
+        'cover_image_thumb',
+        'has_cover',
+        'discount_percent',
+        'publish_year',
+        'pages',
+        'created_at',
+        'updated_at',
+    ];
 
     public function __construct(
         protected Book $model
@@ -36,7 +58,7 @@ class BookRepository implements BookRepositoryInterface
         $loadAuthorsManually = in_array('authors', $with, true);
         $eloquentWith = array_values(array_filter($with, fn ($relation) => $relation !== 'authors'));
 
-        $query = $this->model->newQuery();
+        $query = $this->model->newQuery()->select(self::LIST_COLUMNS);
 
         if (! empty($eloquentWith)) {
             $query->with($eloquentWith);
@@ -44,20 +66,36 @@ class BookRepository implements BookRepositoryInterface
 
         $this->applyFilters($query, $filters);
 
-        $page = max(1, (int) (request()->get('page') ?: 1));
+        $perPage = max(1, min(100, $perPage));
+        $requestedPage = max(1, (int) (request()->get('page') ?: 1));
+        $maxPage = (int) ($filters['max_page'] ?? 0);
+        $page = $maxPage > 0 ? min($requestedPage, $maxPage) : $requestedPage;
+
         $total = $this->cachedTotal(clone $query, $filters);
 
-        $items = (clone $query)
-            ->orderByDesc('created_at')
-            ->orderByDesc('_id')
-            ->forPage($page, $perPage)
-            ->get();
+        $cursor = request()->get('cursor');
+        if (is_string($cursor) && $cursor !== '') {
+            $items = $this->fetchByCursor(clone $query, $cursor, $perPage);
+            // Cursor pages are sequential; report page as requested (clamped).
+            $page = $maxPage > 0 ? min($requestedPage, $maxPage) : max(1, $requestedPage);
+        } else {
+            $lastPageByTotal = max(1, (int) ceil($total / $perPage));
+            if ($maxPage > 0) {
+                $lastPageByTotal = min($lastPageByTotal, $maxPage);
+            }
+            $page = min($page, $lastPageByTotal);
+            $items = (clone $query)
+                ->orderByDesc('created_at')
+                ->orderByDesc('_id')
+                ->forPage($page, $perPage)
+                ->get();
+        }
 
         if ($loadAuthorsManually) {
             $this->hydrateAuthors($items);
         }
 
-        return new Paginator(
+        $paginator = new Paginator(
             $items,
             $total,
             $perPage,
@@ -67,6 +105,14 @@ class BookRepository implements BookRepositoryInterface
                 'pageName' => 'page',
             ]
         );
+
+        $paginator->appends(request()->query());
+
+        if ($items->isNotEmpty() && $items->count() >= $perPage) {
+            request()->attributes->set('books_next_cursor', $this->encodeCursor($items->last()));
+        }
+
+        return $paginator;
     }
 
     public function create(array $data): Book
@@ -103,6 +149,46 @@ class BookRepository implements BookRepositoryInterface
         }
 
         return $model->delete();
+    }
+
+    /**
+     * Build a cursor token from a book (for next-page seeks).
+     */
+    public function encodeCursor(Book $book): string
+    {
+        $created = $book->created_at;
+        $ms = $created instanceof \DateTimeInterface
+            ? (int) round((float) $created->format('U.u') * 1000)
+            : (int) (microtime(true) * 1000);
+
+        return rtrim(strtr(base64_encode((string) json_encode([
+            'c' => $ms,
+            'i' => (string) $book->getKey(),
+        ])), '+/', '-_'), '=');
+    }
+
+    private function fetchByCursor($query, string $cursor, int $perPage): Collection
+    {
+        $decoded = $this->decodeCursor($cursor);
+        if (! $decoded) {
+            return $query->orderByDesc('created_at')->orderByDesc('_id')->limit($perPage)->get();
+        }
+
+        $createdAtValue = $decoded['created_at'];
+        $objectId = $decoded['_id'];
+
+        return $query
+            ->where(function ($q) use ($createdAtValue, $objectId) {
+                $q->where('created_at', '<', $createdAtValue)
+                    ->orWhere(function ($q2) use ($createdAtValue, $objectId) {
+                        $q2->where('created_at', '=', $createdAtValue)
+                            ->where('_id', '<', $objectId);
+                    });
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('_id')
+            ->limit($perPage)
+            ->get();
     }
 
     private function applyFilters($query, array $filters): void
@@ -178,13 +264,45 @@ class BookRepository implements BookRepositoryInterface
     {
         $version = (int) Cache::get('bookstore_catalog_version', 0);
         $fingerprint = $filters;
-        unset($fingerprint['with']);
+        unset($fingerprint['with'], $fingerprint['max_page']);
 
-        $key = 'bookstore_books_total_v'.$version.'_'.md5(json_encode($fingerprint));
+        $ttl = (int) config('catalog.cache_ttl.books_total', 3600);
+        $key = 'bookstore_books_total_v'.$version.'_'.md5((string) json_encode($fingerprint));
 
-        return (int) Cache::remember($key, self::COUNT_CACHE_TTL, function () use ($query) {
+        return (int) Cache::remember($key, $ttl, function () use ($query, $filters) {
+            if ($this->canUseCatalogCountHint($filters)) {
+                try {
+                    return (int) DB::connection('mongodb')
+                        ->getCollection('books')
+                        ->countDocuments(
+                            [
+                                'has_cover' => true,
+                                'stock_quantity' => ['$gt' => 0],
+                            ],
+                            ['hint' => 'books_catalog_idx']
+                        );
+                } catch (\Throwable) {
+                    // Fall through if hint unavailable.
+                }
+            }
+
             return (int) $query->toBase()->getCountForPagination();
         });
+    }
+
+    private function canUseCatalogCountHint(array $filters): bool
+    {
+        return ! empty($filters['has_cover'])
+            && isset($filters['in_stock'])
+            && $filters['in_stock'] === true
+            && empty($filters['search'])
+            && empty($filters['category_id'])
+            && empty($filters['warehouse_id'])
+            && empty($filters['warehouse_ids'])
+            && empty($filters['publisher_id'])
+            && empty($filters['author_id'])
+            && ! isset($filters['min_price'])
+            && ! isset($filters['max_price']);
     }
 
     private function computeHasCover(array $data): bool
@@ -195,10 +313,6 @@ class BookRepository implements BookRepositoryInterface
         return $cover !== '' || $thumb !== '';
     }
 
-    /**
-     * belongsToMany can miss authors when author_ids are stored as strings.
-     * Batch-load with whereIn so catalog cards get author names in one query.
-     */
     private function hydrateAuthors(Collection $books): void
     {
         $authorIds = $books
@@ -230,5 +344,21 @@ class BookRepository implements BookRepositoryInterface
             $book->setRelation('authors', $related);
         }
     }
-}
 
+    private function decodeCursor(string $cursor): ?array
+    {
+        $json = base64_decode(strtr($cursor, '-_', '+/'), true);
+        if ($json === false) {
+            return null;
+        }
+        $data = json_decode($json, true);
+        if (! is_array($data) || empty($data['i']) || empty($data['c'])) {
+            return null;
+        }
+
+        return [
+            'created_at' => new UTCDateTime((int) $data['c']),
+            '_id' => new ObjectId((string) $data['i']),
+        ];
+    }
+}

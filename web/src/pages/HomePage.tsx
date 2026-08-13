@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { books as booksApi, warehousesPublic as warehousesApi } from '../lib/api'
-import { resolveCoverUrl, getPublisherLabel, getPublisherId } from '../lib/utils'
+import { resolveCoverUrl, getPublisherLabel, getPublisherId, hasCover } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/SettingsContext'
 import type { Book, Warehouse } from '../lib/api'
@@ -29,9 +29,10 @@ export function HomePage() {
     })
 
     const paginated = data?.data
-    const items: Book[] = Array.isArray(paginated)
+    const items: Book[] = (Array.isArray(paginated)
         ? paginated
         : (paginated?.data ?? [])
+    ).filter(hasCover)
 
     const warehouseItems: Warehouse[] = warehousesData?.data?.data ?? []
 

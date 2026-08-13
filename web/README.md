@@ -1,32 +1,11 @@
-# Book Store Web
+# Bookstore Web
 
-React + Vite + TypeScript web app for the Book Store API.
+React + Vite + TypeScript storefront and admin SPA.
 
-## Setup
+**Full documentation:** [project.md](../project.md)
 
 ```bash
 npm install
-npm run dev
-```
-
-## Development
-
-- **Web app:** http://localhost:5173
-- **API proxy:** Requests to `/api` are proxied to `http://localhost:8000`
-- **Backend:** Run `php artisan serve` in the `api/` directory
-
-## Build
-
-```bash
+npm run dev    # http://localhost:5173 — /api → localhost:8000
 npm run build
 ```
-
-## Environment
-
-Create `.env` with:
-
-```
-VITE_API_URL=http://localhost:8000/api/v1
-```
-
-Or omit for dev (uses proxy). For production, set `VITE_API_URL` to your API URL.

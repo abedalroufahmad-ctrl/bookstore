@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Support\MessageLocalizer;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
@@ -34,7 +35,7 @@ class Handler extends ExceptionHandler
         if ($request->is('api/*') || $request->expectsJson()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated.',
+                'message' => MessageLocalizer::localize('Unauthenticated.'),
                 'data' => (object) [],
             ], 401);
         }
@@ -56,7 +57,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof TokenExpiredException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token expired.',
+                'message' => MessageLocalizer::localize('Token expired.'),
                 'data' => (object) [],
             ], 401);
         }
@@ -64,7 +65,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof TokenInvalidException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Token invalid.',
+                'message' => MessageLocalizer::localize('Token invalid.'),
                 'data' => (object) [],
             ], 401);
         }
@@ -72,7 +73,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof JWTException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Authorization token not found or invalid.',
+                'message' => MessageLocalizer::localize('Authorization token not found or invalid.'),
                 'data' => (object) [],
             ], 401);
         }
@@ -80,7 +81,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof AuthenticationException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated.',
+                'message' => MessageLocalizer::localize('Unauthenticated.'),
                 'data' => (object) [],
             ], 401);
         }
@@ -88,7 +89,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof ValidationException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed.',
+                'message' => MessageLocalizer::localize('Validation failed.'),
                 'data' => [
                     'errors' => $e->errors(),
                 ],
@@ -96,9 +97,11 @@ class Handler extends ExceptionHandler
         }
 
         if ($e instanceof HttpException) {
+            $msg = $e->getMessage() ?: 'An error occurred.';
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage() ?: 'An error occurred.',
+                'message' => MessageLocalizer::localize($msg),
                 'data' => (object) [],
             ], $e->getStatusCode());
         }
@@ -108,7 +111,7 @@ class Handler extends ExceptionHandler
 
         return response()->json([
             'success' => false,
-            'message' => $message,
+            'message' => MessageLocalizer::localize($message),
             'data' => (object) [],
         ], $code);
     }

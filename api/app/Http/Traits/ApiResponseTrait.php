@@ -2,6 +2,7 @@
 
 namespace App\Http\Traits;
 
+use App\Support\MessageLocalizer;
 use Illuminate\Http\JsonResponse;
 
 trait ApiResponseTrait
@@ -13,7 +14,7 @@ trait ApiResponseTrait
     {
         return response()->json([
             'success' => true,
-            'message' => $message,
+            'message' => MessageLocalizer::localize($message),
             'data' => $data ?? (object) [],
         ], $code);
     }
@@ -25,7 +26,7 @@ trait ApiResponseTrait
     {
         return response()->json([
             'success' => false,
-            'message' => $message,
+            'message' => MessageLocalizer::localize($message),
             'data' => $data ?? (object) [],
         ], $code);
     }

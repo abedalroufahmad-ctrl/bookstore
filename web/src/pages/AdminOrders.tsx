@@ -268,7 +268,7 @@ function OrderDetailModal({
       const res = await admin.orders.get(order._id)
       const body = res.data
       if (!body.success || !body.data) {
-        throw new Error(body.message || 'Failed to load order')
+        throw new Error(body.message || t('admin.failedLoadOrder'))
       }
       return body.data
     },

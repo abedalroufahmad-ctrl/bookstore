@@ -191,7 +191,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '${t.ordersStatusLabel}: ${o.status}',
+                    '${t.ordersStatusLabel}: ${t.orderStatus(o.status)}',
                     style: theme.textTheme.bodyLarge,
                   ),
                   if (o.booksSubtotal != null || o.shippingFee != null) ...[

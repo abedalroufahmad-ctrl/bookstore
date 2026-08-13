@@ -250,13 +250,16 @@ export function AuthorBooks() {
             )}
             {meta && (
                 <div style={{ marginTop: 24 }}>
-                    <Pagination
-                        currentPage={meta.current_page}
-                        lastPage={meta.last_page}
-                        total={meta.total}
-                        perPage={meta.per_page}
-                        onPageChange={setPage}
-                    />
+                        <Pagination
+                            currentPage={meta.current_page}
+                            lastPage={meta.last_page}
+                            total={meta.total}
+                            perPage={meta.per_page}
+                            onPageChange={setPage}
+                            maxNavigablePage={typeof (meta as { max_page?: number }).max_page === 'number'
+                              ? (meta as { max_page: number }).max_page
+                              : 200}
+                        />
                 </div>
             )}
         </div>
