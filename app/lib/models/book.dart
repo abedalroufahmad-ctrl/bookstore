@@ -65,8 +65,13 @@ class Book {
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       stockQuantity: json['stock_quantity'] ?? 0,
       isbn: json['isbn'],
-      category: json['category'] != null ? Category.fromJson(json['category']) : null,
-      authors: (json['authors'] as List?)?.map((e) => Author.fromJson(e)).toList(),
+      category: json['category'] is Map
+          ? Category.fromJson(Map<String, dynamic>.from(json['category'] as Map))
+          : null,
+      authors: (json['authors'] as List?)
+          ?.whereType<Map>()
+          .map((e) => Author.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
       warehouse: json['warehouse'] != null
           ? Warehouse.fromJson({
               ...Map<String, dynamic>.from(json['warehouse'] as Map),

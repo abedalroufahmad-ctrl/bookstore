@@ -16,7 +16,7 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string ...$args): Response
     {
-        $guards = ['employee', 'customer', 'api'];
+        $guards = ['employee', 'customer'];
         $guard = null;
         $roles = $args;
 

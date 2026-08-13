@@ -1,10 +1,13 @@
 # Laravel specific
 /api/storage/framework/cache/data/**/*
 /api/storage/framework/sessions/*
+!/api/storage/framework/sessions/.gitkeep
 /api/storage/framework/views/*.php
 /api/storage/logs/*.log
 /api/.env
 /api/vendor/
+.phpunit.result.cache
+/api/.phpunit.result.cache
 
 # Web app specific
 /web/node_modules/

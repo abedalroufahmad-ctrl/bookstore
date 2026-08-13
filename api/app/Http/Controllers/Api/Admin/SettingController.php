@@ -10,25 +10,31 @@ use Illuminate\Http\Request;
 
 class SettingController extends BaseApiController
 {
+    /**
+     * Public catalog settings whitelist (no secrets).
+     */
+    public function publicIndex(): JsonResponse
+    {
+        return $this->successResponse($this->publicSettingsPayload());
+    }
+
     public function index(): JsonResponse
+    {
+        // Authenticated admin still gets the same safe payload (no arbitrary keys from DB).
+        return $this->successResponse($this->publicSettingsPayload());
+    }
+
+    private function publicSettingsPayload(): array
     {
         $settings = Setting::all()->pluck('value', 'key')->toArray();
 
-        if (! isset($settings['global_discount'])) {
-            $settings['global_discount'] = 0;
-        }
-
-        if (! isset($settings['weight_unit'])) {
-            $settings['weight_unit'] = 'kg';
-        }
-
-        if (! isset($settings['catalog_items_per_page'])) {
-            $settings['catalog_items_per_page'] = 24;
-        }
+        $globalDiscount = $settings['global_discount'] ?? 0;
+        $weightUnit = $settings['weight_unit'] ?? 'kg';
+        $catalogItems = $settings['catalog_items_per_page'] ?? 24;
 
         $raw = $settings['payment_methods'] ?? null;
         if (is_array($raw) && isset($raw[0]) && is_array($raw[0])) {
-            $settings['payment_methods'] = array_values(array_map(function ($item) {
+            $paymentMethods = array_values(array_map(function ($item) {
                 return [
                     'id' => $item['id'] ?? '',
                     'name' => $item['name'] ?? $item['id'] ?? '',
@@ -42,12 +48,17 @@ class SettingController extends BaseApiController
                     $converted[] = ['id' => $id, 'name' => $id, 'enabled' => (bool) $enabled];
                 }
             }
-            $settings['payment_methods'] = $converted ?: Setting::defaultPaymentMethods();
+            $paymentMethods = $converted ?: Setting::defaultPaymentMethods();
         } else {
-            $settings['payment_methods'] = Setting::defaultPaymentMethods();
+            $paymentMethods = Setting::defaultPaymentMethods();
         }
 
-        return $this->successResponse($settings);
+        return [
+            'global_discount' => is_numeric($globalDiscount) ? (float) $globalDiscount : 0,
+            'weight_unit' => is_string($weightUnit) ? $weightUnit : 'kg',
+            'catalog_items_per_page' => is_numeric($catalogItems) ? (int) $catalogItems : 24,
+            'payment_methods' => $paymentMethods,
+        ];
     }
 
     public function update(Request $request): JsonResponse

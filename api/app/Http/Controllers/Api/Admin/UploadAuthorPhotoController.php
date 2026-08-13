@@ -17,9 +17,16 @@ class UploadAuthorPhotoController extends BaseApiController
 
         $file = $request->file('photo');
         $baseName = Str::uuid().'_'.time();
+        $mime = (string) $file->getMimeType();
+        $ext = match (true) {
+            str_contains($mime, 'png') => 'png',
+            str_contains($mime, 'gif') => 'gif',
+            str_contains($mime, 'webp') => 'webp',
+            default => 'jpg',
+        };
         $path = $file->storeAs(
             'authors',
-            $baseName.'.'.$file->getClientOriginalExtension(),
+            $baseName.'.'.$ext,
             'public'
         );
 

@@ -35,7 +35,7 @@ class WarehouseService
             $this->syncManagerToWarehouse($managerId, $warehouse->getKey());
         }
         if (is_array($employeeIds) && ! empty(array_filter($employeeIds, fn ($v) => $v !== '' && $v !== null))) {
-            $this->assignEmployeesToWarehouse($warehouse->getKey(), $employeeIds);
+            $this->assignEmployeesToWarehouse($warehouse->getKey(), $employeeIds, false, null);
         }
 
         return $warehouse->fresh(['employees', 'books', 'manager', 'publisher']);
@@ -53,37 +53,52 @@ class WarehouseService
             $this->syncManagerToWarehouse($managerId, $id);
         }
         if ($updated && is_array($employeeIds)) {
-            $setRoleShipping = $currentEmployee && $currentEmployee->role === UserRole::WarehouseManager->value;
-            $this->assignEmployeesToWarehouse($id, $employeeIds, $setRoleShipping);
+            // Never silently rewrite roles on assign — only link warehouse membership.
+            $this->assignEmployeesToWarehouse($id, $employeeIds, false, $currentEmployee);
         }
 
         return $updated ? $this->repository->findById($id, ['employees', 'books', 'manager', 'publisher']) : null;
     }
 
     /**
-     * Set warehouse_id for the given employees to this warehouse. Optionally set role to shipping (when assigned by WM).
+     * Set warehouse membership for employees. Does not change role.
+     * Warehouse managers may only assign shipping/accounting staff (never managers / other WMs).
      */
-    private function assignEmployeesToWarehouse(string $warehouseId, array $employeeIds, bool $setRoleShipping = false): void
-    {
-        $ids = array_filter($employeeIds, fn ($v) => $v !== '' && $v !== null);
+    private function assignEmployeesToWarehouse(
+        string $warehouseId,
+        array $employeeIds,
+        bool $setRoleShipping = false,
+        $currentEmployee = null
+    ): void {
+        $ids = array_values(array_filter($employeeIds, fn ($v) => $v !== '' && $v !== null));
         if (empty($ids)) {
             return;
         }
+
+        $query = Employee::whereIn('_id', $ids);
+        if ($currentEmployee && $currentEmployee->role === UserRole::WarehouseManager->value) {
+            $query->whereIn('role', UserRole::warehouseManagerStaffRoles());
+        }
+
         $update = ['warehouse_id' => $warehouseId];
         if ($setRoleShipping) {
             $update['role'] = UserRole::Shipping->value;
         }
-        Employee::whereIn('_id', $ids)->update($update);
+        $query->update($update);
     }
 
     /**
-     * Ensure the assigned manager employee has this warehouse and warehouse_manager role.
-     * Adds warehouse to their warehouse_ids so they can manage multiple warehouses.
+     * Ensure the assigned manager employee has this warehouse in warehouse_ids.
+     * Only sets role to warehouse_manager when the employee is not already a global manager.
      */
     private function syncManagerToWarehouse(string $employeeId, string $warehouseId): void
     {
         $employee = Employee::find($employeeId);
         if (! $employee) {
+            return;
+        }
+        // Never demote a global manager via warehouse assignment.
+        if ($employee->role === UserRole::Manager->value) {
             return;
         }
         $ids = $employee->warehouse_ids ?? [];
@@ -94,11 +109,14 @@ class WarehouseService
         if (! in_array($wid, array_map('strval', $ids), true)) {
             $ids[] = $warehouseId;
         }
-        $employee->update([
+        $payload = [
             'warehouse_id' => $ids[0],
             'warehouse_ids' => $ids,
-            'role' => UserRole::WarehouseManager->value,
-        ]);
+        ];
+        if ($employee->role !== UserRole::WarehouseManager->value) {
+            $payload['role'] = UserRole::WarehouseManager->value;
+        }
+        $employee->update($payload);
     }
 
     public function delete(string $id): bool

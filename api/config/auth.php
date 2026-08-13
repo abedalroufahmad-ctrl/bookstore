@@ -2,24 +2,14 @@
 
 use App\Models\Customer;
 use App\Models\Employee;
-use App\Models\User;
 
 return [
     'defaults' => [
-        'guard' => 'api',
-        'passwords' => 'users',
+        'guard' => 'customer',
+        'passwords' => 'customers',
     ],
 
     'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
-        'api' => [
-            'driver' => 'jwt',
-            'provider' => 'users',
-            'hash' => false,
-        ],
         'employee' => [
             'driver' => 'jwt',
             'provider' => 'employees',
@@ -33,10 +23,6 @@ return [
     ],
 
     'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
-        ],
         'employees' => [
             'driver' => 'eloquent',
             'model' => Employee::class,
@@ -48,8 +34,8 @@ return [
     ],
 
     'passwords' => [
-        'users' => [
-            'provider' => 'users',
+        'customers' => [
+            'provider' => 'customers',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

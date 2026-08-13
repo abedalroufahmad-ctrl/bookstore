@@ -263,8 +263,9 @@ Invalidate catalog cache on book/author mutations (version bump).
 
 ### Import books from ODS
 
-Script: `./import-books.sh path/to/books.ods`  
-Artisan: `cd api && php artisan books:import-ods path/to/books.ods`
+```bash
+cd api && php artisan books:import-ods path/to/books.ods
+```
 
 - Requires at least one warehouse.
 - Auto-detects columns (title, author, category, link/ISBN/price/stock, etc.).
@@ -274,9 +275,9 @@ Artisan: `cd api && php artisan books:import-ods path/to/books.ods`
 ### Seed large datasets
 
 ```bash
-./seed_large_data.sh
-# or
 cd api && php artisan db:seed-large --books=100000 --authors=100000 --chunk=5000
+# or top up to a target total:
+cd api && php artisan db:seed-large --target-books=1000000 --authors=0 --chunk=5000
 ```
 
 Seeded books include placeholder covers and `has_cover=true` so they appear in the public catalog.

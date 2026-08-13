@@ -23,15 +23,11 @@ class RestrictWarehouseManagerToScopedRoutes
         }
 
         $path = $request->path();
-        $allowedPrefixes = ['warehouses', 'employees', 'orders', 'settings', 'books'];
+        $allowedPrefixes = ['warehouses', 'employees', 'orders', 'settings'];
         $isAllowed = false;
         foreach ($allowedPrefixes as $prefix) {
             if (str_contains($path, 'admin/'.$prefix)) {
                 if ($prefix === 'settings' && $request->isMethod('PUT')) {
-                    continue;
-                }
-                // Warehouse managers can only read books from admin endpoints.
-                if ($prefix === 'books' && ! $request->isMethod('GET')) {
                     continue;
                 }
                 $isAllowed = true;

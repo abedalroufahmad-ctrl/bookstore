@@ -22,11 +22,12 @@ class UploadCoverController extends BaseApiController
 
         $file = $request->file('cover_image');
         $baseName = Str::uuid().'_'.time();
+        $ext = $this->safeImageExtension($file->getMimeType());
 
         // Store original
         $originalPath = $file->storeAs(
             'covers',
-            $baseName.'_original.'.$file->getClientOriginalExtension(),
+            $baseName.'_original.'.$ext,
             'public'
         );
 
@@ -83,7 +84,7 @@ class UploadCoverController extends BaseApiController
         );
         imagedestroy($source);
 
-        $ext = $file->getClientOriginalExtension();
+        $ext = $this->safeImageExtension($mime);
         $thumbFilename = $baseName.'_thumb.'.$ext;
         $storagePath = 'covers/'.$thumbFilename;
 
@@ -103,5 +104,15 @@ class UploadCoverController extends BaseApiController
         imagedestroy($thumb);
 
         return $saved ? $storagePath : null;
+    }
+
+    private function safeImageExtension(?string $mime): string
+    {
+        return match (true) {
+            str_contains((string) $mime, 'png') => 'png',
+            str_contains((string) $mime, 'gif') => 'gif',
+            str_contains((string) $mime, 'webp') => 'webp',
+            default => 'jpg',
+        };
     }
 }

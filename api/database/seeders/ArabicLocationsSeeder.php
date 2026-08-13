@@ -49,7 +49,7 @@ class ArabicLocationsSeeder extends Seeder
         $citiesPath = $basePath.'/cities.json';
 
         if (! file_exists($countriesPath) || ! file_exists($statesPath) || ! file_exists($citiesPath)) {
-            $this->command?->warn('Arabic locations JSON not found. Run ./import-arabic-locations.sh first.');
+            $this->command?->warn('Arabic locations JSON not found under database/seeders/data/arabic-locations/.');
 
             return;
         }

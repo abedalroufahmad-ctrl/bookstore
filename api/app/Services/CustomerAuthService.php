@@ -24,8 +24,8 @@ class CustomerAuthService extends BaseService implements CustomerAuthServiceInte
     {
         $guard = auth('customer');
         $defaultTtl = (int) config('jwt.ttl', 60);
-        // "Remember me": use a very long TTL (~10 years) for customer tokens.
-        $rememberTtl = 60 * 24 * 365 * 10;
+        // "Remember me": max 30 days (minutes).
+        $rememberTtl = min(60 * 24 * 30, (int) config('jwt.remember_ttl', 60 * 24 * 30));
         $guard->factory()->setTTL($rememberMe ? $rememberTtl : $defaultTtl);
 
         return $guard->attempt($credentials);
