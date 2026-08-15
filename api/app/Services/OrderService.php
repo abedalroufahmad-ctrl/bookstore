@@ -45,7 +45,12 @@ class OrderService extends BaseService implements OrderServiceInterface
         $paymentStatusPending = Payment::statusPending();
 
         $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatusPending) {
-            $groupedByWarehouse = $this->groupCartItemsByWarehouse($cart->items);
+            $repricedItems = $this->cartService->repriceItems($cart->items ?? []);
+            if ($repricedItems === []) {
+                throw new \InvalidArgumentException('Cart is empty.');
+            }
+
+            $groupedByWarehouse = $this->groupCartItemsByWarehouse($repricedItems);
             $createdOrders = [];
 
             foreach ($groupedByWarehouse as $warehouseId => $items) {

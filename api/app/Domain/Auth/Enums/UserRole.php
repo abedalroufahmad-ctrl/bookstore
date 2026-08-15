@@ -89,6 +89,18 @@ enum UserRole: string
     }
 
     /**
+     * Staff who must only see/act on orders for their warehouse(s).
+     */
+    public static function isOrderWarehouseScoped(string $role): bool
+    {
+        return in_array($role, [
+            self::WarehouseManager->value,
+            self::Shipping->value,
+            self::Accounting->value,
+        ], true);
+    }
+
+    /**
      * Roles a warehouse manager may assign when adding/updating staff in their warehouse(s).
      */
     public static function warehouseManagerStaffRoles(): array

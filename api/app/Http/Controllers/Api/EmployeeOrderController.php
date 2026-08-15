@@ -21,12 +21,12 @@ class EmployeeOrderController extends BaseApiController
             'assigned_to_me' => $request->boolean('assigned_to_me'),
         ];
         $employee = auth('employee')->user();
-        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+        if ($employee && UserRole::isOrderWarehouseScoped($employee->role)) {
             $managedIds = $employee->getManagedWarehouseIds();
             if (! empty($managedIds)) {
                 $filters['warehouse_ids'] = $managedIds;
             } else {
-                $filters['warehouse_id'] = $employee->warehouse_id;
+                $filters['warehouse_ids'] = ['__none__'];
             }
         }
         $perPage = min((int) $request->get('per_page', 15), 100);
@@ -44,12 +44,8 @@ class EmployeeOrderController extends BaseApiController
             return $this->errorResponse('Order not found', 404);
         }
 
-        $employee = auth('employee')->user();
-        if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
-            $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
-            if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
-                return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
-            }
+        if ($deny = $this->forbidIfOutsideWarehouseScope($order)) {
+            return $deny;
         }
 
         return $this->successResponse($order);
@@ -64,12 +60,8 @@ class EmployeeOrderController extends BaseApiController
                 return $this->errorResponse('Order not found', 404);
             }
 
-            $employee = auth('employee')->user();
-            if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
-                $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
-                if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
-                    return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
-                }
+            if ($deny = $this->forbidIfOutsideWarehouseScope($order)) {
+                return $deny;
             }
 
             $order = $this->orderService->submitWarehouseQuote($order, $request->validated());
@@ -89,12 +81,8 @@ class EmployeeOrderController extends BaseApiController
                 return $this->errorResponse('Order not found', 404);
             }
 
-            $employee = auth('employee')->user();
-            if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
-                $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
-                if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
-                    return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
-                }
+            if ($deny = $this->forbidIfOutsideWarehouseScope($order)) {
+                return $deny;
             }
 
             $order = $this->orderService->updateStatus($order, $request->validated('status'));
@@ -103,5 +91,20 @@ class EmployeeOrderController extends BaseApiController
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }
+    }
+
+    private function forbidIfOutsideWarehouseScope($order): ?JsonResponse
+    {
+        $employee = auth('employee')->user();
+        if (! $employee || ! UserRole::isOrderWarehouseScoped($employee->role)) {
+            return null;
+        }
+
+        $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
+        if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
+            return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
+        }
+
+        return null;
     }
 }

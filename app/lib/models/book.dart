@@ -60,11 +60,11 @@ class Book {
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      id: json['_id'] ?? json['id'] ?? '',
+      id: '${json['_id'] ?? json['id'] ?? ''}',
       title: json['title'] ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      stockQuantity: json['stock_quantity'] ?? 0,
-      isbn: json['isbn'],
+      stockQuantity: (json['stock_quantity'] as num?)?.toInt() ?? 0,
+      isbn: json['isbn']?.toString(),
       category: json['category'] is Map
           ? Category.fromJson(Map<String, dynamic>.from(json['category'] as Map))
           : null,
@@ -83,9 +83,9 @@ class Book {
           : (json['warehouse_id'] != null
               ? Warehouse(id: '${json['warehouse_id']}', name: null)
               : null),
-      description: json['description'],
-      pages: json['pages'],
-      publishYear: json['publish_year'],
+      description: json['description']?.toString(),
+      pages: (json['pages'] as num?)?.toInt(),
+      publishYear: (json['publish_year'] as num?)?.toInt(),
       publisher: json['publisher'] != null
           ? (json['publisher'] is String
               ? Publisher(id: '${json['publisher_id'] ?? ''}', name: json['publisher'])
@@ -99,12 +99,12 @@ class Book {
           : (json['publisher_id'] != null
               ? Publisher(id: '${json['publisher_id']}', name: null)
               : null),
-      size: json['size'],
+      size: json['size']?.toString(),
       weight: (json['weight'] as num?)?.toDouble(),
-      coverImage: _fixUrl(json['cover_image']),
-      coverImageThumb: _fixUrl(json['cover_image_thumb']),
-      editionNumber: json['edition_number'],
-      discountPercent: json['discount_percent'],
+      coverImage: _fixUrl(json['cover_image']?.toString()),
+      coverImageThumb: _fixUrl(json['cover_image_thumb']?.toString()),
+      editionNumber: (json['edition_number'] as num?)?.toInt(),
+      discountPercent: (json['discount_percent'] as num?)?.toInt(),
     );
   }
 

@@ -23,26 +23,20 @@ class PublicBookController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $filters = [];
-        if ($request->filled('search')) {
+        if ($request->filled('search') && is_string($request->get('search'))) {
             $filters['search'] = $request->get('search');
         }
-        if ($request->filled('category_id')) {
-            $filters['category_id'] = $request->get('category_id');
+        foreach (['category_id', 'warehouse_id', 'publisher_id', 'author_id'] as $key) {
+            $value = $request->get($key);
+            if (is_string($value) && $value !== '') {
+                $filters[$key] = $value;
+            }
         }
-        if ($request->filled('warehouse_id')) {
-            $filters['warehouse_id'] = $request->get('warehouse_id');
+        if ($request->filled('min_price') && is_numeric($request->get('min_price'))) {
+            $filters['min_price'] = (float) $request->get('min_price');
         }
-        if ($request->filled('publisher_id')) {
-            $filters['publisher_id'] = $request->get('publisher_id');
-        }
-        if ($request->filled('author_id')) {
-            $filters['author_id'] = $request->get('author_id');
-        }
-        if ($request->filled('min_price')) {
-            $filters['min_price'] = $request->get('min_price');
-        }
-        if ($request->filled('max_price')) {
-            $filters['max_price'] = $request->get('max_price');
+        if ($request->filled('max_price') && is_numeric($request->get('max_price'))) {
+            $filters['max_price'] = (float) $request->get('max_price');
         }
         $filters['in_stock'] = $request->boolean('in_stock', true);
         $filters['has_cover'] = true;

@@ -105,14 +105,35 @@ class PayPalController extends BaseApiController
                 return $this->redirectToConfiguredUrl($failUrl, 'paypal=not_completed');
             }
 
-            [$customId, $captureId] = $this->extractCustomAndCaptureId($details);
+            [$customId, $captureId, $capturedAmount] = $this->extractCustomCaptureAndAmount($details);
             if ($customId === '') {
                 Log::warning('PayPal completed order missing custom_id');
 
                 return $this->redirectToConfiguredUrl($failUrl, 'paypal=no_custom_id');
             }
 
-            $ids = array_filter(array_map('trim', explode(',', $customId)));
+            $ids = array_values(array_filter(array_map('trim', explode(',', $customId))));
+            $expected = 0.0;
+            foreach ($ids as $orderId) {
+                $order = Order::find($orderId);
+                if (! $order) {
+                    Log::warning('PayPal capture referenced missing order', ['order_id' => $orderId]);
+
+                    return $this->redirectToConfiguredUrl($failUrl, 'paypal=order_mismatch');
+                }
+                $expected += (float) $order->total;
+            }
+            $expected = round($expected, 2);
+            if ($capturedAmount === null || abs($capturedAmount - $expected) > 0.01) {
+                Log::warning('PayPal capture amount mismatch', [
+                    'expected' => $expected,
+                    'captured' => $capturedAmount,
+                    'order_ids' => $ids,
+                ]);
+
+                return $this->redirectToConfiguredUrl($failUrl, 'paypal=amount_mismatch');
+            }
+
             $this->orderService->markPayPalOrdersPaid($ids, $captureId);
         } catch (\Throwable $e) {
             Log::error($e->getMessage(), ['exception' => $e]);
@@ -131,22 +152,23 @@ class PayPalController extends BaseApiController
 
     /**
      * @param  array<string, mixed>  $orderPayload
-     * @return array{0: string, 1: string|null}
+     * @return array{0: string, 1: string|null, 2: float|null}
      */
-    private function extractCustomAndCaptureId(array $orderPayload): array
+    private function extractCustomCaptureAndAmount(array $orderPayload): array
     {
         $units = $orderPayload['purchase_units'] ?? [];
         if (! is_array($units) || $units === []) {
-            return ['', null];
+            return ['', null, null];
         }
 
         $pu = $units[0];
         if (! is_array($pu)) {
-            return ['', null];
+            return ['', null, null];
         }
 
         $customId = is_string($pu['custom_id'] ?? null) ? $pu['custom_id'] : '';
         $captureId = null;
+        $capturedAmount = null;
         $payments = $pu['payments'] ?? null;
         if (is_array($payments)) {
             $captures = $payments['captures'] ?? [];
@@ -155,10 +177,14 @@ class PayPalController extends BaseApiController
                 if (is_string($c0['id'] ?? null)) {
                     $captureId = $c0['id'];
                 }
+                $amountValue = $c0['amount']['value'] ?? null;
+                if (is_numeric($amountValue)) {
+                    $capturedAmount = round((float) $amountValue, 2);
+                }
             }
         }
 
-        return [$customId, $captureId];
+        return [$customId, $captureId, $capturedAmount];
     }
 
     private function redirectToConfiguredUrl(string $base, string $querySuffix): RedirectResponse

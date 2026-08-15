@@ -11,6 +11,7 @@ return [
         'passphrase' => env('JWT_PASSPHRASE'),
     ],
     'ttl' => (int) env('JWT_TTL', 60),
+    'remember_ttl' => (int) env('JWT_REMEMBER_TTL', 43200),
     'refresh_ttl' => (int) env('JWT_REFRESH_TTL', 20160),
     'algo' => env('JWT_ALGO', 'HS256'),
     'required_claims' => [

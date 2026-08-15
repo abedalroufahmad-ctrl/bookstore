@@ -142,9 +142,9 @@ class WarehouseController extends BaseApiController
 
         $data = $request->validated();
 
-        // Warehouse managers may update profile fields / staff links, not reassign manager_id.
+        // Warehouse managers may update profile fields / staff links, not ownership fields.
         if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
-            unset($data['manager_id']);
+            unset($data['manager_id'], $data['publisher_id']);
         }
 
         // Publisher managers can only update their own publisher's warehouses,

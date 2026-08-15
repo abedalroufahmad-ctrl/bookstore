@@ -141,7 +141,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
 
         Route::middleware(['auth:employee'])->group(function () {
             Route::post('logout', [EmployeeAuthController::class, 'logout']);
-            Route::post('refresh', [EmployeeAuthController::class, 'refresh']);
+            Route::post('refresh', [EmployeeAuthController::class, 'refresh'])->middleware('throttle:30,1');
             Route::get('me', [EmployeeAuthController::class, 'me']);
 
             Route::middleware('role:manager,shipping,accounting,warehouse_manager')->group(function () {
@@ -160,7 +160,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
 
         Route::middleware(['auth:customer'])->group(function () {
             Route::post('logout', [CustomerAuthController::class, 'logout']);
-            Route::post('refresh', [CustomerAuthController::class, 'refresh']);
+            Route::post('refresh', [CustomerAuthController::class, 'refresh'])->middleware('throttle:30,1');
             Route::get('me', [CustomerAuthController::class, 'me']);
             Route::put('profile', [CustomerAuthController::class, 'updateProfile']);
 
@@ -169,8 +169,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::delete('cart/items/{bookId}', [CartController::class, 'removeItem']);
             Route::patch('cart/items/{bookId}', [CartController::class, 'updateItem']);
 
-            Route::post('orders/checkout', [OrderController::class, 'checkout']);
-            Route::post('orders/paypal/start', [PayPalController::class, 'start']);
+            Route::post('orders/checkout', [OrderController::class, 'checkout'])->middleware('throttle:10,1');
+            Route::post('orders/paypal/start', [PayPalController::class, 'start'])->middleware('throttle:10,1');
             Route::get('orders', [OrderController::class, 'index']);
             Route::post('orders/{id}/confirm-quote', [OrderController::class, 'confirmQuote']);
             Route::get('orders/{id}', [OrderController::class, 'show']);

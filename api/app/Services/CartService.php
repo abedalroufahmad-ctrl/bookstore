@@ -122,11 +122,41 @@ class CartService extends BaseService implements CartServiceInterface
 
     public function calculateTotal(Cart $cart): float
     {
-        $items = collect($cart->items ?? []);
+        $items = $this->repriceItems($cart->items ?? []);
 
-        return $items->reduce(function (float $total, array $item) {
+        return collect($items)->reduce(function (float $total, array $item) {
             return $total + (($item['price'] ?? 0) * ($item['quantity'] ?? 0));
         }, 0.0);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    public function repriceItems(array $items): array
+    {
+        $repriced = [];
+        foreach ($items as $item) {
+            $bookId = $item['book_id'] ?? null;
+            if (! $bookId) {
+                continue;
+            }
+            $book = Book::find($bookId);
+            if (! $book) {
+                throw new \InvalidArgumentException("Book not found: {$bookId}");
+            }
+            $qty = max(0, (int) ($item['quantity'] ?? 0));
+            if ($qty <= 0) {
+                continue;
+            }
+            $repriced[] = [
+                'book_id' => (string) $bookId,
+                'quantity' => $qty,
+                'price' => $this->calculateDiscountedPrice($book),
+            ];
+        }
+
+        return $repriced;
     }
 
     public function markAsConverted(Cart $cart): void

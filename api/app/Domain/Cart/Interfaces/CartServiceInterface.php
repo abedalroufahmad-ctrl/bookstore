@@ -18,6 +18,14 @@ interface CartServiceInterface
 
     public function calculateTotal(Cart $cart): float;
 
+    /**
+     * Rebuild cart lines with live discounted book prices (for totals / checkout).
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    public function repriceItems(array $items): array;
+
     public function getItemsWithDetails(Cart $cart): Collection;
 
     public function markAsConverted(Cart $cart): void;

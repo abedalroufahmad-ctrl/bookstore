@@ -48,11 +48,15 @@ class AuthProvider with ChangeNotifier {
       final res = await ApiService.instance.customerMe();
       if (res.success && res.data != null) {
         _customer = res.data;
+      } else {
+        await logout();
       }
     } else if (_userType == UserType.employee) {
       final res = await ApiService.instance.employeeMe();
       if (res.success && res.data != null) {
         _employee = res.data;
+      } else {
+        await logout();
       }
     }
   }
