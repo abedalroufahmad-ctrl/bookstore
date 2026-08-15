@@ -62,7 +62,9 @@ export function BookList() {
             warehouseId={getWarehouseId(book)}
             discountPercent={book.discount_percent}
             globalDiscount={settings.global_discount}
-            onAddToCart={handleAddToCart}
+            condition={book.condition}
+            isSold={book.is_sold}
+            onAddToCart={book.is_sold ? undefined : handleAddToCart}
             isAddingToCart={isAddingToCart(book._id)}
             isInCart={isInCart(book._id)}
           />

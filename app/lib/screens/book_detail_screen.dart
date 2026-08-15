@@ -200,10 +200,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               _buildInfoRow(t.bookSize, b.size!),
             if (b.weight != null)
               _buildInfoRow(t.bookWeight, '${b.weight} kg'),
+            _buildInfoRow(
+              _s(context, 'الحالة', 'Condition'),
+              b.isUsed ? _s(context, 'مستعمل', 'Used') : _s(context, 'جديد', 'New'),
+            ),
             if (b.stockQuantity >= 0)
               _buildInfoRow(
                 _s(context, 'المخزون', 'Stock'),
-                b.stockQuantity > 0 ? _s(context, 'متوفر (${b.stockQuantity})', '${b.stockQuantity} in stock') : t.outOfStock,
+                b.isSold
+                    ? _s(context, 'مباع', 'Sold')
+                    : b.stockQuantity > 0
+                        ? _s(context, 'متوفر (${b.stockQuantity})', '${b.stockQuantity} in stock')
+                        : t.outOfStock,
               ),
             if (b.description != null && b.description!.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -212,29 +220,37 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               Text(b.description!, style: Theme.of(context).textTheme.bodyMedium),
             ],
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Text(_s(context, 'الكمية: ', 'Quantity: ')),
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
-                ),
-                Text('$_qty'),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => setState(() => _qty++),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: b.stockQuantity > 0 ? _addToCart : null,
-                icon: const Icon(Icons.add_shopping_cart),
-                label: Text(t.addToCart),
+            if (b.isPurchasable) ...[
+              Row(
+                children: [
+                  Text(_s(context, 'الكمية: ', 'Quantity: ')),
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
+                  ),
+                  Text('$_qty'),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: b.isUsed
+                        ? null
+                        : () => setState(() => _qty++),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _addToCart,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: Text(t.addToCart),
+                ),
+              ),
+            ] else if (b.isSold)
+              Text(
+                _s(context, 'تم بيع هذه النسخة', 'This copy has been sold'),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red.shade700),
+              ),
           ],
         ),
       ),

@@ -78,6 +78,28 @@ class BookCard extends StatelessWidget {
                       book.coverImageThumb ?? book.coverImage,
                       theme,
                     ),
+                    if (book.isUsed || book.isSold)
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: book.isSold ? const Color(0xFF7F1D1D) : const Color(0xFF92400E),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            book.isSold
+                                ? (Localizations.localeOf(context).languageCode == 'ar' ? 'مباع' : 'Sold')
+                                : (Localizations.localeOf(context).languageCode == 'ar' ? 'مستعمل' : 'Used'),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (finalDiscount > 0)
                       Positioned(
                         top: 6,

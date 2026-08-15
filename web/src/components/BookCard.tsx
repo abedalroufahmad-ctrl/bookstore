@@ -26,6 +26,8 @@ interface BookCardProps {
   warehouseId?: string
   discountPercent?: number
   globalDiscount: number
+  condition?: 'new' | 'used'
+  isSold?: boolean
   /** When provided, an "Add to cart" button is shown. Call with book id on click. */
   onAddToCart?: (bookId: string) => void
   /** When true, show loading state on the Add to cart button. */
@@ -61,6 +63,8 @@ export function BookCard({
   warehouseId,
   discountPercent,
   globalDiscount,
+  condition,
+  isSold,
   onAddToCart,
   isAddingToCart,
   isInCart,
@@ -97,6 +101,24 @@ export function BookCard({
               className="w-full h-full object-cover"
               style={{ objectFit: 'cover' }}
             />
+          )}
+
+          {condition === 'used' && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                background: isSold ? '#7f1d1d' : '#92400e',
+                color: '#fff',
+                fontSize: 10,
+                padding: '2px 8px',
+                borderRadius: 3,
+                fontWeight: 700,
+              }}
+            >
+              {isSold ? t('bookDetail.sold') : t('bookDetail.conditionUsed')}
+            </div>
           )}
 
           {authorName && (

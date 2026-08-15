@@ -186,6 +186,17 @@ export const admin = {
     update: (id: string, data: Partial<BookFormData>) =>
       api.put<ApiResponse<Book>>(`/admin/books/${id}`, data),
     delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/books/${id}`),
+    import: (file: File, warehouseId: string, skipCover = true) => {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('warehouse_id', warehouseId)
+      form.append('skip_cover', skipCover ? '1' : '0')
+      return api.post<
+        ApiResponse<{ created: number; skipped: number; errors: number; messages: string[] }>
+      >('/admin/books/import', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    },
   },
   warehouses: {
     list: (params?: Record<string, string | number>) =>
@@ -338,6 +349,9 @@ export interface Book {
   discount_percent?: number
   binding_type?: string
   paper_type?: string
+  condition?: 'new' | 'used'
+  is_visible?: boolean
+  is_sold?: boolean
 }
 
 export interface Warehouse {
@@ -407,6 +421,9 @@ export interface BookFormData {
   weight?: number
   edition_number?: number
   discount_percent?: number
+  condition?: 'new' | 'used'
+  is_visible?: boolean
+  is_sold?: boolean
 }
 
 export interface Category {

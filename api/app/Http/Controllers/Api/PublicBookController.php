@@ -40,6 +40,14 @@ class PublicBookController extends BaseApiController
         }
         $filters['in_stock'] = $request->boolean('in_stock', true);
         $filters['has_cover'] = true;
+        $filters['is_visible'] = true;
+        $filters['is_sold'] = false;
+        if ($request->filled('condition') && is_string($request->get('condition'))) {
+            $condition = strtolower(trim($request->get('condition')));
+            if (in_array($condition, ['new', 'used'], true)) {
+                $filters['condition'] = $condition;
+            }
+        }
         // Load only relations needed by catalog cards.
         $filters['with'] = ['authors', 'warehouse', 'publisher', 'category'];
         // Deep OFFSET is slow at 1M+ docs — clamp public offset navigation.
@@ -72,6 +80,10 @@ class PublicBookController extends BaseApiController
         $book = $this->bookService->getById($id);
 
         if (! $book) {
+            return $this->errorResponse('Book not found', 404);
+        }
+
+        if (($book->is_visible ?? true) === false) {
             return $this->errorResponse('Book not found', 404);
         }
 

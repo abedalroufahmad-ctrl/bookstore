@@ -41,6 +41,18 @@ class BookController extends BaseApiController
         if ($request->boolean('no_cover')) {
             $filters['no_cover'] = true;
         }
+        if ($request->filled('condition') && is_string($request->get('condition'))) {
+            $condition = strtolower(trim($request->get('condition')));
+            if (in_array($condition, ['new', 'used'], true)) {
+                $filters['condition'] = $condition;
+            }
+        }
+        if ($request->has('is_visible')) {
+            $filters['is_visible'] = $request->boolean('is_visible');
+        }
+        if ($request->has('is_sold')) {
+            $filters['is_sold'] = $request->boolean('is_sold');
+        }
         if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
             $managedIds = $employee->getManagedWarehouseIds();
             if (empty($managedIds)) {
@@ -77,6 +89,43 @@ class BookController extends BaseApiController
         $book = $this->bookService->getById((string) $book->getKey());
 
         return $this->successResponse($book, 'Book created', 201);
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,ods,csv', 'max:20480'],
+            'warehouse_id' => ['required', 'string'],
+            'skip_cover' => ['nullable', 'boolean'],
+        ]);
+
+        $employee = auth('employee')->user();
+        if ($employee && UserRole::isPublisherScoped($employee->role)) {
+            $publisherId = $employee->getManagedPublisherId();
+            if (! $publisherId) {
+                return $this->errorResponse('Forbidden. You are not assigned to a publisher.', 403);
+            }
+        }
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        if (! $path) {
+            return $this->errorResponse('Could not read uploaded file.', 422);
+        }
+
+        $importer = app(\App\Infrastructure\Services\BookImportService::class);
+        $result = $importer->importFromFile(
+            $path,
+            (string) $request->input('warehouse_id'),
+            [
+                'skip_cover' => $request->boolean('skip_cover', true),
+                'publisher_id' => ($employee && UserRole::isPublisherScoped($employee->role))
+                    ? $employee->getManagedPublisherId()
+                    : null,
+            ]
+        );
+
+        return $this->successResponse($result, 'Import completed');
     }
 
     public function show(string $id): JsonResponse

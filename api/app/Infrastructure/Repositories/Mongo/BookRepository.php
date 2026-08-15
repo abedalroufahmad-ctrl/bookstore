@@ -33,6 +33,9 @@ class BookRepository implements BookRepositoryInterface
         'discount_percent',
         'publish_year',
         'pages',
+        'condition',
+        'is_visible',
+        'is_sold',
         'created_at',
         'updated_at',
     ];
@@ -258,6 +261,30 @@ class BookRepository implements BookRepositoryInterface
                     ->orWhereNull('has_cover');
             });
         }
+
+        if (! empty($filters['condition'])) {
+            $query->where('condition', $filters['condition']);
+        }
+
+        if (array_key_exists('is_visible', $filters)) {
+            if ($filters['is_visible']) {
+                $query->where(function ($q) {
+                    $q->where('is_visible', true)->orWhereNull('is_visible');
+                });
+            } else {
+                $query->where('is_visible', false);
+            }
+        }
+
+        if (array_key_exists('is_sold', $filters)) {
+            if ($filters['is_sold']) {
+                $query->where('is_sold', true);
+            } else {
+                $query->where(function ($q) {
+                    $q->where('is_sold', false)->orWhereNull('is_sold');
+                });
+            }
+        }
     }
 
     private function cachedTotal($query, array $filters): int
@@ -278,6 +305,10 @@ class BookRepository implements BookRepositoryInterface
                             [
                                 'has_cover' => true,
                                 'stock_quantity' => ['$gt' => 0],
+                                '$and' => [
+                                    ['$or' => [['is_visible' => true], ['is_visible' => null]]],
+                                    ['$or' => [['is_sold' => false], ['is_sold' => null]]],
+                                ],
                             ],
                             ['hint' => 'books_catalog_idx']
                         );
@@ -295,12 +326,17 @@ class BookRepository implements BookRepositoryInterface
         return ! empty($filters['has_cover'])
             && isset($filters['in_stock'])
             && $filters['in_stock'] === true
+            && array_key_exists('is_visible', $filters)
+            && $filters['is_visible'] === true
+            && array_key_exists('is_sold', $filters)
+            && $filters['is_sold'] === false
             && empty($filters['search'])
             && empty($filters['category_id'])
             && empty($filters['warehouse_id'])
             && empty($filters['warehouse_ids'])
             && empty($filters['publisher_id'])
             && empty($filters['author_id'])
+            && empty($filters['condition'])
             && ! isset($filters['min_price'])
             && ! isset($filters['max_price']);
     }

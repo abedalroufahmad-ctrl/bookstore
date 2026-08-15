@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Domain\Book\Enums\BookCondition;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,6 +16,7 @@ class BookUpdateRequest extends BaseFormRequest
     public function rules(): array
     {
         $bookId = $this->route('id');
+        $warehouseId = (string) $this->input('warehouse_id', '');
 
         return [
             'title' => ['sometimes', 'string', 'max:500'],
@@ -28,7 +30,14 @@ class BookUpdateRequest extends BaseFormRequest
             'description' => ['nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'pages' => ['nullable', 'integer', 'min:1'],
-            'isbn' => ['sometimes', 'string', 'max:20', Rule::unique('books', 'isbn')->ignore($bookId, '_id')],
+            'isbn' => [
+                'sometimes',
+                'string',
+                'max:20',
+                Rule::unique('books', 'isbn')
+                    ->ignore($bookId, '_id')
+                    ->where(fn ($q) => $q->where('warehouse_id', $warehouseId !== '' ? $warehouseId : $this->existingWarehouseId())),
+            ],
             'publish_year' => ['nullable', 'integer', 'min:1000', 'max:2100'],
             'edition_number' => ['nullable', 'integer', 'min:1'],
             'binding_type' => ['nullable', 'string', 'max:50'],
@@ -37,6 +46,34 @@ class BookUpdateRequest extends BaseFormRequest
             'warehouse_id' => ['sometimes', 'string'],
             'stock_quantity' => ['sometimes', 'integer', 'min:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'condition' => ['nullable', Rule::in(BookCondition::values())],
+            'is_visible' => ['nullable', 'boolean'],
+            'is_sold' => ['nullable', 'boolean'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('condition')) {
+            $this->merge([
+                'condition' => BookCondition::normalize($this->input('condition'))->value,
+            ]);
+        }
+
+        if ($this->input('condition') === BookCondition::Used->value && $this->has('stock_quantity') && (int) $this->input('stock_quantity') > 1) {
+            $this->merge(['stock_quantity' => 1]);
+        }
+    }
+
+    private function existingWarehouseId(): string
+    {
+        $bookId = $this->route('id');
+        if (! $bookId) {
+            return '';
+        }
+
+        $book = \App\Models\Book::find($bookId);
+
+        return $book ? (string) $book->warehouse_id : '';
     }
 }

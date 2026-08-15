@@ -26,6 +26,9 @@ const emptyForm: BookFormData = {
   cover_image_thumb: '',
   edition_number: undefined,
   discount_percent: 0,
+  condition: 'new',
+  is_visible: true,
+  is_sold: false,
 }
 
 function extractList<T>(data: unknown): T[] {
@@ -277,6 +280,9 @@ export function AdminBookForm() {
         cover_image_thumb: b.cover_image_thumb ?? '',
         edition_number: b.edition_number,
         discount_percent: b.discount_percent ?? 0,
+        condition: b.condition === 'used' ? 'used' : 'new',
+        is_visible: b.is_visible !== false,
+        is_sold: Boolean(b.is_sold),
       })
     }
   }, [bookData])
@@ -510,6 +516,7 @@ export function AdminBookForm() {
           <input
             type="number"
             min="0"
+            max={form.condition === 'used' ? 1 : undefined}
             value={form.stock_quantity}
             onChange={(e) =>
               setForm((p) => ({
@@ -520,7 +527,67 @@ export function AdminBookForm() {
             required
             className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
+          {form.condition === 'used' && (
+            <p className="mt-1 text-xs text-stone-500">{t('admin.usedStockHint')}</p>
+          )}
         </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            {t('admin.condition')}
+          </label>
+          <select
+            value={form.condition ?? 'new'}
+            onChange={(e) => {
+              const condition = e.target.value === 'used' ? 'used' : 'new'
+              setForm((p) => ({
+                ...p,
+                condition,
+                stock_quantity: condition === 'used' ? Math.min(1, p.stock_quantity || 1) : p.stock_quantity,
+                is_sold: condition === 'new' ? false : p.is_sold,
+              }))
+            }}
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="new">{t('admin.conditionNew')}</option>
+            <option value="used">{t('admin.conditionUsed')}</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            {t('admin.visibility')}
+          </label>
+          <select
+            value={form.is_visible === false ? 'hidden' : 'visible'}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, is_visible: e.target.value !== 'hidden' }))
+            }
+            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="visible">{t('admin.visible')}</option>
+            <option value="hidden">{t('admin.hidden')}</option>
+          </select>
+        </div>
+        {form.condition === 'used' && (
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              {t('admin.soldStatus')}
+            </label>
+            <select
+              value={form.is_sold ? 'sold' : 'available'}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  is_sold: e.target.value === 'sold',
+                  stock_quantity: e.target.value === 'sold' ? 0 : Math.max(1, p.stock_quantity || 1),
+                }))
+              }
+              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="available">{t('admin.available')}</option>
+              <option value="sold">{t('admin.sold')}</option>
+            </select>
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
             {t('admin.specialDiscount')}
@@ -694,7 +761,7 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            {t('admin.warehouse')} *
+            {t('admin.store')} *
           </label>
           <select
             value={form.warehouse_id}
@@ -704,13 +771,14 @@ export function AdminBookForm() {
             required
             className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           >
-            <option value="">{t('admin.selectWarehouse')}</option>
+            <option value="">{t('admin.selectStore')}</option>
             {warehouseList.map((w) => (
               <option key={w._id} value={w._id}>
                 {w.name}
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-stone-500">{t('admin.multiStoreHint')}</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">

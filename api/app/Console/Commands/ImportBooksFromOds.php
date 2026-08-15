@@ -17,8 +17,8 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class ImportBooksFromOds extends Command
 {
     protected $signature = 'books:import-ods
-                            {file : Path to the ODS file}
-                            {--warehouse= : Warehouse ID (uses first warehouse if not set)}
+                            {file : Path to the ODS/XLSX/XLS/CSV file}
+                            {--warehouse= : Warehouse/store ID (uses first warehouse if not set)}
                             {--skip-cover : Skip downloading cover images from book links}
                             {--dry-run : Show what would be imported without making changes}
                             {--clear : Delete all books, authors, and categories before importing}
@@ -36,7 +36,7 @@ class ImportBooksFromOds extends Command
                             {--default-category=General : Default category when not found}
                             {--cover-verbose : Show cover fetch attempts and failures}';
 
-    protected $description = 'Import books from an ODS spreadsheet. Expects columns: title, author, category, link (book URL), isbn, price, etc.';
+    protected $description = 'Import books from Excel/ODS/CSV into a warehouse (store). Columns: title, author, category, isbn, price, stock, condition, visibility, etc.';
 
     private array $columnMap = [];
 
@@ -117,8 +117,8 @@ class ImportBooksFromOds extends Command
                 $isbn = 'IMPORT-'.Str::uuid();
             }
 
-            if (! $clear && Book::where('isbn', $isbn)->exists()) {
-                $this->warn("Row {$rowNum}: Skipping - ISBN already exists: {$isbn}");
+            if (! $clear && Book::where('isbn', $isbn)->where('warehouse_id', (string) $warehouse->getKey())->exists()) {
+                $this->warn("Row {$rowNum}: Skipping - ISBN already exists in this store: {$isbn}");
                 $skipped++;
 
                 continue;
@@ -156,7 +156,13 @@ class ImportBooksFromOds extends Command
                 }
 
                 $price = (float) ($this->getCell($row, 'price') ?: 0);
-                $stock = (int) ($this->getCell($row, 'stock') ?: 10);
+                $condition = \App\Domain\Book\Enums\BookCondition::normalize($this->getCell($row, 'condition'));
+                $stock = (int) ($this->getCell($row, 'stock') ?: ($condition === \App\Domain\Book\Enums\BookCondition::Used ? 1 : 10));
+                if ($condition === \App\Domain\Book\Enums\BookCondition::Used) {
+                    $stock = min(1, max(0, $stock));
+                }
+                $visibilityRaw = strtolower((string) ($this->getCell($row, 'visibility') ?? 'visible'));
+                $isVisible = ! in_array($visibilityRaw, ['hidden', 'hide', '0', 'false', 'no', 'مخفي'], true);
                 $description = $this->getCell($row, 'description') ?: '';
                 $publisherName = trim((string) ($this->getCell($row, 'publisher') ?: ''));
                 $publisherId = null;
@@ -200,6 +206,9 @@ class ImportBooksFromOds extends Command
                         'size' => $size,
                         'weight' => $weight,
                         'edition_number' => $editionNumber,
+                        'condition' => $condition->value,
+                        'is_visible' => $isVisible,
+                        'is_sold' => false,
                         'cover_image' => $coverImage,
                         'cover_image_thumb' => $coverThumb ?? $coverImage,
                     ]);
@@ -240,6 +249,8 @@ class ImportBooksFromOds extends Command
             'size' => ['size', 'الحجم', 'حجم', 'dimensions', 'مقاس'],
             'weight' => ['weight', 'الوزن', 'وزن', 'weight kg', 'كجم'],
             'edition' => ['edition', 'الطبعة', 'طبعة', 'edition number', 'رقم الطبعة'],
+            'condition' => ['condition', 'الحالة', 'حالة', 'new/used', 'جديد', 'مستعمل'],
+            'visibility' => ['visibility', 'visible', 'hidden', 'الظهور', 'مخفي', 'ظاهر', 'is_visible'],
         ];
 
         foreach ($aliases as $key => $names) {

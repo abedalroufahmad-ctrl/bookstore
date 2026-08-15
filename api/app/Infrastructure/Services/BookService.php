@@ -32,6 +32,13 @@ class BookService
 
     public function create(array $data): Book
     {
+        $data['condition'] = $data['condition'] ?? 'new';
+        $data['is_visible'] = array_key_exists('is_visible', $data) ? (bool) $data['is_visible'] : true;
+        $data['is_sold'] = array_key_exists('is_sold', $data) ? (bool) $data['is_sold'] : false;
+        if (($data['condition'] ?? 'new') === 'used') {
+            $data['stock_quantity'] = min(1, max(0, (int) ($data['stock_quantity'] ?? 1)));
+        }
+
         $book = $this->repository->create($data);
         $this->bustCatalogCache();
 

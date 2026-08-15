@@ -6,7 +6,17 @@ import { admin } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
-import type { Book } from '../lib/api'
+import type { Book, Warehouse } from '../lib/api'
+
+function extractList<T>(data: unknown): T[] {
+  if (!data) return []
+  const d = data as Record<string, unknown>
+  if (Array.isArray(d.data)) return d.data as T[]
+  if (d.data && typeof d.data === 'object' && 'data' in d.data) {
+    return (d.data as { data: T[] }).data
+  }
+  return Array.isArray(d) ? d : []
+}
 
 export function AdminBooks() {
   const { t } = useTranslation()
@@ -14,20 +24,39 @@ export function AdminBooks() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [page, setPage] = useState(1)
+  const [conditionFilter, setConditionFilter] = useState('')
+  const [visibilityFilter, setVisibilityFilter] = useState('')
+  const [importWarehouseId, setImportWarehouseId] = useState('')
+  const [importMessage, setImportMessage] = useState('')
   const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
 
   useEffect(() => {
     setPage(1)
-  }, [committedSearch])
+  }, [committedSearch, conditionFilter, visibilityFilter])
+
+  const { data: warehousesData } = useQuery({
+    queryKey: ['admin-warehouses-for-import'],
+    queryFn: async () => {
+      const res = await admin.warehouses.list({ per_page: 100 })
+      return res.data
+    },
+  })
+
+  const warehouseList = extractList<Warehouse>(warehousesData)
 
   const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ['admin-books', page, committedSearch],
+    queryKey: ['admin-books', page, committedSearch, conditionFilter, visibilityFilter],
     queryFn: async () => {
       const res = await admin.books.list({
         page,
         per_page: 32,
         ...(committedSearch ? { search: committedSearch } : {}),
+        ...(conditionFilter ? { condition: conditionFilter } : {}),
+        ...(visibilityFilter === 'visible' ? { is_visible: 1 } : {}),
+        ...(visibilityFilter === 'hidden' ? { is_visible: 0 } : {}),
+        ...(visibilityFilter === 'sold' ? { is_sold: 1 } : {}),
       })
       return res.data
     },
@@ -62,6 +91,31 @@ export function AdminBooks() {
     },
   })
 
+  const importMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!importWarehouseId) {
+        throw new Error(t('admin.selectStoreFirst'))
+      }
+      const res = await admin.books.import(file, importWarehouseId, true)
+      return res.data
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-books'] })
+      const payload = res?.data
+      setImportMessage(
+        t('admin.importResult', {
+          created: payload?.created ?? 0,
+          skipped: payload?.skipped ?? 0,
+          errors: payload?.errors ?? 0,
+        })
+      )
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    },
+    onError: (err: { message?: string; response?: { data?: { message?: string } } }) => {
+      setImportMessage(err?.response?.data?.message ?? err.message ?? t('common.error'))
+    },
+  })
+
   const handleDelete = (book: Book) => {
     if (window.confirm(t('admin.deleteBookConfirm', { title: book.title }))) {
       deleteMutation.mutate(book._id)
@@ -76,7 +130,7 @@ export function AdminBooks() {
       window.confirm(
         t('admin.deleteBooksBulkConfirm', {
           count: ids.length,
-        }),
+        })
       )
     ) {
       bulkDeleteMutation.mutate(ids)
@@ -139,6 +193,46 @@ export function AdminBooks() {
           {t('admin.addBook')}
         </Link>
       </div>
+
+      <div className="mb-6 rounded-lg border border-stone-200 bg-white p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-stone-800">{t('admin.importExcel')}</h2>
+        <p className="text-xs text-stone-500">{t('admin.importExcelHint')}</p>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-xs font-medium text-stone-600 mb-1">{t('admin.store')}</label>
+            <select
+              value={importWarehouseId}
+              onChange={(e) => setImportWarehouseId(e.target.value)}
+              className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
+            >
+              <option value="">{t('admin.selectStore')}</option>
+              {warehouseList.map((w) => (
+                <option key={w._id} value={w._id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-stone-600 mb-1">{t('admin.excelFile')}</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.ods,.csv"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) importMutation.mutate(file)
+              }}
+              className="text-sm"
+            />
+          </div>
+          {importMutation.isPending && (
+            <span className="text-sm text-stone-500">{t('admin.importing')}</span>
+          )}
+        </div>
+        {importMessage && <p className="text-sm text-stone-700">{importMessage}</p>}
+      </div>
+
       <AdminListSearchBar
         value={searchInput}
         onChange={setSearchInput}
@@ -147,8 +241,31 @@ export function AdminBooks() {
         isFetching={isFetching}
         committedValue={committedSearch}
         onCommit={commitSearch}
-        className="mb-6"
+        className="mb-4"
       />
+
+      <div className="flex flex-wrap gap-3 mb-6">
+        <select
+          value={conditionFilter}
+          onChange={(e) => setConditionFilter(e.target.value)}
+          className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
+        >
+          <option value="">{t('admin.allConditions')}</option>
+          <option value="new">{t('admin.conditionNew')}</option>
+          <option value="used">{t('admin.conditionUsed')}</option>
+        </select>
+        <select
+          value={visibilityFilter}
+          onChange={(e) => setVisibilityFilter(e.target.value)}
+          className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
+        >
+          <option value="">{t('admin.allVisibility')}</option>
+          <option value="visible">{t('admin.visible')}</option>
+          <option value="hidden">{t('admin.hidden')}</option>
+          <option value="sold">{t('admin.sold')}</option>
+        </select>
+      </div>
+
       {queryErrorMessage && (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           {queryErrorMessage}
@@ -181,10 +298,11 @@ export function AdminBooks() {
                 />
               </th>
               <th className="px-4 py-2 text-left">{t('admin.title')}</th>
-              <th className="px-4 py-2 text-left">{t('admin.isbn')}</th>
-              <th className="px-4 py-2 text-left">{t('admin.publisher') ?? 'Publisher'}</th>
+              <th className="px-4 py-2 text-left">{t('admin.store')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.condition')}</th>
               <th className="px-4 py-2 text-left">{t('admin.price')}</th>
               <th className="px-4 py-2 text-left">{t('admin.stock')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.status')}</th>
               <th className="px-4 py-2 text-right">{t('admin.actions')}</th>
             </tr>
           </thead>
@@ -200,10 +318,19 @@ export function AdminBooks() {
                   />
                 </td>
                 <td className="px-4 py-2">{book.title}</td>
-                <td className="px-4 py-2">{book.isbn ?? '-'}</td>
-                <td className="px-4 py-2">{typeof book.publisher === 'string' ? book.publisher : (book.publisher?.name ?? '-')}</td>
+                <td className="px-4 py-2">{book.warehouse?.name ?? '-'}</td>
+                <td className="px-4 py-2">
+                  {book.condition === 'used' ? t('admin.conditionUsed') : t('admin.conditionNew')}
+                </td>
                 <td className="px-4 py-2">${Number(book.price ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2">{book.stock_quantity ?? 0}</td>
+                <td className="px-4 py-2">
+                  {book.is_sold
+                    ? t('admin.sold')
+                    : book.is_visible === false
+                      ? t('admin.hidden')
+                      : t('admin.visible')}
+                </td>
                 <td className="px-4 py-2 text-right">
                   <Link
                     to={`/admin/books/${book._id}/edit`}

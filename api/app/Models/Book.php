@@ -35,6 +35,9 @@ class Book extends Model
         'warehouse_id',
         'stock_quantity',
         'discount_percent',
+        'condition',
+        'is_visible',
+        'is_sold',
     ];
 
     protected function casts(): array
@@ -47,6 +50,8 @@ class Book extends Model
             'edition_number' => 'integer',
             'discount_percent' => 'float',
             'has_cover' => 'boolean',
+            'is_visible' => 'boolean',
+            'is_sold' => 'boolean',
         ];
     }
 
@@ -56,7 +61,37 @@ class Book extends Model
             $cover = trim((string) ($book->cover_image ?? ''));
             $thumb = trim((string) ($book->cover_image_thumb ?? ''));
             $book->has_cover = $cover !== '' || $thumb !== '';
+
+            if ($book->condition === null || $book->condition === '') {
+                $book->condition = 'new';
+            }
+            if ($book->is_visible === null) {
+                $book->is_visible = true;
+            }
+            if ($book->is_sold === null) {
+                $book->is_sold = false;
+            }
+
+            // Used copies are unique inventory units.
+            if ($book->condition === 'used' && (int) $book->stock_quantity > 1) {
+                $book->stock_quantity = 1;
+            }
+            if ($book->condition === 'used' && (bool) $book->is_sold) {
+                $book->stock_quantity = 0;
+            }
         });
+    }
+
+    public function isUsed(): bool
+    {
+        return strtolower((string) ($this->condition ?? 'new')) === 'used';
+    }
+
+    public function isPurchasable(): bool
+    {
+        return ($this->is_visible ?? true)
+            && ! ($this->is_sold ?? false)
+            && (int) ($this->stock_quantity ?? 0) > 0;
     }
 
     public function authors(): BelongsToMany

@@ -223,6 +223,15 @@ export function BookDetail() {
             <InfoRow label={t('bookDetail.bindingType')} value={book.binding_type} />
             <InfoRow label={t('bookDetail.paperType')} value={book.paper_type} />
             <InfoRow
+              label={t('bookDetail.condition')}
+              alwaysShow
+              value={
+                book.condition === 'used'
+                  ? t('bookDetail.conditionUsed')
+                  : t('bookDetail.conditionNew')
+              }
+            />
+            <InfoRow
               label={t('bookDetail.warehouse')}
               value={
                 warehouseLabel
@@ -239,16 +248,25 @@ export function BookDetail() {
             <InfoRow
               label={t('bookDetail.stock')}
               value={
-                book.stock_quantity !== undefined
-                  ? book.stock_quantity > 0
-                    ? t('bookDetail.inStock', { count: book.stock_quantity })
-                    : t('bookDetail.outOfStock')
-                  : null
+                book.is_sold
+                  ? t('bookDetail.sold')
+                  : book.stock_quantity !== undefined
+                    ? book.stock_quantity > 0
+                      ? t('bookDetail.inStock', { count: book.stock_quantity })
+                      : t('bookDetail.outOfStock')
+                    : null
               }
             />
           </div>
           {book.description && <p className="text-stone-600 mb-4">{book.description}</p>}
-          {(userType === 'customer' || userType === 'employee') && book.stock_quantity > 0 && (
+          {book.is_sold && (
+            <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--color-discount)' }}>
+              {t('bookDetail.sold')}
+            </p>
+          )}
+          {(userType === 'customer' || userType === 'employee') &&
+            !book.is_sold &&
+            book.stock_quantity > 0 && (
             <button
               onClick={addToCart}
               className="px-6 py-2.5 rounded-lg font-medium text-white transition-colors hover:opacity-90"
@@ -257,7 +275,10 @@ export function BookDetail() {
               {t('bookDetail.addToCart')}
             </button>
           )}
-          {userType !== 'customer' && userType !== 'employee' && book.stock_quantity > 0 && (
+          {userType !== 'customer' &&
+            userType !== 'employee' &&
+            !book.is_sold &&
+            book.stock_quantity > 0 && (
             <button
               onClick={() => navigate('/login')}
               className="px-6 py-2.5 rounded-lg font-medium text-white flex items-center gap-2 transition-colors hover:opacity-90"

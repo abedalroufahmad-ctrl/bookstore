@@ -20,6 +20,9 @@ class Book {
     this.coverImageThumb,
     this.editionNumber,
     this.discountPercent,
+    this.condition = 'new',
+    this.isVisible = true,
+    this.isSold = false,
   });
 
   final String id;
@@ -40,6 +43,13 @@ class Book {
   final String? coverImageThumb;
   final int? editionNumber;
   final int? discountPercent;
+  final String condition;
+  final bool isVisible;
+  final bool isSold;
+
+  bool get isUsed => condition.toLowerCase() == 'used';
+
+  bool get isPurchasable => isVisible && !isSold && stockQuantity > 0;
 
   /// True when the book has at least one cover image URL (thumb or full).
   bool get hasCover {
@@ -105,6 +115,9 @@ class Book {
       coverImageThumb: _fixUrl(json['cover_image_thumb']?.toString()),
       editionNumber: (json['edition_number'] as num?)?.toInt(),
       discountPercent: (json['discount_percent'] as num?)?.toInt(),
+      condition: (json['condition']?.toString().toLowerCase() == 'used') ? 'used' : 'new',
+      isVisible: json['is_visible'] == null ? true : json['is_visible'] == true,
+      isSold: json['is_sold'] == true,
     );
   }
 
@@ -127,6 +140,9 @@ class Book {
       'cover_image_thumb': coverImageThumb,
       'edition_number': editionNumber,
       'discount_percent': discountPercent,
+      'condition': condition,
+      'is_visible': isVisible,
+      'is_sold': isSold,
     };
   }
 }
