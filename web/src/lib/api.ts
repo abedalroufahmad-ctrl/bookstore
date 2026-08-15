@@ -408,6 +408,7 @@ export interface BookFormData {
   author_ids: string[]
   category_id: string
   warehouse_id: string
+  warehouse_ids?: string[]
   price: number
   isbn: string
   stock_quantity: number

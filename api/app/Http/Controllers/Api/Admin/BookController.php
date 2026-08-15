@@ -85,10 +85,34 @@ class BookController extends BaseApiController
             $data['publisher_id'] = $publisherId;
         }
 
-        $book = $this->bookService->create($data);
-        $book = $this->bookService->getById((string) $book->getKey());
+        $warehouseIds = array_values(array_unique(array_filter(array_map(
+            'strval',
+            (array) ($data['warehouse_ids'] ?? [($data['warehouse_id'] ?? null)])
+        ))));
+        unset($data['warehouse_ids']);
 
-        return $this->successResponse($book, 'Book created', 201);
+        if ($warehouseIds === []) {
+            return $this->errorResponse('At least one warehouse is required.', 422);
+        }
+
+        $created = [];
+        foreach ($warehouseIds as $warehouseId) {
+            $payload = $data;
+            $payload['warehouse_id'] = $warehouseId;
+            $book = $this->bookService->create($payload);
+            $created[] = $this->bookService->getById((string) $book->getKey());
+        }
+
+        $first = $created[0] ?? null;
+        $message = count($created) > 1
+            ? 'Book created in '.count($created).' warehouses'
+            : 'Book created';
+
+        return $this->successResponse([
+            'book' => $first,
+            'books' => $created,
+            'created_count' => count($created),
+        ], $message, 201);
     }
 
     public function import(Request $request): JsonResponse
@@ -152,16 +176,31 @@ class BookController extends BaseApiController
         $data = $request->validated();
 
         $employee = auth('employee')->user();
+        $existing = $this->bookService->getById($id);
+        if (! $existing) {
+            return $this->errorResponse('Book not found', 404);
+        }
+
         if ($employee && UserRole::isPublisherScoped($employee->role)) {
-            $existing = $this->bookService->getById($id);
-            if (! $existing) {
-                return $this->errorResponse('Book not found', 404);
-            }
             if (! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
                 return $this->errorResponse('Forbidden. You can only update your publisher\'s books.', 403);
             }
             // Keep the book under this publisher.
             $data['publisher_id'] = $employee->getManagedPublisherId();
+        }
+
+        $warehouseIds = null;
+        if (array_key_exists('warehouse_ids', $data)) {
+            $warehouseIds = array_values(array_unique(array_filter(array_map('strval', (array) $data['warehouse_ids']))));
+            unset($data['warehouse_ids']);
+
+            $currentWarehouseId = (string) ($existing->warehouse_id ?? '');
+            if ($warehouseIds !== [] && ! in_array($currentWarehouseId, $warehouseIds, true)) {
+                $data['warehouse_id'] = $warehouseIds[0];
+            } elseif (! array_key_exists('warehouse_id', $data)) {
+                // Keep this listing on its current warehouse.
+                unset($data['warehouse_id']);
+            }
         }
 
         $book = $this->bookService->update($id, $data);
@@ -170,7 +209,52 @@ class BookController extends BaseApiController
             return $this->errorResponse('Book not found', 404);
         }
 
-        return $this->successResponse($book, 'Book updated');
+        $createdExtras = [];
+        if (is_array($warehouseIds) && $warehouseIds !== []) {
+            $isbn = (string) ($book->isbn ?? '');
+            $basePayload = [
+                'title' => $book->title,
+                'author_ids' => $book->author_ids ?? [],
+                'category_id' => $book->category_id,
+                'size' => $book->size,
+                'weight' => $book->weight,
+                'cover_image' => $book->cover_image,
+                'cover_image_thumb' => $book->cover_image_thumb,
+                'description' => $book->description,
+                'price' => $book->price,
+                'pages' => $book->pages,
+                'isbn' => $isbn,
+                'publish_year' => $book->publish_year,
+                'edition_number' => $book->edition_number,
+                'binding_type' => $book->binding_type,
+                'paper_type' => $book->paper_type,
+                'publisher_id' => $book->publisher_id,
+                'stock_quantity' => $book->stock_quantity,
+                'discount_percent' => $book->discount_percent,
+                'condition' => $book->condition ?? 'new',
+                'is_visible' => $book->is_visible ?? true,
+                'is_sold' => false,
+            ];
+
+            foreach ($warehouseIds as $warehouseId) {
+                if ($warehouseId === (string) $book->warehouse_id) {
+                    continue;
+                }
+                if ($isbn !== '' && \App\Models\Book::where('isbn', $isbn)->where('warehouse_id', $warehouseId)->exists()) {
+                    continue;
+                }
+                $payload = $basePayload;
+                $payload['warehouse_id'] = $warehouseId;
+                $created = $this->bookService->create($payload);
+                $createdExtras[] = $this->bookService->getById((string) $created->getKey());
+            }
+        }
+
+        return $this->successResponse([
+            'book' => $book,
+            'created_in_warehouses' => $createdExtras,
+            'created_count' => count($createdExtras),
+        ], 'Book updated');
     }
 
     public function destroy(string $id): JsonResponse

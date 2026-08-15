@@ -44,6 +44,8 @@ class BookUpdateRequest extends BaseFormRequest
             'paper_type' => ['nullable', 'string', 'max:50'],
             'publisher_id' => ['nullable', 'string'],
             'warehouse_id' => ['sometimes', 'string'],
+            'warehouse_ids' => ['sometimes', 'array', 'min:1'],
+            'warehouse_ids.*' => ['required', 'string'],
             'stock_quantity' => ['sometimes', 'integer', 'min:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'condition' => ['nullable', Rule::in(BookCondition::values())],
@@ -54,6 +56,14 @@ class BookUpdateRequest extends BaseFormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('warehouse_ids') && is_array($this->input('warehouse_ids'))) {
+            $warehouseIds = array_values(array_unique(array_filter(array_map('strval', $this->input('warehouse_ids')))));
+            $this->merge([
+                'warehouse_ids' => $warehouseIds,
+                'warehouse_id' => $this->input('warehouse_id') ?: ($warehouseIds[0] ?? null),
+            ]);
+        }
+
         if ($this->has('condition')) {
             $this->merge([
                 'condition' => BookCondition::normalize($this->input('condition'))->value,

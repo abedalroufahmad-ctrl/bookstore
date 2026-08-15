@@ -199,13 +199,13 @@ export function AdminBooks() {
         <p className="text-xs text-stone-500">{t('admin.importExcelHint')}</p>
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">{t('admin.store')}</label>
+            <label className="block text-xs font-medium text-stone-600 mb-1">{t('admin.warehouse')}</label>
             <select
               value={importWarehouseId}
               onChange={(e) => setImportWarehouseId(e.target.value)}
               className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
             >
-              <option value="">{t('admin.selectStore')}</option>
+              <option value="">{t('admin.selectWarehouse')}</option>
               {warehouseList.map((w) => (
                 <option key={w._id} value={w._id}>
                   {w.name}
@@ -298,7 +298,7 @@ export function AdminBooks() {
                 />
               </th>
               <th className="px-4 py-2 text-left">{t('admin.title')}</th>
-              <th className="px-4 py-2 text-left">{t('admin.store')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.warehouse')}</th>
               <th className="px-4 py-2 text-left">{t('admin.condition')}</th>
               <th className="px-4 py-2 text-left">{t('admin.price')}</th>
               <th className="px-4 py-2 text-left">{t('admin.stock')}</th>

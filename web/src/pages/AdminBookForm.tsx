@@ -13,6 +13,7 @@ const emptyForm: BookFormData = {
   author_ids: [],
   category_id: '',
   warehouse_id: '',
+  warehouse_ids: [],
   price: 0,
   isbn: '',
   stock_quantity: 0,
@@ -262,11 +263,13 @@ export function AdminBookForm() {
       const b = bookData.data as Book & { authors?: Array<{ _id?: string; id?: string; name?: string }> }
       const rawAuthorIds = b.author_ids ?? b.authors?.map((a: any) => a._id ?? a.id) ?? []
       const authorIds = (Array.isArray(rawAuthorIds) ? rawAuthorIds : []).map((id) => normalizeId(id)).filter((id): id is string => id != null)
+      const warehouseId = normalizeId(b.warehouse_id) ?? (b.warehouse as { _id?: string } | undefined)?._id ?? ''
       setForm({
         title: b.title ?? '',
         author_ids: authorIds,
         category_id: normalizeId(b.category_id) ?? (b.category as { _id?: string } | undefined)?._id ?? '',
-        warehouse_id: normalizeId(b.warehouse_id) ?? (b.warehouse as { _id?: string } | undefined)?._id ?? '',
+        warehouse_id: warehouseId,
+        warehouse_ids: warehouseId ? [warehouseId] : [],
         price: b.price ?? 0,
         isbn: b.isbn ?? '',
         stock_quantity: b.stock_quantity ?? 0,
@@ -286,6 +289,35 @@ export function AdminBookForm() {
       })
     }
   }, [bookData])
+
+  // When editing, pre-select all warehouses that already have this ISBN.
+  useEffect(() => {
+    const isbn = (bookData?.data as Book | undefined)?.isbn?.trim()
+    if (!isEdit || !isbn) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await admin.books.list({ search: isbn, per_page: 100 })
+        const items = extractList<Book>(res.data)
+        const matches = items
+          .filter((b) => (b.isbn ?? '').trim() === isbn)
+          .map((b) => normalizeId(b.warehouse_id) ?? b.warehouse?._id)
+          .filter((id): id is string => Boolean(id))
+        if (!cancelled && matches.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            warehouse_ids: Array.from(new Set(matches)),
+            warehouse_id: prev.warehouse_id || matches[0],
+          }))
+        }
+      } catch {
+        // Ignore lookup failures; form still works with current warehouse.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isEdit, bookData])
 
   useEffect(() => {
     if (!isEdit && isPublisherManager && managedPublisherId) {
@@ -323,11 +355,26 @@ export function AdminBookForm() {
       setError(t('admin.selectCategory'))
       return
     }
+    const warehouseIds = (form.warehouse_ids?.length
+      ? form.warehouse_ids
+      : form.warehouse_id
+        ? [form.warehouse_id]
+        : warehouseList[0]?._id
+          ? [warehouseList[0]._id]
+          : []
+    ).filter(Boolean)
+
+    if (!warehouseIds.length) {
+      setError(t('admin.selectWarehouse'))
+      return
+    }
+
     const payload: BookFormData = {
       ...form,
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
       category_id: form.category_id,
-      warehouse_id: (form.warehouse_id || warehouseList[0]?._id) ?? '',
+      warehouse_ids: warehouseIds,
+      warehouse_id: warehouseIds[0],
       publisher_id: isPublisherManager && managedPublisherId
         ? managedPublisherId
         : (form.publisher_id || undefined),
@@ -335,12 +382,30 @@ export function AdminBookForm() {
     if (isEdit) {
       updateMutation.mutate(payload)
     } else {
-      if (!payload.author_ids.length || !payload.warehouse_id) {
+      if (!payload.author_ids.length) {
         setError(t('admin.addFirst'))
         return
       }
       createMutation.mutate(payload)
     }
+  }
+
+  const toggleWarehouse = (warehouseId: string) => {
+    setForm((prev) => {
+      const current = prev.warehouse_ids?.length
+        ? prev.warehouse_ids
+        : prev.warehouse_id
+          ? [prev.warehouse_id]
+          : []
+      const next = current.includes(warehouseId)
+        ? current.filter((id) => id !== warehouseId)
+        : [...current, warehouseId]
+      return {
+        ...prev,
+        warehouse_ids: next,
+        warehouse_id: next[0] ?? '',
+      }
+    })
   }
 
   const selectedAuthors = form.author_ids
@@ -761,24 +826,34 @@ export function AdminBookForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            {t('admin.store')} *
+            {t('admin.warehouses')} *
           </label>
-          <select
-            value={form.warehouse_id}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, warehouse_id: e.target.value }))
-            }
-            required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-          >
-            <option value="">{t('admin.selectStore')}</option>
-            {warehouseList.map((w) => (
-              <option key={w._id} value={w._id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-stone-500">{t('admin.multiStoreHint')}</p>
+          <div className="max-h-48 overflow-auto rounded-lg border border-stone-300 p-3 space-y-2 bg-white">
+            {warehouseList.length === 0 ? (
+              <p className="text-sm text-stone-500">{t('admin.noWarehousesList')}</p>
+            ) : (
+              warehouseList.map((w) => {
+                const selected = (form.warehouse_ids?.length
+                  ? form.warehouse_ids
+                  : form.warehouse_id
+                    ? [form.warehouse_id]
+                    : []
+                ).includes(w._id)
+                return (
+                  <label key={w._id} className="flex items-center gap-2 text-sm text-stone-800">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleWarehouse(w._id)}
+                      className="rounded border-stone-300 text-amber-700 focus:ring-amber-500"
+                    />
+                    <span>{w.name}</span>
+                  </label>
+                )
+              })
+            )}
+          </div>
+          <p className="mt-1 text-xs text-stone-500">{t('admin.multiWarehouseHint')}</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
