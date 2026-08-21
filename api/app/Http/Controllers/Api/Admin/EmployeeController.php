@@ -86,7 +86,7 @@ class EmployeeController extends BaseApiController
 
         $employee = $this->employeeService->create($data);
 
-        return $this->successResponse($employee->fresh(['warehouse']), 'Employee created', 201);
+        return $this->successResponse($employee->fresh(['warehouse.publisher', 'publisher']), 'Employee created', 201);
     }
 
     public function show(string $id): JsonResponse
@@ -279,11 +279,18 @@ class EmployeeController extends BaseApiController
         }
 
         if ($role === UserRole::PublisherManager->value) {
-            $data['publisher_id'] = $publisherId;
+            $requested = (string) ($data['publisher_id'] ?? $existing?->publisher_id ?? $publisherId);
+            if ($requested === '') {
+                return $this->errorResponse('Forbidden. Publisher is required.', 403);
+            }
+            $data['publisher_id'] = $requested;
             unset($data['warehouse_id'], $data['warehouse_ids']);
 
             return null;
         }
+
+        // Warehouse-based staff stay on this publisher manager's publisher.
+        $data['publisher_id'] = $publisherId;
 
         if ($role === UserRole::WarehouseManager->value) {
             $ids = array_values(array_map('strval', $data['warehouse_ids'] ?? ($existing?->warehouse_ids ?? [])));
@@ -297,7 +304,6 @@ class EmployeeController extends BaseApiController
             }
             $data['warehouse_ids'] = $ids;
             $data['warehouse_id'] = $ids[0];
-            unset($data['publisher_id']);
 
             return null;
         }
@@ -307,7 +313,7 @@ class EmployeeController extends BaseApiController
             return $this->errorResponse('Forbidden. You can only assign staff to warehouses belonging to your publisher.', 403);
         }
         $data['warehouse_id'] = $wid;
-        unset($data['publisher_id'], $data['warehouse_ids']);
+        unset($data['warehouse_ids']);
 
         return null;
     }

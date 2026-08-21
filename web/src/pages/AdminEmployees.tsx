@@ -103,24 +103,106 @@ export function AdminEmployees() {
     },
   })
 
-  const createMutation = useMutation({
-    mutationFn: (data: typeof form) => {
-      const payload = { ...data } as Record<string, unknown>
-      if (isPublisherManager && data.role === 'publisher_manager' && managedPublisherId) {
-        payload.publisher_id = managedPublisherId
-      }
-      if (data.role === 'warehouse_manager' && data.warehouse_ids?.length) {
-        delete payload.warehouse_id
-        delete payload.publisher_id
-      } else if (data.role === 'publisher_manager') {
-        delete payload.warehouse_id
-        delete payload.warehouse_ids
-      } else {
-        delete payload.warehouse_ids
-        delete payload.publisher_id
-      }
-      return admin.employees.create(payload as Parameters<typeof admin.employees.create>[0])
+  type EmployeeItem = {
+    _id: string
+    name: string
+    email: string
+    role: string
+    warehouse_id?: string
+    warehouse_ids?: string[]
+    publisher_id?: string
+    warehouse?: { _id: string; name: string; publisher_id?: string; publisher?: { _id: string; name: string } }
+    publisher?: { _id: string; name: string }
+  }
+  const items = extractList<EmployeeItem>(employeesData)
+  const warehouses = extractList<{ _id: string; name: string; publisher_id?: string }>(warehousesData)
+  const publishers = extractList<{ _id: string; name: string }>(publishersData)
+
+  const publisherNameForEmployee = (emp: EmployeeItem) => {
+    if (emp.publisher?.name) return emp.publisher.name
+    if (emp.publisher_id) {
+      const fromList = publishers.find((p) => p._id === emp.publisher_id)?.name
+      if (fromList) return fromList
+    }
+    if (emp.warehouse?.publisher?.name) return emp.warehouse.publisher.name
+    const warehousePublisherId =
+      emp.warehouse?.publisher_id ??
+      warehouses.find((w) => w._id === emp.warehouse_id)?.publisher_id
+    if (warehousePublisherId) {
+      return publishers.find((p) => p._id === warehousePublisherId)?.name ?? '-'
+    }
+    return '-'
+  }
+
+  const warehouseNameForEmployee = (emp: EmployeeItem) => {
+    if (emp.warehouse?.name) return emp.warehouse.name
+    if (emp.warehouse_id) {
+      return warehouses.find((w) => w._id === emp.warehouse_id)?.name ?? '-'
+    }
+    if (Array.isArray(emp.warehouse_ids) && emp.warehouse_ids.length > 0) {
+      const names = emp.warehouse_ids
+        .map((id) => warehouses.find((w) => w._id === id)?.name)
+        .filter(Boolean)
+      return names.length ? names.join(', ') : '-'
+    }
+    return '-'
+  }
+
+  const isManager = employeeRole === 'manager'
+  const canEditPublisher = isManager || isPublisherManager
+  const publisherOptions = publishers
+
+  const warehousesForPublisher = (publisherId: string) => {
+    if (!publisherId) return warehouses
+    return warehouses.filter((w) => String(w.publisher_id ?? '') === String(publisherId))
+  }
+
+  const resolveEmployeePublisherId = (emp: EmployeeItem) => {
+    if (emp.publisher_id) return String(emp.publisher_id)
+    if (emp.publisher?._id) return String(emp.publisher._id)
+    if (emp.warehouse?.publisher_id) return String(emp.warehouse.publisher_id)
+    if (emp.warehouse?.publisher?._id) return String(emp.warehouse.publisher._id)
+    const fromWarehouse = warehouses.find((w) => w._id === emp.warehouse_id)?.publisher_id
+    return fromWarehouse ? String(fromWarehouse) : (isPublisherManager ? managedPublisherId : '')
+  }
+
+  const buildEmployeePayload = (
+    data: {
+      name: string
+      email: string
+      role: string
+      warehouse_id: string
+      warehouse_ids: string[]
+      publisher_id: string
+      password?: string
+      password_confirmation?: string
     },
+  ) => {
+    const payload: Record<string, unknown> = {
+      name: data.name,
+      email: data.email,
+      role: data.role,
+    }
+    const publisherId = data.publisher_id
+    if (data.role === 'publisher_manager') {
+      payload.publisher_id = publisherId
+    } else if (data.role === 'warehouse_manager') {
+      payload.warehouse_ids = data.warehouse_ids
+      if (canEditPublisher && publisherId) payload.publisher_id = publisherId
+    } else {
+      payload.warehouse_id = data.warehouse_id
+      if (canEditPublisher && publisherId) payload.publisher_id = publisherId
+    }
+    if (data.password && data.password.length >= 8) {
+      payload.password = data.password
+      payload.password_confirmation = data.password_confirmation
+    }
+    return payload
+  }
+
+  const createMutation = useMutation({
+    mutationFn: (data: typeof form) =>
+      admin.employees.create(buildEmployeePayload(data) as Parameters<typeof admin.employees.create>[0]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setForm({
@@ -140,10 +222,6 @@ export function AdminEmployees() {
     },
   })
 
-  type EmployeeItem = { _id: string; name: string; email: string; role: string; warehouse_id?: string; warehouse_ids?: string[]; publisher_id?: string; warehouse?: { _id: string; name: string } }
-  const items = extractList<EmployeeItem>(employeesData)
-  const warehouses = extractList<{ _id: string; name: string }>(warehousesData)
-  const publishers = extractList<{ _id: string; name: string }>(publishersData)
   const roleOptions = isWarehouseManager
     ? EMPLOYEE_ROLES.filter((r) =>
         (WAREHOUSE_MANAGER_STAFF_ROLE_VALUES as readonly string[]).includes(r.value)
@@ -207,23 +285,8 @@ export function AdminEmployees() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data: d }: { id: string; data: Record<string, unknown> }) => {
-      const payload = { ...d }
-      if (isPublisherManager && d.role === 'publisher_manager' && managedPublisherId) {
-        payload.publisher_id = managedPublisherId
-      }
-      if (d.role === 'warehouse_manager' && Array.isArray(d.warehouse_ids) && d.warehouse_ids.length) {
-        delete payload.warehouse_id
-        delete payload.publisher_id
-      } else if (d.role === 'publisher_manager') {
-        delete payload.warehouse_id
-        delete payload.warehouse_ids
-      } else {
-        delete payload.warehouse_ids
-        delete payload.publisher_id
-      }
-      return admin.employees.update(id, payload as Parameters<typeof admin.employees.update>[1])
-    },
+    mutationFn: ({ id, data: d }: { id: string; data: Parameters<typeof buildEmployeePayload>[0] }) =>
+      admin.employees.update(id, buildEmployeePayload(d) as Parameters<typeof admin.employees.update>[1]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setEditingId(null)
@@ -283,9 +346,7 @@ export function AdminEmployees() {
       role: validRole,
       warehouse_id: warehouseIdForEdit,
       warehouse_ids: Array.isArray(emp.warehouse_ids) ? emp.warehouse_ids.map(String) : [],
-      publisher_id: isPublisherManager
-        ? managedPublisherId
-        : String(emp.publisher_id ?? ''),
+      publisher_id: resolveEmployeePublisherId(emp),
     })
     setError('')
   }
@@ -294,36 +355,27 @@ export function AdminEmployees() {
     e.preventDefault()
     const isWMRole = editingForm.role === 'warehouse_manager'
     const isPMRole = editingForm.role === 'publisher_manager'
-    const publisherIdForSave = isPublisherManager ? managedPublisherId : editingForm.publisher_id
     const hasScope = isWMRole
       ? (Array.isArray(editingForm.warehouse_ids) && editingForm.warehouse_ids.length > 0)
       : isPMRole
-        ? !!publisherIdForSave
+        ? !!editingForm.publisher_id
         : !!editingForm.warehouse_id
-    if (!editingId || !editingForm.name.trim() || !editingForm.email.trim() || !hasScope) {
+    if (canEditPublisher && !editingForm.publisher_id) {
       setError(t('admin.fillRequired'))
       return
     }
-    const payload: Record<string, unknown> = {
-      name: editingForm.name,
-      email: editingForm.email,
-      role: editingForm.role,
-      ...(isWMRole
-        ? { warehouse_ids: editingForm.warehouse_ids }
-        : isPMRole
-          ? { publisher_id: publisherIdForSave }
-          : { warehouse_id: editingForm.warehouse_id }),
+    if (!editingId || !editingForm.name.trim() || !editingForm.email.trim() || !hasScope) {
+      setError(t('admin.fillRequired'))
+      return
     }
     if (editingForm.password && editingForm.password.length >= 8) {
       if (editingForm.password !== editingForm.password_confirmation) {
         setError(t('auth.passwordsMismatch'))
         return
       }
-      payload.password = editingForm.password
-      payload.password_confirmation = editingForm.password_confirmation
     }
     setError('')
-    updateMutation.mutate({ id: editingId, data: payload })
+    updateMutation.mutate({ id: editingId, data: editingForm })
   }
 
   const handleCancelEdit = () => {
@@ -337,14 +389,17 @@ export function AdminEmployees() {
     setError('')
     const isWMRole = form.role === 'warehouse_manager'
     const isPMRole = form.role === 'publisher_manager'
-    const publisherIdForSave = isPublisherManager ? managedPublisherId : form.publisher_id
     const hasWarehouse = isWarehouseManager
       ? !!form.warehouse_id
       : isWMRole
         ? (Array.isArray(form.warehouse_ids) && form.warehouse_ids.length > 0)
         : isPMRole
-          ? !!publisherIdForSave
+          ? !!form.publisher_id
           : !!form.warehouse_id
+    if (canEditPublisher && !form.publisher_id) {
+      setError(t('admin.fillRequired'))
+      return
+    }
     if (!form.name.trim() || !form.email.trim() || !form.password || !hasWarehouse) {
       setError(t('admin.fillRequired'))
       return
@@ -357,10 +412,7 @@ export function AdminEmployees() {
       setError(t('admin.passwordMinLength'))
       return
     }
-    createMutation.mutate({
-      ...form,
-      publisher_id: isPMRole ? publisherIdForSave : form.publisher_id,
-    })
+    createMutation.mutate({ ...form })
   }
 
   if (isLoading && !employeesData) return <div className="text-center py-12">{t('common.loading')}</div>
@@ -490,82 +542,91 @@ export function AdminEmployees() {
                 <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerStaffRolesHint')}</p>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {isPublisherManagerRole(editingForm.role) ? t('admin.publisher') : t('admin.warehouse')}
-              </label>
-              {isPublisherManagerRole(editingForm.role) ? (
-                <div className="space-y-2">
-                  {isPublisherManager ? (
-                    <p className="px-4 py-2 border border-stone-200 rounded-lg bg-stone-100 text-stone-700">
-                      {publishers.find((p) => p._id === managedPublisherId)?.name
-                        ?? managedPublisherId
-                        ?? '-'}
-                    </p>
-                  ) : (
+            <div className="space-y-4">
+              {canEditPublisher && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisher')}</label>
+                  <select
+                    value={editingForm.publisher_id}
+                    onChange={(e) => {
+                      const nextPublisherId = e.target.value
+                      const allowed = warehousesForPublisher(nextPublisherId)
+                      setEditingForm((p) => ({
+                        ...p,
+                        publisher_id: nextPublisherId,
+                        warehouse_id: allowed.some((w) => w._id === p.warehouse_id) ? p.warehouse_id : '',
+                        warehouse_ids: (p.warehouse_ids ?? []).filter((id) =>
+                          allowed.some((w) => w._id === id),
+                        ),
+                      }))
+                    }}
+                    required
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  >
+                    <option value="">{t('admin.selectPublisher')}</option>
+                    {publisherOptions.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {isPublisherManagerRole(editingForm.role) && (
+                    <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
+                  )}
+                </div>
+              )}
+              {!isPublisherManagerRole(editingForm.role) && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.warehouse')}</label>
+                  {isWarehouseManager ? (
                     <select
-                      value={editingForm.publisher_id}
-                      onChange={(e) => setEditingForm((p) => ({ ...p, publisher_id: e.target.value }))}
+                      value={editingForm.warehouse_id}
+                      onChange={(e) => setEditingForm((p) => ({ ...p, warehouse_id: e.target.value }))}
                       required
                       className="w-full px-4 py-2 border border-stone-300 rounded-lg"
                     >
-                      <option value="">{t('admin.selectPublisher')}</option>
-                      {publishers.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name}
+                      <option value="">{t('admin.selectWarehouse')}</option>
+                      {warehouses.map((w) => (
+                        <option key={w._id} value={w._id}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : isWarehouseManagerRole(editingForm.role) ? (
+                    <div className="space-y-2">
+                      <select
+                        multiple
+                        value={editingForm.warehouse_ids}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, (o) => o.value)
+                          setEditingForm((p) => ({ ...p, warehouse_ids: selected }))
+                        }}
+                        className="w-full px-4 py-2 border border-stone-300 rounded-lg min-h-[100px]"
+                      >
+                        {warehousesForPublisher(editingForm.publisher_id).map((w) => (
+                          <option key={w._id} value={w._id}>
+                            {w.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-stone-500 text-sm">{t('admin.holdCtrlToSelectMultiple')}</p>
+                    </div>
+                  ) : (
+                    <select
+                      value={editingForm.warehouse_id}
+                      onChange={(e) => setEditingForm((p) => ({ ...p, warehouse_id: e.target.value }))}
+                      required
+                      className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                    >
+                      <option value="">{t('admin.selectWarehouse')}</option>
+                      {warehousesForPublisher(editingForm.publisher_id).map((w) => (
+                        <option key={w._id} value={w._id}>
+                          {w.name}
                         </option>
                       ))}
                     </select>
                   )}
-                  <p className="text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
                 </div>
-              ) : isWarehouseManager ? (
-                <select
-                  value={editingForm.warehouse_id}
-                  onChange={(e) => setEditingForm((p) => ({ ...p, warehouse_id: e.target.value }))}
-                  required
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
-                >
-                  <option value="">{t('admin.selectWarehouse')}</option>
-                  {warehouses.map((w) => (
-                    <option key={w._id} value={w._id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              ) : isWarehouseManagerRole(editingForm.role) ? (
-                <div className="space-y-2">
-                  <select
-                    multiple
-                    value={editingForm.warehouse_ids}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, (o) => o.value)
-                      setEditingForm((p) => ({ ...p, warehouse_ids: selected }))
-                    }}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg min-h-[100px]"
-                  >
-                    {warehouses.map((w) => (
-                      <option key={w._id} value={w._id}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-stone-500 text-sm">{t('admin.holdCtrlToSelectMultiple')}</p>
-                </div>
-              ) : (
-                <select
-                  value={editingForm.warehouse_id}
-                  onChange={(e) => setEditingForm((p) => ({ ...p, warehouse_id: e.target.value }))}
-                  required
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
-                >
-                  <option value="">{t('admin.selectWarehouse')}</option>
-                  {warehouses.map((w) => (
-                    <option key={w._id} value={w._id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
               )}
             </div>
             {error && editingId && <p className="text-red-600 text-sm">{error}</p>}
@@ -576,10 +637,11 @@ export function AdminEmployees() {
                   updateMutation.isPending ||
                   !editingForm.name.trim() ||
                   !editingForm.email.trim() ||
+                  (canEditPublisher && !editingForm.publisher_id) ||
                   (isWarehouseManagerRole(editingForm.role)
                     ? !(editingForm.warehouse_ids?.length)
                     : isPublisherManagerRole(editingForm.role)
-                      ? !(isPublisherManager ? managedPublisherId : editingForm.publisher_id)
+                      ? !editingForm.publisher_id
                       : !editingForm.warehouse_id)
                 }
                 className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
@@ -659,87 +721,96 @@ export function AdminEmployees() {
                 <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerStaffRolesHint')}</p>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">
-                {isPublisherManagerRole(form.role) ? t('admin.publisher') : t('admin.warehouse')}
-              </label>
-              {isPublisherManagerRole(form.role) ? (
-                <div className="space-y-2">
-                  {isPublisherManager ? (
-                    <p className="px-4 py-2 border border-stone-200 rounded-lg bg-stone-100 text-stone-700">
-                      {publishers.find((p) => p._id === managedPublisherId)?.name
-                        ?? managedPublisherId
-                        ?? '-'}
-                    </p>
-                  ) : (
-                    <select
-                      value={form.publisher_id}
-                      onChange={(e) => setForm((p) => ({ ...p, publisher_id: e.target.value }))}
-                      required
-                      className="w-full px-4 py-2 border border-stone-300 rounded-lg"
-                    >
-                      <option value="">{t('admin.selectPublisher')}</option>
-                      {publishers.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <p className="text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
-                </div>
-              ) : isWarehouseManager ? (
-                <select
-                  value={form.warehouse_id}
-                  onChange={(e) => setForm((p) => ({ ...p, warehouse_id: e.target.value }))}
-                  required
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
-                >
-                  <option value="">{t('admin.selectWarehouse')}</option>
-                  {warehouses.map((w) => (
-                    <option key={w._id} value={w._id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              ) : isWarehouseManagerRole(form.role) ? (
-                <div className="space-y-2">
+            <div className="space-y-4">
+              {canEditPublisher && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisher')}</label>
                   <select
-                    multiple
-                    value={form.warehouse_ids}
+                    value={form.publisher_id}
                     onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, (o) => o.value)
-                      setForm((p) => ({ ...p, warehouse_ids: selected }))
+                      const nextPublisherId = e.target.value
+                      const allowed = warehousesForPublisher(nextPublisherId)
+                      setForm((p) => ({
+                        ...p,
+                        publisher_id: nextPublisherId,
+                        warehouse_id: allowed.some((w) => w._id === p.warehouse_id) ? p.warehouse_id : '',
+                        warehouse_ids: (p.warehouse_ids ?? []).filter((id) =>
+                          allowed.some((w) => w._id === id),
+                        ),
+                      }))
                     }}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg min-h-[100px]"
-                  >
-                    {warehouses.map((w) => (
-                      <option key={w._id} value={w._id}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-stone-500 text-sm">{t('admin.holdCtrlToSelectMultiple')}</p>
-                </div>
-              ) : (
-                <>
-                  <select
-                    value={form.warehouse_id}
-                    onChange={(e) => setForm((p) => ({ ...p, warehouse_id: e.target.value }))}
                     required
                     className="w-full px-4 py-2 border border-stone-300 rounded-lg"
                   >
-                    <option value="">{t('admin.selectWarehouse')}</option>
-                    {warehouses.map((w) => (
-                      <option key={w._id} value={w._id}>
-                        {w.name}
+                    <option value="">{t('admin.selectPublisher')}</option>
+                    {publisherOptions.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
                       </option>
                     ))}
                   </select>
-                  {warehouses.length === 0 && (
-                    <p className="mt-1 text-amber-700 text-sm">{t('admin.noWarehouses')}</p>
+                  {isPublisherManagerRole(form.role) && (
+                    <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
                   )}
-                </>
+                </div>
+              )}
+              {!isPublisherManagerRole(form.role) && (
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.warehouse')}</label>
+                  {isWarehouseManager ? (
+                    <select
+                      value={form.warehouse_id}
+                      onChange={(e) => setForm((p) => ({ ...p, warehouse_id: e.target.value }))}
+                      required
+                      className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                    >
+                      <option value="">{t('admin.selectWarehouse')}</option>
+                      {warehouses.map((w) => (
+                        <option key={w._id} value={w._id}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : isWarehouseManagerRole(form.role) ? (
+                    <div className="space-y-2">
+                      <select
+                        multiple
+                        value={form.warehouse_ids}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, (o) => o.value)
+                          setForm((p) => ({ ...p, warehouse_ids: selected }))
+                        }}
+                        className="w-full px-4 py-2 border border-stone-300 rounded-lg min-h-[100px]"
+                      >
+                        {warehousesForPublisher(form.publisher_id).map((w) => (
+                          <option key={w._id} value={w._id}>
+                            {w.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-stone-500 text-sm">{t('admin.holdCtrlToSelectMultiple')}</p>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        value={form.warehouse_id}
+                        onChange={(e) => setForm((p) => ({ ...p, warehouse_id: e.target.value }))}
+                        required
+                        className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                      >
+                        <option value="">{t('admin.selectWarehouse')}</option>
+                        {warehousesForPublisher(form.publisher_id).map((w) => (
+                          <option key={w._id} value={w._id}>
+                            {w.name}
+                          </option>
+                        ))}
+                      </select>
+                      {warehousesForPublisher(form.publisher_id).length === 0 && (
+                        <p className="mt-1 text-amber-700 text-sm">{t('admin.noWarehouses')}</p>
+                      )}
+                    </>
+                  )}
+                </div>
               )}
             </div>
             {error && <p className="text-red-600 text-sm">{error}</p>}
@@ -783,6 +854,7 @@ export function AdminEmployees() {
               <th className="px-4 py-2 text-left">{t('admin.email')}</th>
               <th className="px-4 py-2 text-left">{t('admin.role')}</th>
               <th className="px-4 py-2 text-left">{t('admin.warehouse')}</th>
+              <th className="px-4 py-2 text-left">{t('admin.publisher')}</th>
               <th className="px-4 py-2 text-right">{t('admin.actions')}</th>
             </tr>
           </thead>
@@ -792,11 +864,8 @@ export function AdminEmployees() {
                 <td className="px-4 py-2">{emp.name}</td>
                 <td className="px-4 py-2">{emp.email}</td>
                 <td className="px-4 py-2">{t(EMPLOYEE_ROLES.find((r) => r.value === emp.role)?.labelKey ?? emp.role)}</td>
-                <td className="px-4 py-2">
-                  {emp.role === 'publisher_manager'
-                    ? (publishers.find((p) => p._id === emp.publisher_id)?.name ?? '-')
-                    : (emp.warehouse?.name ?? '-')}
-                </td>
+                <td className="px-4 py-2">{warehouseNameForEmployee(emp)}</td>
+                <td className="px-4 py-2">{publisherNameForEmployee(emp)}</td>
                 <td className="px-4 py-2 text-right space-x-3 rtl:space-x-reverse">
                   <button
                     type="button"

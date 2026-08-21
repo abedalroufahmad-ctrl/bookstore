@@ -17,7 +17,7 @@ class EmployeeService
         return $this->repository->getPaginated($filters, $perPage);
     }
 
-    public function getById(string $id, array $with = ['warehouse']): ?Employee
+    public function getById(string $id, array $with = ['warehouse.publisher', 'publisher']): ?Employee
     {
         return $this->repository->findById($id, $with);
     }

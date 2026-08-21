@@ -477,6 +477,8 @@ export interface Employee {
   warehouse_id?: string
   warehouse_ids?: string[]
   publisher_id?: string
+  warehouse?: Warehouse
+  publisher?: Publisher
 }
 
 export interface Cart {

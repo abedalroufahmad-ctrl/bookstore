@@ -25,7 +25,7 @@ class EmployeeRepository implements EmployeeRepositoryInterface
 
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->newQuery()->with($filters['with'] ?? ['warehouse']);
+        $query = $this->model->newQuery()->with($filters['with'] ?? ['warehouse.publisher', 'publisher']);
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
@@ -81,7 +81,7 @@ class EmployeeRepository implements EmployeeRepositoryInterface
         }
         $employee->update($data);
 
-        return $employee->fresh(['warehouse']);
+        return $employee->fresh(['warehouse.publisher', 'publisher']);
     }
 
     public function delete(string $id): bool
