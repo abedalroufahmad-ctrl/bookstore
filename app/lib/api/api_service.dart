@@ -258,14 +258,17 @@ class ApiService {
     );
     if (res.success && res.data != null) {
       final d = res.data!;
-      final token = d['token'] as String?;
-      final customer = d['customer'] != null
-          ? Customer.fromJson(d['customer'] as Map<String, dynamic>)
+      final token = '${d['token'] ?? ''}';
+      if (token.isEmpty) {
+        return ApiResponse(success: false, message: res.message, data: null);
+      }
+      final customer = d['customer'] is Map
+          ? Customer.fromJson(Map<String, dynamic>.from(d['customer'] as Map))
           : null;
       return ApiResponse(
         success: true,
         message: res.message,
-        data: AuthResult(token: token ?? '', customer: customer),
+        data: AuthResult(token: token, customer: customer),
       );
     }
     return ApiResponse(success: false, message: res.message, data: null);
@@ -298,14 +301,17 @@ class ApiService {
     );
     if (res.success && res.data != null) {
       final d = res.data!;
-      final token = d['token'] as String?;
-      final employee = d['employee'] != null
-          ? Employee.fromJson(d['employee'] as Map<String, dynamic>)
+      final token = '${d['token'] ?? ''}';
+      if (token.isEmpty) {
+        return ApiResponse(success: false, message: res.message, data: null);
+      }
+      final employee = d['employee'] is Map
+          ? Employee.fromJson(Map<String, dynamic>.from(d['employee'] as Map))
           : null;
       return ApiResponse(
         success: true,
         message: res.message,
-        data: AuthResult(token: token ?? '', employee: employee),
+        data: AuthResult(token: token, employee: employee),
       );
     }
     return ApiResponse(success: false, message: res.message, data: null);

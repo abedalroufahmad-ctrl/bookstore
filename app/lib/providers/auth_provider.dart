@@ -37,37 +37,50 @@ class AuthProvider with ChangeNotifier {
     }
 
     if (_token != null && _token!.isNotEmpty) {
-      await _fetchMe();
+      // Stored session: clear if /me fails (expired/invalid token).
+      await _fetchMe(logoutOnFailure: true);
     }
     _loading = false;
     notifyListeners();
   }
 
-  Future<void> _fetchMe() async {
+  /// Refresh profile from API. When [logoutOnFailure] is false (right after login),
+  /// keep the session even if /me fails.
+  Future<void> _fetchMe({required bool logoutOnFailure}) async {
     if (_userType == UserType.customer) {
       final res = await ApiService.instance.customerMe();
       if (res.success && res.data != null) {
         _customer = res.data;
-      } else {
-        await logout();
+      } else if (logoutOnFailure) {
+        await _clearSession(callApiLogout: false);
       }
     } else if (_userType == UserType.employee) {
       final res = await ApiService.instance.employeeMe();
       if (res.success && res.data != null) {
         _employee = res.data;
-      } else {
-        await logout();
+      } else if (logoutOnFailure) {
+        await _clearSession(callApiLogout: false);
       }
     }
   }
 
-  Future<void> _saveToken(String token, String type) async {
+  Future<void> _saveToken(
+    String token,
+    String type, {
+    Customer? customer,
+    Employee? employee,
+  }) async {
     _token = token;
     _userType = type == 'employee' ? UserType.employee : UserType.customer;
+    if (customer != null) _customer = customer;
+    if (employee != null) _employee = employee;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', token);
     await prefs.setString('userType', type);
-    await _fetchMe();
+
+    // Soft refresh: do not wipe a successful login if /me briefly fails.
+    await _fetchMe(logoutOnFailure: false);
     notifyListeners();
   }
 
@@ -81,36 +94,50 @@ class AuthProvider with ChangeNotifier {
       password,
       rememberMe: rememberMe,
     );
-    if (res.success && res.data != null) {
-      await _saveToken(res.data!.token, 'customer');
+    final token = res.data?.token ?? '';
+    if (res.success && token.isNotEmpty) {
+      await _saveToken(token, 'customer', customer: res.data?.customer);
+      if (!isLoggedIn) {
+        return res.message.isNotEmpty ? res.message : 'Login failed';
+      }
       return null;
     }
-    return res.message;
+    return res.message.isNotEmpty ? res.message : 'Login failed';
   }
 
   Future<String?> loginAsEmployee(String email, String password) async {
     final res = await ApiService.instance.employeeLogin(email, password);
-    if (res.success && res.data != null) {
-      await _saveToken(res.data!.token, 'employee');
+    final token = res.data?.token ?? '';
+    if (res.success && token.isNotEmpty) {
+      await _saveToken(token, 'employee', employee: res.data?.employee);
+      if (!isLoggedIn) {
+        return res.message.isNotEmpty ? res.message : 'Login failed';
+      }
       return null;
     }
-    return res.message;
+    return res.message.isNotEmpty ? res.message : 'Login failed';
   }
 
   Future<String?> register(Map<String, dynamic> data) async {
     final res = await ApiService.instance.customerRegister(data);
-    if (res.success && res.data != null) {
-      await _saveToken(res.data!.token, 'customer');
+    final token = res.data?.token ?? '';
+    if (res.success && token.isNotEmpty) {
+      await _saveToken(token, 'customer', customer: res.data?.customer);
+      if (!isLoggedIn) {
+        return res.message.isNotEmpty ? res.message : 'Registration failed';
+      }
       return null;
     }
-    return res.message;
+    return res.message.isNotEmpty ? res.message : 'Registration failed';
   }
 
-  Future<void> logout() async {
-    if (_userType == UserType.customer) {
-      await ApiService.instance.customerLogout();
-    } else if (_userType == UserType.employee) {
-      await ApiService.instance.employeeLogout();
+  Future<void> _clearSession({required bool callApiLogout}) async {
+    if (callApiLogout) {
+      if (_userType == UserType.customer) {
+        await ApiService.instance.customerLogout();
+      } else if (_userType == UserType.employee) {
+        await ApiService.instance.employeeLogout();
+      }
     }
     _token = null;
     _customer = null;
@@ -119,6 +146,10 @@ class AuthProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('userType');
+  }
+
+  Future<void> logout() async {
+    await _clearSession(callApiLogout: true);
     notifyListeners();
   }
 }

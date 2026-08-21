@@ -87,7 +87,7 @@ export function AdminDashboard() {
           <p className="text-sm text-stone-500 mt-1">{t('admin.viewManageOrders')}</p>
         </Link>
         )}
-        {(!isScopedWarehouseUser || isWarehouseManager) && (
+        {(!isScopedWarehouseUser || isWarehouseManager || isPublisherManager) && (
           <Link
             to="/admin/employees"
             className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"

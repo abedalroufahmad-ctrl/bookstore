@@ -15,5 +15,7 @@ interface EmployeeRepositoryInterface
 
     public function update(string $id, array $data): ?Employee;
 
+    public function delete(string $id): bool;
+
     public function exists(string $id): bool;
 }

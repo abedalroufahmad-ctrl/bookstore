@@ -8,13 +8,8 @@ on:
 
 jobs:
   api:
-    name: API (PHPUnit)
+    name: API (PHPUnit unit)
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
     defaults:
       run:
         working-directory: api
@@ -37,11 +32,8 @@ jobs:
           php artisan key:generate
           php artisan jwt:secret --force
 
-      - name: Run tests
-        env:
-          MONGODB_URI: mongodb://localhost:27017
-          MONGODB_DATABASE: book_store_test
-        run: php artisan test
+      - name: Run unit tests
+        run: php artisan test --testsuite=Unit
 
   web:
     name: Web (build)

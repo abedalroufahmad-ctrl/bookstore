@@ -12,10 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 class RestrictPublisherManagerToScopedRoutes
 {
     /**
-     * Publisher managers may manage: their publisher's warehouses and books, the
-     * shared author library, and cover/photo uploads. They may read categories,
+     * Publisher managers may manage: their publisher's warehouses, books, employees,
+     * the shared author library, and cover/photo uploads. They may read categories,
      * publishers, and settings (needed for book forms), but must not access
-     * customers, employees, orders, countries, or write settings.
+     * customers, orders, countries, or write global settings.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -27,7 +27,7 @@ class RestrictPublisherManagerToScopedRoutes
         $path = $request->path();
 
         // Full access (create/edit/delete) — per-record ownership is enforced in controllers.
-        $fullAccessPrefixes = ['books', 'authors', 'warehouses', 'upload-cover', 'upload-author-photo'];
+        $fullAccessPrefixes = ['books', 'authors', 'warehouses', 'employees', 'upload-cover', 'upload-author-photo'];
         foreach ($fullAccessPrefixes as $prefix) {
             if (str_contains($path, 'admin/'.$prefix)) {
                 return $next($request);
@@ -49,7 +49,7 @@ class RestrictPublisherManagerToScopedRoutes
 
         return response()->json([
             'success' => false,
-            'message' => MessageLocalizer::localize('Forbidden. Publisher managers can only manage their publisher\'s warehouses, books, and authors.'),
+            'message' => MessageLocalizer::localize('Forbidden. Publisher managers can only manage their publisher\'s warehouses, books, employees, and authors.'),
             'data' => (object) [],
         ], 403);
     }

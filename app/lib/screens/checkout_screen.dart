@@ -132,11 +132,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     final auth = context.watch<AuthProvider>();
     if (auth.userType != UserType.customer) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/login');
-      });
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      final t = AppLocalizations.of(context);
+      return Scaffold(
+        appBar: AppBar(title: Text(t.checkoutTitle)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(t.loginRequired, textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  child: Text(t.navLogin),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
     final t = AppLocalizations.of(context);

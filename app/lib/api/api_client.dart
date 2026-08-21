@@ -31,7 +31,10 @@ class ApiClient {
 
   Future<String> _connectionError(Object e) async {
     final ar = await _isArabic();
-    return ar ? 'خطأ في الاتصال: $e' : 'Connection error: $e';
+    final hint = ar
+        ? 'تأكد أن الهاتف على نفس الشبكة وأن API يعمل على $_baseUrl'
+        : 'Check phone is on the same Wi‑Fi and API is running at $_baseUrl';
+    return ar ? 'خطأ في الاتصال: $e\n$hint' : 'Connection error: $e\n$hint';
   }
 
   Future<ApiResponse<T>> get<T>(

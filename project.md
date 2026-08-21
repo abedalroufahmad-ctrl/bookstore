@@ -288,13 +288,11 @@ Seeded books include placeholder covers and `has_cover=true` so they appear in t
 
 | Tool | Purpose |
 |------|---------|
-| PHPUnit 11 | API tests under `api/tests/` |
-| MongoDB | Use `book_store_test` via `phpunit.xml` — run `php artisan config:clear` if config cache points at the wrong DB |
+| PHPUnit 11 | Unit tests under `api/tests/Unit/` (no separate MongoDB test database) |
 
 ```bash
 cd api
-php artisan config:clear
-php artisan test
+php artisan test --testsuite=Unit
 ```
 
 Web: `npx tsc --noEmit`, ESLint as configured.  

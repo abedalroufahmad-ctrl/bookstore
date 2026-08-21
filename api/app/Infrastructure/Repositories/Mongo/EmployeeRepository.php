@@ -52,6 +52,19 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             $query->whereIn('warehouse_id', $filters['warehouse_ids']);
         }
 
+        // Publisher-manager scope: employees with this publisher_id OR warehouse(s) of that publisher.
+        if (! empty($filters['linked_publisher_id'])) {
+            $publisherId = (string) $filters['linked_publisher_id'];
+            $warehouseIds = array_values(array_map('strval', $filters['publisher_warehouse_ids'] ?? []));
+            $query->where(function ($q) use ($publisherId, $warehouseIds) {
+                $q->where('publisher_id', $publisherId);
+                if (! empty($warehouseIds)) {
+                    $q->orWhereIn('warehouse_id', $warehouseIds)
+                        ->orWhereIn('warehouse_ids', $warehouseIds);
+                }
+            });
+        }
+
         return $query->orderBy('name')->paginate($perPage);
     }
 
@@ -69,6 +82,16 @@ class EmployeeRepository implements EmployeeRepositoryInterface
         $employee->update($data);
 
         return $employee->fresh(['warehouse']);
+    }
+
+    public function delete(string $id): bool
+    {
+        $employee = $this->model->find($id);
+        if (! $employee) {
+            return false;
+        }
+
+        return (bool) $employee->delete();
     }
 
     public function exists(string $id): bool

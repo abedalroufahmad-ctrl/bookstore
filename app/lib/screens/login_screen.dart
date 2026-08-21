@@ -62,10 +62,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
       if (!mounted) return;
-      // Only navigate when at /login route (e.g. from cart redirect).
-      // When at / (AuthWrapper), it rebuilds and shows HomeScreen automatically.
-      if (ModalRoute.of(context)?.settings.name == '/login') {
-        Navigator.pushReplacementNamed(context, '/');
+      // Leave the login route whether it was named `/login` or pushed another way.
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacementNamed('/');
       }
     }
   }
@@ -160,14 +161,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (!_loginAsStaff)
-                      CheckboxListTile(
-                        value: _rememberMe,
-                        onChanged: (v) =>
-                            setState(() => _rememberMe = v ?? false),
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        title: Text(t.rememberMe),
-                        controlAffinity: ListTileControlAffinity.leading,
+                      Material(
+                        color: Colors.transparent,
+                        child: CheckboxListTile(
+                          value: _rememberMe,
+                          onChanged: (v) =>
+                              setState(() => _rememberMe = v ?? false),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(t.rememberMe),
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
                       ),
                     if (_error != null) ...[
                       const SizedBox(height: 16),

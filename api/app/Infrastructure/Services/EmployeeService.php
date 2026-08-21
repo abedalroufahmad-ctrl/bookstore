@@ -32,6 +32,11 @@ class EmployeeService
         return $this->repository->update($id, $data);
     }
 
+    public function delete(string $id): bool
+    {
+        return $this->repository->delete($id);
+    }
+
     public function exists(string $id): bool
     {
         return $this->repository->exists($id);

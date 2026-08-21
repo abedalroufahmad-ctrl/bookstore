@@ -72,11 +72,13 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::get('publishers/{id}', [PublisherController::class, 'show']);
             Route::get('publishers/{id}/settings', [PublisherController::class, 'getSettings']);
             Route::put('publishers/{id}/settings', [PublisherController::class, 'updateSettings']);
+        });
 
+        // Shared warehouse + settings read/update (do not register these twice — last route wins)
+        Route::middleware('role:manager,publisher_manager,warehouse_manager')->group(function () {
             Route::get('warehouses', [WarehouseController::class, 'index']);
             Route::get('warehouses/{id}', [WarehouseController::class, 'show']);
             Route::put('warehouses/{id}', [WarehouseController::class, 'update']);
-
             Route::get('settings', [SettingController::class, 'index']);
         });
 
@@ -93,11 +95,6 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::post('warehouses', [WarehouseController::class, 'store']);
             Route::delete('warehouses/{id}', [WarehouseController::class, 'destroy']);
 
-            Route::get('employees', [EmployeeController::class, 'index']);
-            Route::post('employees', [EmployeeController::class, 'store']);
-            Route::get('employees/{id}', [EmployeeController::class, 'show']);
-            Route::put('employees/{id}', [EmployeeController::class, 'update']);
-
             Route::get('customers', [CustomerController::class, 'index']);
             Route::get('customers/{id}', [CustomerController::class, 'show']);
             Route::put('customers/{id}', [CustomerController::class, 'update']);
@@ -112,18 +109,13 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::get('countries/{id}', [CountryController::class, 'show']);
         });
 
-        // Warehouse managers: staff + warehouses they manage (further scoped in controllers/middleware)
-        Route::middleware('role:warehouse_manager')->group(function () {
-            Route::get('warehouses', [WarehouseController::class, 'index']);
-            Route::get('warehouses/{id}', [WarehouseController::class, 'show']);
-            Route::put('warehouses/{id}', [WarehouseController::class, 'update']);
-
+        // Employees: global managers + warehouse managers + publisher managers (scoped in controller)
+        Route::middleware('role:manager,warehouse_manager,publisher_manager')->group(function () {
             Route::get('employees', [EmployeeController::class, 'index']);
             Route::post('employees', [EmployeeController::class, 'store']);
             Route::get('employees/{id}', [EmployeeController::class, 'show']);
             Route::put('employees/{id}', [EmployeeController::class, 'update']);
-
-            Route::get('settings', [SettingController::class, 'index']);
+            Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
         });
 
         // Orders: order-management roles only
@@ -138,7 +130,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
 
     // Employee Auth
     Route::prefix('employees')->group(function () {
-        Route::post('login', [EmployeeAuthController::class, 'login'])->middleware('throttle:5,1');
+        Route::post('login', [EmployeeAuthController::class, 'login'])->middleware('throttle:10,1');
 
         Route::middleware(['auth:employee'])->group(function () {
             Route::post('logout', [EmployeeAuthController::class, 'logout']);
@@ -157,7 +149,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     // Customer Auth
     Route::prefix('customers')->group(function () {
         Route::post('register', [CustomerAuthController::class, 'register'])->middleware('throttle:10,1');
-        Route::post('login', [CustomerAuthController::class, 'login'])->middleware('throttle:5,1');
+        Route::post('login', [CustomerAuthController::class, 'login'])->middleware('throttle:10,1');
 
         Route::middleware(['auth:customer'])->group(function () {
             Route::post('logout', [CustomerAuthController::class, 'logout']);

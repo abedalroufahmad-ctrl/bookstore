@@ -110,4 +110,18 @@ enum UserRole: string
             self::Accounting->value,
         ];
     }
+
+    /**
+     * Roles a publisher manager may assign for staff linked to their publisher.
+     */
+    public static function publisherManagerStaffRoles(): array
+    {
+        return [
+            self::Shipping->value,
+            self::Review->value,
+            self::Accounting->value,
+            self::WarehouseManager->value,
+            self::PublisherManager->value,
+        ];
+    }
 }

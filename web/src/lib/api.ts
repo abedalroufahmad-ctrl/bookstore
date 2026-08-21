@@ -246,6 +246,7 @@ export const admin = {
       warehouse_ids?: string[]
       publisher_id?: string
     }) => api.put<ApiResponse<Employee>>(`/admin/employees/${id}`, data),
+    delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/employees/${id}`),
   },
   customers: {
     list: (params?: Record<string, string | number>) =>

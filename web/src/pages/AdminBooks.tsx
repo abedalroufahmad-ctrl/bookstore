@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { admin } from '../lib/api'
+import { admin, warehousesPublic } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
@@ -10,12 +10,14 @@ import type { Book, Warehouse } from '../lib/api'
 
 function extractList<T>(data: unknown): T[] {
   if (!data) return []
+  if (Array.isArray(data)) return data as T[]
   const d = data as Record<string, unknown>
   if (Array.isArray(d.data)) return d.data as T[]
-  if (d.data && typeof d.data === 'object' && 'data' in d.data) {
-    return (d.data as { data: T[] }).data
+  if (d.data && typeof d.data === 'object') {
+    const inner = (d.data as { data?: unknown }).data
+    if (Array.isArray(inner)) return inner as T[]
   }
-  return Array.isArray(d) ? d : []
+  return []
 }
 
 export function AdminBooks() {
@@ -36,15 +38,20 @@ export function AdminBooks() {
     setPage(1)
   }, [committedSearch, conditionFilter, visibilityFilter])
 
-  const { data: warehousesData } = useQuery({
+  const { data: warehouseList = [] } = useQuery({
     queryKey: ['admin-warehouses-for-import'],
     queryFn: async () => {
-      const res = await admin.warehouses.list({ per_page: 100 })
-      return res.data
+      try {
+        const res = await admin.warehouses.list({ per_page: 100 })
+        const items = extractList<Warehouse>(res.data)
+        if (items.length > 0) return items
+      } catch {
+        // fall through
+      }
+      const pub = await warehousesPublic.list({ per_page: 100 })
+      return extractList<Warehouse>(pub.data)
     },
   })
-
-  const warehouseList = extractList<Warehouse>(warehousesData)
 
   const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ['admin-books', page, committedSearch, conditionFilter, visibilityFilter],

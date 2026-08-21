@@ -39,12 +39,34 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final auth = context.watch<AuthProvider>();
-    if (auth.userType != UserType.customer) {
+    if (auth.userType == UserType.employee) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/login');
+        if (!context.mounted) return;
+        Navigator.pushReplacementNamed(context, '/staff/orders');
       });
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (auth.userType != UserType.customer) {
+      return Scaffold(
+        appBar: AppBar(title: Text(t.ordersTitle)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(t.loginRequired, textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  child: Text(t.navLogin),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
     if (_loading) {

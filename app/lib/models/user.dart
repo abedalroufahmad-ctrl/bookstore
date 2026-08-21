@@ -46,9 +46,9 @@ class Employee {
     final id = json['_id'] ?? json['id'] ?? '';
     return Employee(
       id: id.toString(),
-      name: json['name'],
-      email: json['email'],
-      role: json['role'],
+      name: json['name']?.toString(),
+      email: json['email']?.toString(),
+      role: json['role']?.toString(),
     );
   }
 }

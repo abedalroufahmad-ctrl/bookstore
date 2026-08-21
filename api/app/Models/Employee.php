@@ -89,6 +89,40 @@ class Employee extends Authenticatable implements JWTSubject
         return $mine !== null && $publisherId !== null && $mine === (string) $publisherId;
     }
 
+    /**
+     * Whether the given employee record is linked to this publisher manager's publisher
+     * (same publisher_id, or warehouse belonging to that publisher).
+     *
+     * @param  list<string>  $publisherWarehouseIds
+     */
+    public function employeeBelongsToPublisher(Employee $employee, array $publisherWarehouseIds): bool
+    {
+        $publisherId = $this->getManagedPublisherId();
+        if ($publisherId === null) {
+            return false;
+        }
+
+        if ((string) ($employee->publisher_id ?? '') === $publisherId) {
+            return true;
+        }
+
+        $wid = (string) ($employee->warehouse_id ?? '');
+        if ($wid !== '' && in_array($wid, $publisherWarehouseIds, true)) {
+            return true;
+        }
+
+        $ids = $employee->warehouse_ids ?? [];
+        if (is_array($ids)) {
+            foreach ($ids as $id) {
+                if (in_array((string) $id, $publisherWarehouseIds, true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function getJWTIdentifier(): mixed
     {
         return $this->getKey();

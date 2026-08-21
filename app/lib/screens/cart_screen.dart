@@ -20,11 +20,24 @@ class _CartScreenState extends State<CartScreen> {
   List<CartItem> _items = [];
   double _total = 0;
   bool _loading = true;
+  UserType? _loadedFor;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final type = context.watch<AuthProvider>().userType;
+    if (_loadedFor != type) {
+      _loadedFor = type;
+      if (type == UserType.customer) {
+        _load();
+      } else if (mounted) {
+        setState(() {
+          _loading = false;
+          _items = [];
+          _total = 0;
+        });
+      }
+    }
   }
 
   Future<void> _load() async {
@@ -37,6 +50,9 @@ class _CartScreenState extends State<CartScreen> {
       if (res.success && res.data != null) {
         _items = res.data!.items;
         _total = res.data!.total;
+      } else {
+        _items = [];
+        _total = 0;
       }
     });
   }
@@ -52,26 +68,61 @@ class _CartScreenState extends State<CartScreen> {
     _load();
   }
 
+  Widget _scaffold({required Widget body}) {
+    return Scaffold(
+      appBar: widget.showAppBar ? AppBar(title: Text(AppLocalizations.of(context).cartTitle)) : null,
+      body: body,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
+
+    // Cart lives in the bottom-nav IndexedStack — never replace the root route with /login.
     if (auth.userType != UserType.customer) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/login');
-      });
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      final isStaff = auth.userType == UserType.employee;
+      return _scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  isStaff
+                      ? (t.isAr
+                          ? 'سلة المشتريات للعملاء فقط'
+                          : 'Cart is for customers only')
+                      : t.cartLoginMsg,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                if (!isStaff) ...[
+                  const SizedBox(height: 24),
+                  GFButton(
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    text: t.navLogin,
+                    fullWidthButton: true,
+                    size: GFSize.LARGE,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       );
     }
+
     if (_loading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return _scaffold(
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_items.isEmpty) {
-      return Scaffold(
-        appBar: widget.showAppBar ? AppBar(title: Text(t.cartTitle)) : null,
+      return _scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

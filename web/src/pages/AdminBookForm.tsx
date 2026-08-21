@@ -3,7 +3,7 @@ import { useSearchCommit } from '../hooks/useSearchCommit'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { admin, type Book, type BookFormData } from '../lib/api'
+import { admin, warehousesPublic, type Book, type BookFormData } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
 import { useSettings, gramsToDisplay, displayToGrams } from '../contexts/SettingsContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -34,12 +34,14 @@ const emptyForm: BookFormData = {
 
 function extractList<T>(data: unknown): T[] {
   if (!data) return []
+  if (Array.isArray(data)) return data as T[]
   const d = data as Record<string, unknown>
   if (Array.isArray(d.data)) return d.data as T[]
-  if (d.data && typeof d.data === 'object' && 'data' in d.data) {
-    return (d.data as { data: T[] }).data
+  if (d.data && typeof d.data === 'object') {
+    const inner = (d.data as { data?: unknown }).data
+    if (Array.isArray(inner)) return inner as T[]
   }
-  return Array.isArray(d) ? d : []
+  return []
 }
 
 /** Normalize ID from API (may be _id, id, or { $oid: string }) */
@@ -162,11 +164,31 @@ export function AdminBookForm() {
     enabled: publisherDropdownOpen,
   })
 
-  const { data: warehousesData } = useQuery({
-    queryKey: ['admin-warehouses'],
+  const {
+    data: warehouseList = [],
+    isLoading: warehousesLoading,
+    isError: warehousesError,
+  } = useQuery({
+    queryKey: ['admin-warehouses-options'],
     queryFn: async () => {
-      const res = await admin.warehouses.list({ per_page: 100 })
-      return res.data
+      const normalize = (items: { _id?: string; id?: string; name: string }[]) =>
+        items
+          .map((w) => ({
+            _id: String(w._id ?? w.id ?? ''),
+            name: w.name,
+          }))
+          .filter((w) => w._id)
+
+      // Prefer admin list (role-scoped). Fall back to public catalog if empty/unavailable.
+      try {
+        const res = await admin.warehouses.list({ per_page: 100 })
+        const items = normalize(extractList<{ _id?: string; id?: string; name: string }>(res.data))
+        if (items.length > 0) return items
+      } catch {
+        // continue to public fallback
+      }
+      const pub = await warehousesPublic.list({ per_page: 100 })
+      return normalize(extractList<{ _id?: string; id?: string; name: string }>(pub.data))
     },
   })
 
@@ -238,7 +260,6 @@ export function AdminBookForm() {
   )
   const showCreateCategory =
     categorySearch.trim().length > 0 && !exactMatchCategory && !addingCategory
-  const warehouseList = extractList<{ _id: string; name: string }>(warehousesData)
 
   const publisherList = extractList<{ _id: string; name: string }>(publishersData)
   const searchPublisherList = extractList<{ _id: string; name: string }>(publishersSearchData)
@@ -506,7 +527,18 @@ export function AdminBookForm() {
 
   const loading = createMutation.isPending || updateMutation.isPending
 
-  const needsData = !isEdit && warehouseList.length === 0
+  const needsData = !isEdit && !warehousesLoading && warehouseList.length === 0
+
+  if (warehousesLoading && !isEdit) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-amber-900 mb-6">
+          {t('admin.addBook')}
+        </h1>
+        <p className="text-stone-600">{t('common.loading')}</p>
+      </div>
+    )
+  }
 
   if (needsData) {
     return (
@@ -829,8 +861,14 @@ export function AdminBookForm() {
             {t('admin.warehouses')} *
           </label>
           <div className="max-h-48 overflow-auto rounded-lg border border-stone-300 p-3 space-y-2 bg-white">
-            {warehouseList.length === 0 ? (
-              <p className="text-sm text-stone-500">{t('admin.noWarehousesList')}</p>
+            {warehousesLoading ? (
+              <p className="text-sm text-stone-500">{t('common.loading')}</p>
+            ) : warehouseList.length === 0 ? (
+              <p className="text-sm text-stone-500">
+                {warehousesError
+                  ? t('common.error')
+                  : t('admin.noWarehousesList')}
+              </p>
             ) : (
               warehouseList.map((w) => {
                 const selected = (form.warehouse_ids?.length
