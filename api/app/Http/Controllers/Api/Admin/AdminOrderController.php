@@ -6,6 +6,7 @@ use App\Domain\Auth\Enums\UserRole;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\AssignOrderRequest;
+use App\Http\Requests\Admin\BulkDeleteOrdersRequest;
 use App\Http\Requests\Order\SubmitWarehouseOrderQuoteRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
 use App\Models\Employee;
@@ -135,6 +136,52 @@ class AdminOrderController extends BaseApiController
         $order = $this->orderService->assignOrder($order, $request->validated('employee_id'), $warehouseId ? (string) $warehouseId : null);
 
         return $this->successResponse($order, 'Order assigned');
+    }
+
+    public function destroy(string $id): JsonResponse
+    {
+        $order = $this->orderService->getOrderById($id);
+
+        if (! $order) {
+            return $this->errorResponse('Order not found', 404);
+        }
+
+        if ($deny = $this->forbidIfOutsideWarehouseScope($order)) {
+            return $deny;
+        }
+
+        $this->orderService->deleteOrder($order);
+
+        return $this->successResponse(null, 'Order deleted');
+    }
+
+    public function bulkDestroy(BulkDeleteOrdersRequest $request): JsonResponse
+    {
+        $ids = array_values(array_unique(array_filter(array_map('strval', $request->validated('ids')))));
+        $orders = [];
+        $forbidden = 0;
+        $missing = 0;
+
+        foreach ($ids as $id) {
+            $order = $this->orderService->getOrderById($id);
+            if (! $order) {
+                $missing++;
+                continue;
+            }
+            if ($this->forbidIfOutsideWarehouseScope($order)) {
+                $forbidden++;
+                continue;
+            }
+            $orders[] = $order;
+        }
+
+        $deleted = $this->orderService->deleteOrders($orders);
+
+        return $this->successResponse([
+            'deleted' => $deleted,
+            'forbidden' => $forbidden,
+            'missing' => $missing,
+        ], 'Orders deleted');
     }
 
     private function forbidIfOutsideWarehouseScope($order): ?JsonResponse

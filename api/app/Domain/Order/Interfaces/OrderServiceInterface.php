@@ -38,6 +38,17 @@ interface OrderServiceInterface
 
     public function getOrdersForEmployee(array $filters = [], int $perPage = 15): LengthAwarePaginator;
 
+    /**
+     * Permanently delete an order. Restores stock when it was deducted and not yet fulfilled.
+     */
+    public function deleteOrder(Order $order): bool;
+
+    /**
+     * @param  array<int, Order>  $orders
+     * @return int Number of deleted orders
+     */
+    public function deleteOrders(array $orders): int;
+
     public function markOrderPaymentPaid(string $orderId, ?string $transactionId = null): void;
 
     /**

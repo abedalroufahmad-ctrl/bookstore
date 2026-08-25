@@ -16,4 +16,12 @@ interface OrderRepositoryInterface
     public function create(array $data): Order;
 
     public function update(string $id, array $data): bool;
+
+    public function delete(string $id): bool;
+
+    /**
+     * @param  array<int, string>  $ids
+     * @return int Number of deleted orders
+     */
+    public function deleteMany(array $ids): int;
 }

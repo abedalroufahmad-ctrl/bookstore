@@ -422,6 +422,46 @@ class OrderService extends BaseService implements OrderServiceInterface
         $this->orderRepository->update($orderId, $patch);
     }
 
+    public function deleteOrder(Order $order): bool
+    {
+        $this->restoreStockIfNeededBeforeDelete($order);
+
+        return $this->orderRepository->delete((string) $order->getKey());
+    }
+
+    public function deleteOrders(array $orders): int
+    {
+        $ids = [];
+        foreach ($orders as $order) {
+            if (! $order instanceof Order) {
+                continue;
+            }
+            $this->restoreStockIfNeededBeforeDelete($order);
+            $ids[] = (string) $order->getKey();
+        }
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        return $this->orderRepository->deleteMany($ids);
+    }
+
+    /**
+     * Stock is deducted when entering processing_fulfillment. Restore on delete
+     * for in-progress fulfillment / shipping (not completed sales).
+     */
+    private function restoreStockIfNeededBeforeDelete(Order $order): void
+    {
+        $status = OrderStatus::normalizeStored((string) $order->status);
+        if (
+            $status === OrderStatus::ProcessingFulfillment
+            || $status === OrderStatus::ShippedCollectingPayment
+        ) {
+            $this->stockService->restore($order->items ?? []);
+        }
+    }
+
     public function markPayPalOrdersPaid(array $orderIds, ?string $transactionId): void
     {
         foreach ($orderIds as $id) {

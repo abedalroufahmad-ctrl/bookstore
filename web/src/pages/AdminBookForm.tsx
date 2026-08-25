@@ -346,14 +346,30 @@ export function AdminBookForm() {
     }
   }, [isEdit, isPublisherManager, managedPublisherId])
 
+  const formatApiValidationError = (
+    err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> } } } },
+    fallback: string,
+  ) => {
+    const d = err?.response?.data
+    const msg = d?.message ?? fallback
+    const fieldErrors = d?.data?.errors
+    const detail =
+      fieldErrors && typeof fieldErrors === 'object'
+        ? Object.entries(fieldErrors)
+            .map(([field, messages]) => `${field}: ${(messages ?? []).join(' ')}`)
+            .join(' · ')
+        : ''
+    return detail ? `${msg} ${detail}` : msg
+  }
+
   const createMutation = useMutation({
     mutationFn: (data: BookFormData) => admin.books.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-books'] })
       navigate('/admin/books')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? t('admin.failedCreate'))
+    onError: (err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> } } } }) => {
+      setError(formatApiValidationError(err, t('admin.failedCreate')))
     },
   })
 
@@ -364,8 +380,8 @@ export function AdminBookForm() {
       queryClient.invalidateQueries({ queryKey: ['admin-books'] })
       navigate('/admin/books')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? t('admin.failedUpdate'))
+    onError: (err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> } } } }) => {
+      setError(formatApiValidationError(err, t('admin.failedUpdate')))
     },
   })
 
@@ -390,12 +406,22 @@ export function AdminBookForm() {
       return
     }
 
+    // On edit, keep this book's warehouse — warehouseIds[0] may be another copy's
+    // warehouse (same ISBN), which fails unique ISBN validation.
+    const primaryWarehouseId = isEdit
+      ? (form.warehouse_id && warehouseIds.includes(form.warehouse_id)
+          ? form.warehouse_id
+          : form.warehouse_id || warehouseIds[0])
+      : warehouseIds[0]
+
     const payload: BookFormData = {
       ...form,
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
       category_id: form.category_id,
-      warehouse_ids: warehouseIds,
-      warehouse_id: warehouseIds[0],
+      warehouse_ids: isEdit
+        ? [primaryWarehouseId, ...warehouseIds.filter((wid) => wid !== primaryWarehouseId)]
+        : warehouseIds,
+      warehouse_id: primaryWarehouseId,
       publisher_id: isPublisherManager && managedPublisherId
         ? managedPublisherId
         : (form.publisher_id || undefined),

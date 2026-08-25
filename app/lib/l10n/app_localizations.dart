@@ -22,6 +22,7 @@ class AppLocalizations {
   String get navAuthors => _s('المؤلفون', 'Authors');
   String get navCategories => _s('التصنيفات', 'Categories');
   String get navWarehouses => _s('المستودعات', 'Warehouses');
+  String get navPublishers => _s('الناشرون', 'Publishers');
   String get navCart => _s('السلة', 'Cart');
   String get navAccount => _s('الحساب', 'Account');
   String get navProfile => _s('الملف الشخصي', 'Profile');
@@ -70,6 +71,10 @@ class AppLocalizations {
 
   // ── Books ───────────────────────────────────────────────────────────────────
   String get booksTitle => _s('تصفح الكتب', 'Browse Books');
+  String get filterAllBooks => _s('الكل', 'All');
+  String get conditionNew => _s('جديد', 'New');
+  String get conditionUsed => _s('مستعمل', 'Used');
+  String get clearFilters => _s('مسح الفلاتر', 'Clear filters');
   String get noBooks => _s('لا توجد كتب', 'No books found');
   String get inStock => _s('متوفر', 'In Stock');
   String get outOfStock => _s('غير متوفر', 'Out of Stock');
@@ -159,6 +164,7 @@ class AppLocalizations {
 
   String get warehousesTitle => _s('المستودعات', 'Warehouses');
   String get noWarehouses => _s('لا توجد مستودعات', 'No warehouses found');
+  String get noPublishers => _s('لا يوجد ناشرون', 'No publishers found');
   String get warehouseBooksTitle => _s('كتب المستودع', 'Warehouse books');
   String get noBooksInWarehouse => _s('لا توجد كتب في هذا المستودع', 'No books in this warehouse');
 
@@ -184,20 +190,49 @@ class AppLocalizations {
 
   // ── Admin ───────────────────────────────────────────────────────────────────
   String get adminTitle => _s('الإدارة', 'Admin');
+  String get adminDashboard => _s('لوحة الإدارة', 'Admin dashboard');
   String get adminBooks => _s('الكتب', 'Books');
   String get adminManageCatalog => _s('إدارة الكتالوج', 'Manage catalog');
   String get adminAuthors => _s('المؤلفون', 'Authors');
   String get adminManageAuthors => _s('إضافة وإدارة المؤلفين', 'Add and manage authors');
   String get adminCategories => _s('التصنيفات', 'Categories');
   String get adminManageCategories => _s('إضافة وإدارة التصنيفات', 'Add and manage categories');
+  String get adminPublishers => _s('الناشرون', 'Publishers');
+  String get adminManagePublishers => _s('إضافة وإدارة الناشرين', 'Add and manage publishers');
+  String get adminManageWarehouses => _s('إضافة وإدارة المستودعات', 'Add and manage warehouses');
   String get adminBooksByWarehouse => _s('كتب حسب المستودع', 'Books by warehouse');
   String get adminBooksByWarehouseHint =>
       _s('تصفح الكتالوج حسب المستودع', 'Browse catalog per warehouse');
   String get adminOrders => _s('الطلبات', 'Orders');
   String get adminManageOrders => _s('عرض وإدارة الطلبات', 'View and manage orders');
+  String get adminViewManageOrders => _s('عرض وإدارة الطلبات', 'View and manage orders');
+  String get adminEmployees => _s('الموظفون', 'Employees');
+  String get adminManageStaff => _s('إدارة الموظفين', 'Manage staff');
+  String get adminCustomers => _s('العملاء', 'Customers');
+  String get adminManageCustomers => _s('عرض العملاء', 'View customers');
   String get adminSettings => _s('الإعدادات', 'Settings');
   String get adminGlobalSettings =>
       _s('إعدادات الموقع العامة', 'Global site configurations');
+  String get adminPublisherSettings => _s('إعدادات الناشر', 'Publisher settings');
+  String get adminConfigurePublisher =>
+      _s('تهيئة سياسة الإرجاع والخصومات', 'Configure return policy and discounts');
+  String get adminAddBook => _s('إضافة كتاب', 'Add book');
+  String get adminEditBook => _s('تعديل كتاب', 'Edit book');
+  String get adminSave => _s('حفظ', 'Save');
+  String get adminDeleteConfirm => _s('هل أنت متأكد من الحذف؟', 'Are you sure you want to delete?');
+  String get adminCondition => _s('الحالة', 'Condition');
+  String get adminVisible => _s('ظاهر', 'Visible');
+  String get adminSold => _s('مباع', 'Sold');
+  String get adminNewCondition => _s('جديد', 'New');
+  String get adminUsedCondition => _s('مستعمل', 'Used');
+  String get adminSelectWarehouse => _s('اختر المستودع', 'Select warehouse');
+  String get adminSelectPublisher => _s('اختر الناشر', 'Select publisher');
+  String get adminSelectCategory => _s('اختر التصنيف', 'Select category');
+  String get adminRole => _s('الدور', 'Role');
+  String get adminPublisher => _s('الناشر', 'Publisher');
+  String get adminWarehouse => _s('المستودع', 'Warehouse');
+  String get adminFailedSave => _s('فشل الحفظ', 'Failed to save');
+  String get adminNoItems => _s('لا توجد عناصر', 'No items');
   String get adminAddAuthor => _s('إضافة مؤلف', 'Add author');
   String get adminDeleteAuthor => _s('حذف المؤلف', 'Delete author');
   String get adminAddCategory => _s('إضافة تصنيف', 'Add category');
@@ -211,7 +246,13 @@ class AppLocalizations {
         'يُطبَّق على كل الكتب التي ليس لها خصم خاص.',
         'Applied to all books that do not have a special discount.',
       );
+  String get adminCatalogItemsPerPage =>
+      _s('عناصر الكتالوج لكل صفحة', 'Catalog items per page');
   String get adminSettingsSaved => _s('تم حفظ الإعدادات', 'Settings saved');
+  String get adminPublisherSettingsBody => _s(
+        'قم بتهيئة سياسة الإرجاع والخصومات من لوحة الإدارة على الويب حالياً',
+        'Configure return policy and discounts from the web admin for now',
+      );
   String get fieldRequired => _s('مطلوب', 'Required');
   String get invalidNumber => _s('رقم غير صالح', 'Invalid number');
   String get mustBeBetween0And100 =>

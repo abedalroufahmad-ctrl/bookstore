@@ -3,7 +3,6 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -18,17 +17,12 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "farmanapp_01.app"
     compileSdk = flutter.compileSdkVersion
-    // Pin to a working NDK version (this folder contains source.properties)
-    // so Gradle doesn't fail when another NDK download is incomplete.
-    ndkVersion = "30.0.14904198-beta1"
+    // Use the installed stable NDK (r28c). Avoid beta package IDs that sdkmanager can't fetch.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
@@ -60,6 +54,12 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

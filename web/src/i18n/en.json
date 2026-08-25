@@ -62,7 +62,8 @@
     "topAuthors": "Top Authors",
     "booksCount": "{{count}} books",
     "categoriesCount": "{{count}} categories",
-    "viewAllWarehouses": "All warehouses"
+    "viewAllWarehouses": "All warehouses",
+    "viewAllPublishers": "All publishers"
   },
   "books": {
     "title": "Browse Books",
@@ -70,7 +71,10 @@
     "noBooks": "No books found. Add some in the admin panel.",
     "outOfStock": "Out of stock",
     "inStock": "{{count}} in stock",
-    "failedToLoad": "Failed to load books"
+    "failedToLoad": "Failed to load books",
+    "conditionFilter": "Show",
+    "filterAll": "All",
+    "clearFilters": "Clear filters"
   },
   "bookDetail": {
     "authors": "Authors",
@@ -190,6 +194,8 @@
   },
   "publishers": {
     "title": "Publishers",
+    "noPublishers": "No publishers found.",
+    "loadError": "Failed to load publishers",
     "noBooks": "No books found for this publisher."
   },
   "categories": {
@@ -264,6 +270,9 @@
     "selectAll": "Select all on this page",
     "deleteSelected": "Delete selected",
     "deleteBooksBulkConfirm": "Delete {{count}} book(s)? This cannot be undone.",
+    "deleteOrdersBulkConfirm": "Delete {{count}} order(s)? This cannot be undone.",
+    "failedDeleteOrders": "Failed to delete orders",
+    "selectOrder": "Select order",
     "name": "Name",
     "noBooks": "No books yet.",
     "addFirstBook": "Add your first book",

@@ -99,6 +99,9 @@ export const WarehouseList = lazy(() =>
 export const WarehouseBooks = lazy(() =>
   import('./pages/WarehouseBooks').then((m) => ({ default: m.WarehouseBooks })),
 )
+export const PublisherList = lazy(() =>
+  import('./pages/PublisherList').then((m) => ({ default: m.PublisherList })),
+)
 export const PublisherBooks = lazy(() =>
   import('./pages/PublisherBooks').then((m) => ({ default: m.PublisherBooks })),
 )

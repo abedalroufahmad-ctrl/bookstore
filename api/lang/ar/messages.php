@@ -103,6 +103,7 @@ return [
         'Warehouse updated' => 'تم تحديث المستودع',
         'Warehouse deleted' => 'تم حذف المستودع',
         'Warehouse quote saved.' => 'تم حفظ عرض المستودع.',
+        'Too Many Attempts.' => 'محاولات كثيرة جداً. حاول مرة أخرى بعد دقيقة.',
     ],
     'patterns' => [
         '/^Book not found: (.+)$/' => 'الكتاب غير موجود: $1',

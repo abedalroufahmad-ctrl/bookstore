@@ -79,6 +79,8 @@ export const warehousesPublic = {
 }
 
 export const publishersPublic = {
+  list: (params?: Record<string, string | number>) =>
+    api.get<ApiResponse<PaginatedResponse<Publisher>>>('/publishers', { params }),
   get: (id: string) => api.get<ApiResponse<Publisher>>(`/publishers/${id}`),
 }
 
@@ -222,6 +224,12 @@ export const admin = {
       id: string,
       body: { shipping_fee: number; shipping_method?: string; payment_method?: string },
     ) => api.post<ApiResponse<Order>>(`/admin/orders/${id}/warehouse-quote`, body),
+    delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/orders/${id}`),
+    bulkDelete: (ids: string[]) =>
+      api.post<ApiResponse<{ deleted: number; forbidden: number; missing: number }>>(
+        '/admin/orders/bulk-delete',
+        { ids },
+      ),
   },
   employees: {
     list: (params?: Record<string, string | number>) =>

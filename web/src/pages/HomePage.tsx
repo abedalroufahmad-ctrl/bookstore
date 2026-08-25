@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { books as booksApi, warehousesPublic as warehousesApi } from '../lib/api'
+import { books as booksApi, warehousesPublic as warehousesApi, publishersPublic as publishersApi } from '../lib/api'
 import { resolveCoverUrl, getPublisherLabel, getPublisherId, hasCover } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/SettingsContext'
-import type { Book, Warehouse } from '../lib/api'
+import type { Book, Warehouse, Publisher } from '../lib/api'
 
 export function HomePage() {
     const { t, i18n } = useTranslation()
@@ -28,6 +28,15 @@ export function HomePage() {
         staleTime: 300_000,
     })
 
+    const { data: publishersData } = useQuery({
+        queryKey: ['publishers-home', settings.catalog_items_per_page],
+        queryFn: async () => {
+            const res = await publishersApi.list({ per_page: settings.catalog_items_per_page })
+            return res.data
+        },
+        staleTime: 300_000,
+    })
+
     const paginated = data?.data
     const items: Book[] = (Array.isArray(paginated)
         ? paginated
@@ -35,6 +44,7 @@ export function HomePage() {
     ).filter(hasCover)
 
     const warehouseItems: Warehouse[] = warehousesData?.data?.data ?? []
+    const publisherItems: Publisher[] = publishersData?.data?.data ?? []
 
     if (isLoading) {
         return (
@@ -139,6 +149,33 @@ export function HomePage() {
                 >
                     {t('home.viewAllWarehouses')} →
                 </Link>
+                <div className="flex items-center gap-2 mt-6 mb-2">
+                    <span className="text-lg">🏛️</span>
+                    <h3 className="font-bold text-lg" style={{ color: 'var(--color-text)' }}>
+                        {t('nav.publishers')}
+                    </h3>
+                </div>
+                <ul className="space-y-1">
+                    {publisherItems.slice(0, 10).map((p) => (
+                        <li key={p._id}>
+                            <Link
+                                to={`/publishers/${p._id}`}
+                                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-[var(--color-primary-light)] transition-colors"
+                                style={{ textDecoration: 'none', color: 'var(--color-text)' }}
+                            >
+                                <span style={{ fontSize: 16 }}>🏛️</span>
+                                <span className="text-sm truncate">{p.name}</span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+                <Link
+                    to="/publishers"
+                    className="block mt-3 text-sm font-medium"
+                    style={{ color: 'var(--color-primary)' }}
+                >
+                    {t('home.viewAllPublishers')} →
+                </Link>
             </aside>
 
             {/* Center - Hero + Content */}
@@ -187,6 +224,14 @@ export function HomePage() {
                     >
                         <div className="home-feature-card-icon">📂</div>
                         <div className="home-feature-card-title">{t('home.categories')}</div>
+                    </Link>
+                    <Link
+                        to="/publishers"
+                        className="home-feature-card"
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                        <div className="home-feature-card-icon">🏛️</div>
+                        <div className="home-feature-card-title">{t('nav.publishers')}</div>
                     </Link>
                     <Link
                         to="/warehouses"

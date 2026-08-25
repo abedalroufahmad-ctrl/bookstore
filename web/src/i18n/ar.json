@@ -62,7 +62,8 @@
     "topAuthors": "أفضل المؤلفين",
     "booksCount": "{{count}} كتاب",
     "categoriesCount": "{{count}} تصنيفات",
-    "viewAllWarehouses": "جميع المستودعات"
+    "viewAllWarehouses": "جميع المستودعات",
+    "viewAllPublishers": "جميع الناشرين"
   },
   "books": {
     "title": "تصفح الكتب",
@@ -70,7 +71,10 @@
     "noBooks": "لا توجد كتب. أضف بعض الكتب من لوحة الإدارة.",
     "outOfStock": "غير متوفر",
     "inStock": "{{count}} في المخزون",
-    "failedToLoad": "فشل تحميل الكتب"
+    "failedToLoad": "فشل تحميل الكتب",
+    "conditionFilter": "عرض",
+    "filterAll": "الكل",
+    "clearFilters": "مسح الفلاتر"
   },
   "bookDetail": {
     "authors": "المؤلفون",
@@ -190,6 +194,8 @@
   },
   "publishers": {
     "title": "الناشرون",
+    "noPublishers": "لا يوجد ناشرون.",
+    "loadError": "فشل تحميل الناشرين",
     "noBooks": "لا توجد كتب لهذا الناشر."
   },
   "categories": {
@@ -263,6 +269,9 @@
     "selectAll": "تحديد الكل في هذه الصفحة",
     "deleteSelected": "حذف المحدد",
     "deleteBooksBulkConfirm": "حذف {{count}} كتاب/كتب؟ لا يمكن التراجع.",
+    "deleteOrdersBulkConfirm": "حذف {{count}} طلب/طلبات؟ لا يمكن التراجع.",
+    "failedDeleteOrders": "فشل حذف الطلبات",
+    "selectOrder": "تحديد الطلب",
     "name": "الاسم",
     "noBooks": "لا توجد كتب بعد.",
     "addFirstBook": "أضف أول كتاب",

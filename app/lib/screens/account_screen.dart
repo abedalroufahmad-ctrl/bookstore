@@ -171,6 +171,20 @@ class AccountScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          _buildSectionTitle(context, t.adminDashboard),
+          GFCard(
+            elevation: 0,
+            padding: EdgeInsets.zero,
+            margin: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(12),
+            content: GFListTile(
+              icon: Icon(Icons.dashboard_outlined, size: 22, color: theme.colorScheme.primary),
+              titleText: t.adminDashboard,
+              subTitleText: t.isAr ? 'إدارة المتجر والموظفين والكتب' : 'Manage catalog, staff, and settings',
+              onTap: () => Navigator.pushNamed(context, '/admin'),
+            ),
+          ),
+          const SizedBox(height: 24),
           _buildSectionTitle(context, t.staffOrdersTitle),
           GFCard(
             elevation: 0,

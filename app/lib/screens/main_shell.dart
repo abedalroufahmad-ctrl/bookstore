@@ -134,6 +134,9 @@ class _MainShellState extends State<MainShell> {
                 case 'authors':
                   await Navigator.pushNamed(context, '/authors');
                   break;
+                case 'publishers':
+                  await Navigator.pushNamed(context, '/publishers');
+                  break;
                 case 'warehouses':
                   await Navigator.pushNamed(context, '/warehouses');
                   break;
@@ -149,6 +152,9 @@ class _MainShellState extends State<MainShell> {
                   break;
                 case 'staff_orders':
                   await Navigator.pushNamed(context, '/staff/orders');
+                  break;
+                case 'admin':
+                  await Navigator.pushNamed(context, '/admin');
                   break;
                 case 'login':
                   await Navigator.pushNamed(context, '/login');
@@ -172,6 +178,7 @@ class _MainShellState extends State<MainShell> {
                 PopupMenuItem(value: 'books', child: Text(t.navBooks)),
                 PopupMenuItem(value: 'categories', child: Text(t.navCategories)),
                 PopupMenuItem(value: 'authors', child: Text(t.navAuthors)),
+                PopupMenuItem(value: 'publishers', child: Text(t.navPublishers)),
                 PopupMenuItem(value: 'warehouses', child: Text(t.navWarehouses)),
               ];
 
@@ -182,6 +189,10 @@ class _MainShellState extends State<MainShell> {
 
               if (auth.userType == UserType.employee) {
                 items.addAll([
+                  PopupMenuItem(
+                    value: 'admin',
+                    child: Text(t.adminDashboard),
+                  ),
                   PopupMenuItem(
                     value: 'browse_warehouses',
                     child: Text(t.warehouseBooksTitle),

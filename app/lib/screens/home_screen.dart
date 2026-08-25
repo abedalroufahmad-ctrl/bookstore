@@ -22,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Book> _books = [];
   List<Warehouse> _warehouses = [];
+  List<Publisher> _publishers = [];
   List<Author> _authors = [];
   double _globalDiscount = 0;
   bool _isLoading = true;
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         ApiService.instance.getBooks(),
         ApiService.instance.getWarehousesPaginated(1, perPage: 40),
+        ApiService.instance.getPublishersPaginated(1, perPage: 40),
         ApiService.instance.getAuthors(),
         ApiService.instance.getSettings(),
       ]);
@@ -51,8 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       final booksRes = results[0];
       final warehousesRes = results[1] as ApiResponse<PaginatedResult<Warehouse>>;
-      final authorsRes = results[2] as ApiResponse<List<Author>>;
-      final settingsRes = results[3] as ApiResponse<Map<String, dynamic>>;
+      final publishersRes = results[2] as ApiResponse<PaginatedResult<Publisher>>;
+      final authorsRes = results[3] as ApiResponse<List<Author>>;
+      final settingsRes = results[4] as ApiResponse<Map<String, dynamic>>;
 
       setState(() {
         if (booksRes.success && booksRes.data != null) {
@@ -71,6 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (warehousesRes.success && warehousesRes.data != null) {
           _warehouses = warehousesRes.data!.items;
+        }
+        if (publishersRes.success && publishersRes.data != null) {
+          _publishers = publishersRes.data!.items;
         }
         if (authorsRes.success) _authors = authorsRes.data ?? [];
 
@@ -293,6 +299,58 @@ class _HomeScreenState extends State<HomeScreen> {
                                         Flexible(
                                           child: Text(
                                             w.name ?? '',
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        _buildSectionHeader(t.navPublishers, '/publishers'),
+                        SizedBox(
+                          height: 110,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _publishers.length,
+                            itemBuilder: (context, i) {
+                              final p = _publishers[i];
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 16),
+                                child: SizedBox(
+                                  width: 88,
+                                  child: InkWell(
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/publisher/${p.id}',
+                                      arguments: {'name': p.name},
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.max,
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.tertiaryContainer,
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          child: const Center(
+                                            child: Text('🏛️', style: TextStyle(fontSize: 26)),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Flexible(
+                                          child: Text(
+                                            p.name ?? '',
                                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,

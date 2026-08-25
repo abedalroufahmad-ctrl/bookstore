@@ -263,7 +263,15 @@ class BookRepository implements BookRepositoryInterface
         }
 
         if (! empty($filters['condition'])) {
-            $query->where('condition', $filters['condition']);
+            if ($filters['condition'] === 'new') {
+                $query->where(function ($q) {
+                    $q->where('condition', 'new')
+                        ->orWhereNull('condition')
+                        ->orWhere('condition', '');
+                });
+            } else {
+                $query->where('condition', $filters['condition']);
+            }
         }
 
         if (array_key_exists('is_visible', $filters)) {

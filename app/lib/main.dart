@@ -18,8 +18,20 @@ import 'screens/category_list_screen.dart';
 import 'screens/warehouse_books_screen.dart';
 import 'screens/warehouse_list_screen.dart';
 import 'screens/publisher_books_screen.dart';
+import 'screens/publisher_list_screen.dart';
+import 'screens/admin_authors_screen.dart';
+import 'screens/admin_book_form_screen.dart';
+import 'screens/admin_books_screen.dart';
+import 'screens/admin_categories_screen.dart';
+import 'screens/admin_customers_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
+import 'screens/admin_employees_screen.dart';
 import 'screens/admin_orders_screen.dart';
+import 'screens/admin_publisher_settings_screen.dart';
+import 'screens/admin_publishers_screen.dart';
+import 'screens/admin_settings_screen.dart';
 import 'screens/admin_warehouses_browse_screen.dart';
+import 'screens/admin_warehouses_screen.dart';
 import 'screens/guest_landing_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/login_screen.dart';
@@ -182,8 +194,21 @@ class BookStoreApp extends StatelessWidget {
               '/authors': (context) => const AuthorListScreen(),
               '/categories': (context) => const CategoryListScreen(),
               '/warehouses': (context) => const WarehouseListScreen(),
+              '/publishers': (context) => const PublisherListScreen(),
+              '/admin': (context) => const AdminDashboardScreen(),
+              '/admin/books': (context) => const AdminBooksScreen(),
+              '/admin/books/form': (context) => const AdminBookFormScreen(),
+              '/admin/authors': (context) => const AdminAuthorsScreen(),
+              '/admin/categories': (context) => const AdminCategoriesScreen(),
+              '/admin/publishers': (context) => const AdminPublishersScreen(),
+              '/admin/warehouses': (context) => const AdminWarehousesScreen(),
               '/admin/warehouses/browse': (context) => const AdminWarehousesBrowseScreen(),
               '/admin/orders': (context) => const AdminOrdersScreen(),
+              '/admin/employees': (context) => const AdminEmployeesScreen(),
+              '/admin/customers': (context) => const AdminCustomersScreen(),
+              '/admin/settings': (context) => const AdminSettingsScreen(),
+              '/admin/publisher-settings': (context) =>
+                  const AdminPublisherSettingsScreen(),
               '/staff/orders': (context) =>
                   const AdminOrdersScreen(useEmployeeApi: true),
             },

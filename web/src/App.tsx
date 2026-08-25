@@ -31,6 +31,7 @@ import {
   CategoryBooks,
   WarehouseList,
   WarehouseBooks,
+  PublisherList,
   PublisherBooks,
   AdminSettings,
   PublisherSettings,
@@ -79,6 +80,7 @@ function AppRoutes() {
         <Route path="categories/:id" element={<CategoryBooks />} />
         <Route path="warehouses" element={<WarehouseList />} />
         <Route path="warehouses/:id" element={<WarehouseBooks />} />
+        <Route path="publishers" element={<PublisherList />} />
         <Route path="publishers/:id" element={<PublisherBooks />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />

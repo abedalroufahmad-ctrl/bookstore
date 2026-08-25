@@ -96,4 +96,25 @@ class OrderRepository implements OrderRepositoryInterface
 
         return $model->update($data);
     }
+
+    public function delete(string $id): bool
+    {
+        $model = $this->findById($id);
+
+        if (! $model) {
+            return false;
+        }
+
+        return (bool) $model->delete();
+    }
+
+    public function deleteMany(array $ids): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('strval', $ids))));
+        if ($ids === []) {
+            return 0;
+        }
+
+        return (int) $this->model->newQuery()->whereIn('_id', $ids)->delete();
+    }
 }

@@ -35,15 +35,16 @@ export default defineConfig({
     },
   },
   server: {
-    host: true, // Listen on 0.0.0.0 so accessible from LAN (e.g. http://192.168.1.109:5173)
+    host: true, // Listen on 0.0.0.0 so accessible from LAN
     port: 5173,
     proxy: {
+      // Same machine as `php artisan serve` — use localhost so LAN IP changes don't break the proxy
       '/api': {
-        target: 'http://192.168.204.197:8000',
+        target: 'http://192.168.130.197:8000',
         changeOrigin: true,
       },
       '/storage': {
-        target: 'http://192.168.204.197:8000',
+        target: 'http://192.168.130.197:8000',
         changeOrigin: true,
       },
     },

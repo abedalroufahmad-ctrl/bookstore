@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Order, type Employee } from '../lib/api'
@@ -48,6 +48,9 @@ export function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [error, setError] = useState('')
+  const headerCheckboxRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setPage(1)
@@ -101,10 +104,77 @@ export function AdminOrders() {
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => admin.orders.bulkDelete(ids),
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        ids.forEach((id) => next.delete(id))
+        return next
+      })
+      if (selectedOrder && ids.includes(selectedOrder._id)) {
+        setSelectedOrder(null)
+      }
+      setError('')
+    },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      setError(err?.response?.data?.message ?? t('admin.failedDeleteOrders'))
+    },
+  })
+
   const ordersPaginated = data?.data
   const orders = ordersPaginated?.data ?? extractList<Order>(data)
   const ordersMeta = ordersPaginated && 'current_page' in ordersPaginated ? ordersPaginated : null
   const employees = extractList<Employee>(employeesData)
+
+  const pageIds = orders.map((o) => o._id)
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id))
+  const someSelected = pageIds.some((id) => selectedIds.has(id))
+  const selectedCount = selectedIds.size
+  const deletingBulk = bulkDeleteMutation.isPending
+
+  useEffect(() => {
+    const el = headerCheckboxRef.current
+    if (el) {
+      el.indeterminate = someSelected && !allSelected
+    }
+  }, [someSelected, allSelected])
+
+  const toggleSelectAllOnPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id))
+      } else {
+        pageIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+
+  const toggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    if (
+      window.confirm(
+        t('admin.deleteOrdersBulkConfirm', {
+          count: ids.length,
+        })
+      )
+    ) {
+      bulkDeleteMutation.mutate(ids)
+    }
+  }
 
   return (
     <div>
@@ -150,7 +220,22 @@ export function AdminOrders() {
             <option value="failed">{t('admin.paymentFailed')}</option>
           </select>
         </div>
+        <button
+          type="button"
+          onClick={handleBulkDelete}
+          disabled={selectedCount === 0 || deletingBulk}
+          className="px-4 py-2 text-sm rounded-lg border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {deletingBulk ? t('admin.deleting') : t('admin.deleteSelected')}
+          {selectedCount > 0 ? ` (${selectedCount})` : ''}
+        </button>
       </div>
+
+      {error && (
+        <p className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
 
       {isLoading && !data ? (
         <div className="text-center py-12">{t('common.loading')}</div>
@@ -159,6 +244,16 @@ export function AdminOrders() {
           <table className="w-full">
             <thead className="bg-stone-100">
               <tr>
+                <th className="px-3 py-2 w-10">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAllOnPage}
+                    aria-label={t('admin.selectAll')}
+                    className="rounded border-stone-300"
+                  />
+                </th>
                 <th className="px-4 py-2 text-left">{t('admin.order')}</th>
                 <th className="px-4 py-2 text-left">{t('admin.customer')}</th>
                 <th className="px-4 py-2 text-left">{t('admin.status')}</th>
@@ -172,6 +267,15 @@ export function AdminOrders() {
             <tbody>
               {orders.map((order) => (
                 <tr key={order._id} className="border-t border-stone-200">
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(order._id)}
+                      onChange={() => toggleRow(order._id)}
+                      aria-label={t('admin.selectOrder')}
+                      className="rounded border-stone-300"
+                    />
+                  </td>
                   <td className="px-4 py-2 font-mono text-xs break-all max-w-[14rem]">
                     {order._id}
                   </td>

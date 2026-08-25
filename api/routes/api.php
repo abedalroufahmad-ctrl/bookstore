@@ -40,6 +40,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     Route::get('categories/{id}', [PublicCategoryController::class, 'show']);
     Route::get('warehouses', [PublicWarehouseController::class, 'index']);
     Route::get('warehouses/{id}', [PublicWarehouseController::class, 'show']);
+    Route::get('publishers', [PublicPublisherController::class, 'index']);
     Route::get('publishers/{id}', [PublicPublisherController::class, 'show']);
     Route::get('authors', [PublicAuthorController::class, 'index']);
     Route::get('authors/{id}', [PublicAuthorController::class, 'show']);
@@ -121,10 +122,12 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         // Orders: order-management roles only
         Route::middleware('role:manager,shipping,accounting,warehouse_manager')->group(function () {
             Route::get('orders', [AdminOrderController::class, 'index']);
+            Route::post('orders/bulk-delete', [AdminOrderController::class, 'bulkDestroy']);
             Route::get('orders/{id}', [AdminOrderController::class, 'show']);
             Route::patch('orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
             Route::post('orders/{id}/warehouse-quote', [AdminOrderController::class, 'submitWarehouseQuote']);
             Route::post('orders/{id}/assign', [AdminOrderController::class, 'assign']);
+            Route::delete('orders/{id}', [AdminOrderController::class, 'destroy']);
         });
     });
 
@@ -148,8 +151,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
 
     // Customer Auth
     Route::prefix('customers')->group(function () {
-        Route::post('register', [CustomerAuthController::class, 'register'])->middleware('throttle:10,1');
-        Route::post('login', [CustomerAuthController::class, 'login'])->middleware('throttle:10,1');
+        Route::post('register', [CustomerAuthController::class, 'register'])->middleware('throttle:30,1');
+        Route::post('login', [CustomerAuthController::class, 'login'])->middleware('throttle:20,1');
 
         Route::middleware(['auth:customer'])->group(function () {
             Route::post('logout', [CustomerAuthController::class, 'logout']);
