@@ -131,10 +131,12 @@ class AdminOrderController extends BaseApiController
         }
 
         $employee = auth('employee')->user();
+
+        if ($deny = $this->forbidIfOutsideWarehouseScope($order)) {
+            return $deny;
+        }
+
         if ($employee && UserRole::isOrderWarehouseScoped($employee->role)) {
-            if ($deny = $this->forbidIfOutsideWarehouseScope($order)) {
-                return $deny;
-            }
             $managedIds = $employee->getManagedWarehouseIds();
             if (empty($managedIds) || ! in_array((string) $assignedEmployee->warehouse_id, $managedIds, true)) {
                 return $this->errorResponse('Forbidden. You can only assign orders to staff of your warehouses.', 403);
@@ -142,6 +144,16 @@ class AdminOrderController extends BaseApiController
             // Never re-home the order to another warehouse on assign.
             $order = $this->orderService->assignOrder($order, $request->validated('employee_id'), null);
 
+            return $this->successResponse($order, 'Order assigned');
+        }
+
+        if ($employee && $employee->role === \App\Domain\Auth\Enums\UserRole::PublisherManager->value) {
+            $pubId = $employee->getManagedPublisherId();
+            $wh = \App\Models\Warehouse::find($assignedEmployee->warehouse_id);
+            if (! $wh || (string) $wh->publisher_id !== $pubId) {
+                return $this->errorResponse('Forbidden. You can only assign orders to staff of your publisher.', 403);
+            }
+            $order = $this->orderService->assignOrder($order, $request->validated('employee_id'), null);
             return $this->successResponse($order, 'Order assigned');
         }
 

@@ -120,7 +120,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         });
 
         // Orders: order-management roles only
-        Route::middleware('role:manager,shipping,accounting,warehouse_manager')->group(function () {
+        Route::middleware('role:manager,publisher_manager,shipping,accounting,warehouse_manager')->group(function () {
             Route::get('orders', [AdminOrderController::class, 'index']);
             Route::post('orders/bulk-delete', [AdminOrderController::class, 'bulkDestroy']);
             Route::get('orders/{id}', [AdminOrderController::class, 'show']);
