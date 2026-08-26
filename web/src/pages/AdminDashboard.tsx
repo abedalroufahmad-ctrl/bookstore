@@ -78,7 +78,7 @@ export function AdminDashboard() {
             <p className="text-sm text-stone-500 mt-1">{t('admin.manageCountries')}</p>
           </Link>
         )}
-        {(!isScopedWarehouseUser || isWarehouseManager || isPublisherManager) && (
+        {(isManager || isWarehouseManager || isPublisherManager || employeeRole === 'shipping' || employeeRole === 'accounting') && (
         <Link
           to="/admin/orders"
           className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"

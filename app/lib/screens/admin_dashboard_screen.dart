@@ -61,12 +61,13 @@ class AdminDashboardScreen extends StatelessWidget {
           icon: Icons.storefront_outlined,
           route: '/admin/warehouses/browse',
         ),
-      _AdminTile(
-        title: t.adminOrders,
-        subtitle: t.adminViewManageOrders,
-        icon: Icons.receipt_long_outlined,
-        route: '/admin/orders',
-      ),
+      if (isManager || isWarehouseManager || isPublisherManager || role == 'shipping' || role == 'accounting')
+        _AdminTile(
+          title: t.adminOrders,
+          subtitle: t.adminViewManageOrders,
+          icon: Icons.receipt_long_outlined,
+          route: '/admin/orders',
+        ),
       if (!isScoped || isWarehouseManager || isPublisherManager)
         _AdminTile(
           title: t.adminEmployees,
