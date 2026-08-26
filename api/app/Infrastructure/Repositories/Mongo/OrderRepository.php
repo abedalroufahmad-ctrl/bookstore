@@ -54,6 +54,10 @@ class OrderRepository implements OrderRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
+        if (! empty($filters['status_in']) && is_array($filters['status_in'])) {
+            $query->whereIn('status', $filters['status_in']);
+        }
+
         if (! empty($filters['payment_status'])) {
             $query->where('payment_status', $filters['payment_status']);
         }

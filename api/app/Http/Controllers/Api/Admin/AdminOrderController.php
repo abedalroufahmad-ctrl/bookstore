@@ -31,6 +31,14 @@ class AdminOrderController extends BaseApiController
 
         $employee = auth('employee')->user();
         if ($employee) {
+            if ($employee->role === \App\Domain\Auth\Enums\UserRole::Accounting->value) {
+                // Accounting can only see orders that are shipped or completed
+                $filters['status_in'] = [
+                    \App\Domain\Order\Enums\OrderStatus::ShippedCollectingPayment->value,
+                    \App\Domain\Order\Enums\OrderStatus::Completed->value,
+                ];
+            }
+
             if (\App\Domain\Auth\Enums\UserRole::isOrderWarehouseScoped($employee->role)) {
                 $managedIds = $employee->getManagedWarehouseIds();
                 if (! empty($managedIds)) {
@@ -238,6 +246,16 @@ class AdminOrderController extends BaseApiController
         $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
         if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
             return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
+        }
+
+        if ($employee->role === \App\Domain\Auth\Enums\UserRole::Accounting->value) {
+            $allowed = [
+                \App\Domain\Order\Enums\OrderStatus::ShippedCollectingPayment->value,
+                \App\Domain\Order\Enums\OrderStatus::Completed->value,
+            ];
+            if (! in_array($order->status, $allowed, true)) {
+                return $this->errorResponse('Forbidden. Accounting can only manage shipped or completed orders.', 403);
+            }
         }
 
         return null;
