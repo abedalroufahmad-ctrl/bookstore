@@ -276,7 +276,7 @@ class _BookListScreenState extends State<BookListScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String?>(
-                        value: _categoryId,
+                        initialValue: _categoryId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: t.navCategories,
@@ -305,7 +305,7 @@ class _BookListScreenState extends State<BookListScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String?>(
-                        value: _publisherId,
+                        initialValue: _publisherId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: t.navPublishers,
@@ -330,7 +330,7 @@ class _BookListScreenState extends State<BookListScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButtonFormField<String?>(
-                        value: _warehouseId,
+                        initialValue: _warehouseId,
                         isExpanded: true,
                         decoration: InputDecoration(
                           labelText: t.navWarehouses,

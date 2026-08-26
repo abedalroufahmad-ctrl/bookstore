@@ -191,7 +191,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: role,
+                      initialValue: role,
                       decoration: InputDecoration(labelText: t.adminRole),
                       items: roles
                           .map(
@@ -229,7 +229,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     ] else if (role == 'publisher_manager') ...[
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String?>(
-                        value: publisherId,
+                        initialValue: publisherId,
                         decoration:
                             InputDecoration(labelText: t.adminSelectPublisher),
                         items: [
@@ -250,7 +250,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                     ] else ...[
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String?>(
-                        value: warehouseId,
+                        initialValue: warehouseId,
                         decoration:
                             InputDecoration(labelText: t.adminSelectWarehouse),
                         items: [

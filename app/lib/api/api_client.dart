@@ -47,7 +47,7 @@ class ApiClient {
           ? Uri.parse('$_baseUrl$path').replace(queryParameters: params)
           : Uri.parse('$_baseUrl$path');
       final res = await http.get(uri, headers: await _headers());
-      return _parseResponse<T>(res, fromJson);
+      return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
@@ -65,7 +65,7 @@ class ApiClient {
         headers: await _headers(),
         body: body != null ? jsonEncode(body) : null,
       );
-      return _parseResponse<T>(res, fromJson);
+      return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
@@ -82,7 +82,7 @@ class ApiClient {
         headers: await _headers(),
         body: body != null ? jsonEncode(body) : null,
       );
-      return _parseResponse<T>(res, fromJson);
+      return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
@@ -99,7 +99,7 @@ class ApiClient {
         headers: await _headers(),
         body: body != null ? jsonEncode(body) : null,
       );
-      return _parseResponse<T>(res, fromJson);
+      return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }
@@ -114,7 +114,7 @@ class ApiClient {
         Uri.parse('$_baseUrl$path'),
         headers: await _headers(),
       );
-      return _parseResponse<T>(res, fromJson);
+      return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
     }

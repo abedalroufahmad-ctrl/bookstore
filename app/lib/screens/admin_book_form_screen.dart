@@ -270,7 +270,7 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _condition,
+                        initialValue: _condition,
                         decoration: InputDecoration(labelText: t.adminCondition),
                         items: [
                           DropdownMenuItem(
@@ -319,7 +319,7 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                       }),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String?>(
-                        value: _categoryId,
+                        initialValue: _categoryId,
                         decoration: InputDecoration(labelText: t.adminSelectCategory),
                         items: [
                           DropdownMenuItem<String?>(
@@ -342,7 +342,7 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String?>(
-                        value: _publisherId,
+                        initialValue: _publisherId,
                         decoration: InputDecoration(labelText: t.adminSelectPublisher),
                         items: [
                           DropdownMenuItem<String?>(

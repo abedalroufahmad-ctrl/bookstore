@@ -106,7 +106,7 @@ class _AdminWarehousesScreenState extends State<AdminWarehousesScreen> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String?>(
-                      value: publisherId,
+                      initialValue: publisherId,
                       decoration:
                           InputDecoration(labelText: t.adminSelectPublisher),
                       items: [
