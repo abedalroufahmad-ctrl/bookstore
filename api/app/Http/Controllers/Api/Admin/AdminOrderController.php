@@ -30,13 +30,26 @@ class AdminOrderController extends BaseApiController
         ];
 
         $employee = auth('employee')->user();
-        if ($employee && UserRole::isOrderWarehouseScoped($employee->role)) {
-            $managedIds = $employee->getManagedWarehouseIds();
-            if (! empty($managedIds)) {
-                $filters['warehouse_ids'] = $managedIds;
-            } else {
-                // No warehouse assignment → empty result set
-                $filters['warehouse_ids'] = ['__none__'];
+        if ($employee) {
+            if (\App\Domain\Auth\Enums\UserRole::isOrderWarehouseScoped($employee->role)) {
+                $managedIds = $employee->getManagedWarehouseIds();
+                if (! empty($managedIds)) {
+                    $filters['warehouse_ids'] = $managedIds;
+                } else {
+                    $filters['warehouse_ids'] = ['__none__'];
+                }
+            } elseif ($employee->role === \App\Domain\Auth\Enums\UserRole::PublisherManager->value) {
+                $pubId = $employee->getManagedPublisherId();
+                if ($pubId) {
+                    $managedIds = \App\Models\Warehouse::where('publisher_id', $pubId)->pluck('_id')->map(fn($id) => (string) $id)->toArray();
+                    if (! empty($managedIds)) {
+                        $filters['warehouse_ids'] = $managedIds;
+                    } else {
+                        $filters['warehouse_ids'] = ['__none__'];
+                    }
+                } else {
+                    $filters['warehouse_ids'] = ['__none__'];
+                }
             }
         }
 
@@ -187,8 +200,27 @@ class AdminOrderController extends BaseApiController
     private function forbidIfOutsideWarehouseScope($order): ?JsonResponse
     {
         $employee = auth('employee')->user();
-        if (! $employee || ! UserRole::isOrderWarehouseScoped($employee->role)) {
+        if (! $employee) {
             return null;
+        }
+
+        if ($employee->role === \App\Domain\Auth\Enums\UserRole::PublisherManager->value) {
+            $pubId = $employee->getManagedPublisherId();
+            if (! $pubId) {
+                return $this->errorResponse('Forbidden. No publisher assigned.', 403);
+            }
+            $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
+            if ($orderWarehouseId) {
+                $wh = \App\Models\Warehouse::find($orderWarehouseId);
+                if (! $wh || (string) $wh->publisher_id !== $pubId) {
+                    return $this->errorResponse('Forbidden. Order does not belong to your publisher.', 403);
+                }
+            }
+            return null;
+        }
+
+        if (! UserRole::isOrderWarehouseScoped($employee->role)) {
+            return null; // admin or manager sees everything
         }
 
         $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
