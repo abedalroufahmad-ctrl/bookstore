@@ -76,6 +76,14 @@ export function AdminOrders() {
     },
   })
 
+  const { data: warehousesData } = useQuery({
+    queryKey: ['admin-warehouses'],
+    queryFn: async () => {
+      const res = await admin.warehouses.list({ per_page: 100 })
+      return res.data
+    },
+  })
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       admin.orders.updateStatus(id, status),
@@ -127,6 +135,7 @@ export function AdminOrders() {
   const orders = ordersPaginated?.data ?? extractList<Order>(data)
   const ordersMeta = ordersPaginated && 'current_page' in ordersPaginated ? ordersPaginated : null
   const employees = extractList<Employee>(employeesData)
+  const warehouses = extractList<any>(warehousesData)
 
   const pageIds = orders.map((o) => o._id)
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id))
@@ -326,6 +335,7 @@ export function AdminOrders() {
         <OrderDetailModal
           order={selectedOrder}
           employees={employees}
+          warehouses={warehouses}
           onClose={() => setSelectedOrder(null)}
           onAssign={(employeeId) =>
             assignMutation.mutate({
@@ -350,6 +360,7 @@ export function AdminOrders() {
 function OrderDetailModal({
   order,
   employees,
+  warehouses,
   onClose,
   onAssign,
   onStatusChange,
@@ -358,6 +369,7 @@ function OrderDetailModal({
 }: {
   order: Order
   employees: Employee[]
+  warehouses: any[]
   onClose: () => void
   onAssign: (employeeId: string) => void
   onStatusChange: (status: string) => void
@@ -449,6 +461,16 @@ function OrderDetailModal({
                 {t('admin.customer')}:
               </span>{' '}
               {displayOrder.customer?.name ?? displayOrder.customer_id ?? '-'}
+            </div>
+
+            <div>
+              <span className="text-sm font-medium text-stone-600">
+                {t('admin.warehouse')}:
+              </span>{' '}
+              {(() => {
+                const w = warehouses.find((wh: any) => wh._id === displayOrder.warehouse_id || wh.id === displayOrder.warehouse_id)
+                return w ? (w.name || displayOrder.warehouse_id) : (displayOrder.warehouse_id || '-')
+              })()}
             </div>
 
             <div>
