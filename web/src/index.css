@@ -1,29 +1,34 @@
 @import "tailwindcss";
 
-/* Made-in-China inspired design tokens */
+/* Juniper Books inspired elegant design tokens */
 :root {
-  --color-primary: #cd071e;
-  --color-primary-hover: #a80618;
-  --color-primary-light: #fff0f2;
-  --color-text: #333333;
+  --color-primary: #1c2331; /* Deep navy / charcoal */
+  --color-primary-hover: #333d4d;
+  --color-primary-light: #f5f6f8;
+  --color-text: #222222;
   --color-text-muted: #666666;
-  --color-border: #e0e0e0;
-  --color-bg: #f5f5f5;
+  --color-border: #e2e2e2;
+  --color-bg: #ffffff;
   --color-bg-card: #ffffff;
-  --color-success: #52c41a;
-  --color-discount: #ff4d4f;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --color-success: #4a7c59;
+  --color-discount: #9b2226;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Cairo', 'Playfair Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
   direction: rtl;
   background-color: var(--color-bg);
   color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
+  font-family: 'Playfair Display', 'Cairo', serif;
 }
 
 /* Top bar / Header */
@@ -33,67 +38,58 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* Hero banner - Made-in-China style */
+/* Hero banner - Elegant style */
 .hero-banner {
-  background: linear-gradient(135deg, #cd071e 0%, #e60012 50%, #ff1a2e 100%);
+  background: #fbf9f6; /* Soft cream/off-white */
+  border-bottom: 1px solid var(--color-border);
   border-radius: 0;
-  padding: 56px 40px;
+  padding: 72px 40px;
   margin-bottom: 32px;
-  color: white;
+  color: var(--color-primary);
   position: relative;
   overflow: hidden;
+  text-align: center;
 }
 
 .hero-banner::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
-  animation: hero-shimmer 10s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes hero-shimmer {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(3%, 3%); }
+  display: none; /* No shimmer */
 }
 
 .hero-title {
-  font-size: 36px;
+  font-size: 42px;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   position: relative;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .hero-subtitle {
-  font-size: 17px;
-  opacity: 0.95;
+  font-size: 18px;
+  opacity: 0.85;
   position: relative;
-  max-width: 560px;
+  max-width: 600px;
+  margin: 0 auto;
   line-height: 1.6;
 }
 
 .hero-cta {
   display: inline-block;
-  margin-top: 24px;
-  padding: 12px 32px;
-  background: white;
-  color: var(--color-primary);
-  font-weight: 600;
-  border-radius: 6px;
+  margin-top: 32px;
+  padding: 14px 40px;
+  background: var(--color-primary);
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 2px;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 14px;
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: background 0.3s;
 }
 
 .hero-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  background: var(--color-primary-hover);
 }
 
 /* Section headers */
@@ -123,11 +119,11 @@ body {
   text-decoration: underline;
 }
 
-/* Category card - Made-in-China grid style */
+/* Category card - Elegant style */
 .category-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 20px;
   transition: all 0.2s ease;
 }
@@ -155,7 +151,7 @@ body {
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: 6px;
+  border-radius: 2px;
   overflow: hidden;
   background: #f0f0f0;
   box-shadow: var(--shadow-sm);
@@ -211,9 +207,9 @@ body {
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: 2px;
   z-index: 2;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .global-discount-badge {
@@ -225,7 +221,7 @@ body {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: 2px;
   z-index: 2;
 }
 
@@ -288,10 +284,10 @@ body {
   padding: 12px;
 }
 
-/* Search input - Made-in-China style */
+/* Search input - Elegant style */
 .search-input {
-  border: 2px solid var(--color-border);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   padding: 10px 16px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -319,7 +315,7 @@ body {
   color: white;
 }
 
-/* Home page - three column layout (Made-in-China style) */
+/* Home page - three column layout (Elegant style) */
 .home-three-column {
   display: grid;
   grid-template-columns: 220px 1fr 260px;
@@ -351,7 +347,7 @@ body {
 .home-sidebar {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 20px;
   height: fit-content;
 }
@@ -374,26 +370,20 @@ body {
   margin-bottom: 32px;
 }
 
-/* Hero banner - blue/purple gradient (Made-in-China image style) */
+/* Hero banner - Elegant minimal style */
 .hero-banner-mic {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a7c 30%, #4c3d7a 70%, #3d2d5c 100%);
-  border-radius: 8px;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
   padding: 40px 36px;
   margin-bottom: 24px;
-  color: white;
+  color: var(--color-primary);
   position: relative;
   overflow: hidden;
 }
 
 .hero-banner-mic::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 60%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 .hero-banner-mic-content {
@@ -419,14 +409,14 @@ body {
   padding-right: 20px;
   margin-bottom: 10px;
   font-size: 15px;
-  opacity: 0.95;
+  color: var(--color-text-muted);
 }
 
 .hero-banner-mic-bullets li::before {
   content: '•';
   position: absolute;
   right: 0;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-primary);
 }
 
 .hero-banner-mic-cta {
@@ -434,14 +424,16 @@ body {
   padding: 12px 28px;
   background: var(--color-primary);
   color: white !important;
-  font-weight: 600;
-  font-size: 15px;
-  border-radius: 6px;
-  transition: opacity 0.2s;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  transition: background 0.3s;
 }
 
 .hero-banner-mic-cta:hover {
-  opacity: 0.9;
+  background: var(--color-primary-hover);
 }
 
 /* Feature cards below hero */
@@ -461,7 +453,7 @@ body {
 .home-feature-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 24px;
   text-align: center;
   transition: all 0.2s ease;
