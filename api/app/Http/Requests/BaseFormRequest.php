@@ -13,10 +13,12 @@ abstract class BaseFormRequest extends FormRequest
      */
     protected function failedValidation(Validator $validator): void
     {
+        $firstError = collect($validator->errors()->all())->first();
+
         throw new HttpResponseException(
             response()->json([
                 'success' => false,
-                'message' => 'Validation failed.',
+                'message' => $firstError ? \App\Support\MessageLocalizer::localize($firstError) : \App\Support\MessageLocalizer::localize('Validation failed.'),
                 'data' => [
                     'errors' => $validator->errors(),
                 ],

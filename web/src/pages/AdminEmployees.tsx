@@ -217,8 +217,14 @@ export function AdminEmployees() {
       })
       setShowForm(false)
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? t('admin.failedCreate'))
+    onError: (err: any) => {
+      const d = err?.response?.data
+      const msg = d?.message ?? t('admin.failedCreate')
+      const fieldErrors = d?.data?.errors
+      const detail = fieldErrors && typeof fieldErrors === 'object'
+        ? Object.values(fieldErrors).flat().join(' ')
+        : ''
+      setError(detail ? `${msg}: ${detail}` : msg)
     },
   })
 
@@ -292,7 +298,7 @@ export function AdminEmployees() {
       setEditingId(null)
       setEditingForm({ name: '', email: '', password: '', password_confirmation: '', role: 'manager', warehouse_id: '', warehouse_ids: [], publisher_id: '' })
     },
-    onError: (err: { response?: { data?: { message?: string; data?: { errors?: Record<string, string[]> } } } }) => {
+    onError: (err: any) => {
       const d = err?.response?.data
       const msg = d?.message ?? t('admin.failedUpdate')
       const fieldErrors = d?.data?.errors
@@ -309,8 +315,14 @@ export function AdminEmployees() {
       queryClient.invalidateQueries({ queryKey: ['admin-employees'] })
       setError('')
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      setError(err?.response?.data?.message ?? t('admin.failedDeleteEmployee'))
+    onError: (err: any) => {
+      const d = err?.response?.data
+      const msg = d?.message ?? t('admin.failedDeleteEmployee')
+      const fieldErrors = d?.data?.errors
+      const detail = fieldErrors && typeof fieldErrors === 'object'
+        ? Object.values(fieldErrors).flat().join(' ')
+        : ''
+      setError(detail ? `${msg}: ${detail}` : msg)
     },
   })
 

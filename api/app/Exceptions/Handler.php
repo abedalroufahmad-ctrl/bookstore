@@ -87,9 +87,10 @@ class Handler extends ExceptionHandler
         }
 
         if ($e instanceof ValidationException) {
+            $firstError = collect($e->errors())->flatten()->first();
             return response()->json([
                 'success' => false,
-                'message' => MessageLocalizer::localize('Validation failed.'),
+                'message' => $firstError ? MessageLocalizer::localize($firstError) : MessageLocalizer::localize('Validation failed.'),
                 'data' => [
                     'errors' => $e->errors(),
                 ],
