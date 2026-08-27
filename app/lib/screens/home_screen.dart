@@ -1,6 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
@@ -468,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          PlatformTextButton(
+          TextButton(
             onPressed: () => Navigator.pushNamed(context, route),
             child: Row(
               mainAxisSize: MainAxisSize.min,

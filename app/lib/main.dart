@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:provider/provider.dart';
 
 import 'l10n/app_localizations.dart';
@@ -175,8 +174,8 @@ class AuthWrapper extends StatelessWidget {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         if (auth.loading) {
-          return PlatformScaffold(
-            body: Center(child: PlatformCircularProgressIndicator()),
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
         // Always show MainShell so navigation (Home / Books / Cart / Profile) is visible
