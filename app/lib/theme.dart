@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 ThemeData buildTokyoNightLightTheme() {
   const bg0 = Color(0xFFe1e2e7);
@@ -40,37 +41,38 @@ ThemeData buildTokyoNightLightTheme() {
       centerTitle: true,
       scrolledUnderElevation: 1,
       surfaceTintColor: Colors.transparent,
-      titleTextStyle: TextStyle(
+    ).copyWith(
+      titleTextStyle: GoogleFonts.cairo(
         color: fg0,
         fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
     ),
-    textTheme: const TextTheme(
-      headlineMedium: TextStyle(
+    textTheme: GoogleFonts.cairoTextTheme().copyWith(
+      headlineMedium: const TextStyle(
         color: fg0,
         fontSize: 22,
         fontWeight: FontWeight.bold,
       ),
-      titleLarge: TextStyle(
+      titleLarge: const TextStyle(
         color: fg0,
         fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
-      titleMedium: TextStyle(
+      titleMedium: const TextStyle(
         color: fg0,
         fontSize: 16,
         fontWeight: FontWeight.w600,
       ),
-      titleSmall: TextStyle(
+      titleSmall: const TextStyle(
         color: fg0,
         fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
-      bodyLarge: TextStyle(color: fg0, fontSize: 16),
-      bodyMedium: TextStyle(color: fg1, fontSize: 14),
-      bodySmall: TextStyle(color: outline, fontSize: 12),
-      labelLarge: TextStyle(
+      bodyLarge: const TextStyle(color: fg0, fontSize: 16),
+      bodyMedium: const TextStyle(color: fg1, fontSize: 14),
+      bodySmall: const TextStyle(color: outline, fontSize: 12),
+      labelLarge: const TextStyle(
         color: fg0,
         fontSize: 14,
         fontWeight: FontWeight.w600,
@@ -162,37 +164,38 @@ ThemeData buildTokyoNightDarkTheme() {
       centerTitle: true,
       scrolledUnderElevation: 1,
       surfaceTintColor: Colors.transparent,
-      titleTextStyle: TextStyle(
+    ).copyWith(
+      titleTextStyle: GoogleFonts.cairo(
         color: fg0,
         fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
     ),
-    textTheme: const TextTheme(
-      headlineMedium: TextStyle(
+    textTheme: GoogleFonts.cairoTextTheme().copyWith(
+      headlineMedium: const TextStyle(
         color: fg0,
         fontSize: 22,
         fontWeight: FontWeight.bold,
       ),
-      titleLarge: TextStyle(
+      titleLarge: const TextStyle(
         color: fg0,
         fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
-      titleMedium: TextStyle(
+      titleMedium: const TextStyle(
         color: fg0,
         fontSize: 16,
         fontWeight: FontWeight.w600,
       ),
-      titleSmall: TextStyle(
+      titleSmall: const TextStyle(
         color: fg0,
         fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
-      bodyLarge: TextStyle(color: fg0, fontSize: 16),
-      bodyMedium: TextStyle(color: fg1, fontSize: 14),
-      bodySmall: TextStyle(color: outline, fontSize: 12),
-      labelLarge: TextStyle(
+      bodyLarge: const TextStyle(color: fg0, fontSize: 16),
+      bodyMedium: const TextStyle(color: fg1, fontSize: 14),
+      bodySmall: const TextStyle(color: outline, fontSize: 12),
+      labelLarge: const TextStyle(
         color: fg0,
         fontSize: 14,
         fontWeight: FontWeight.w600,

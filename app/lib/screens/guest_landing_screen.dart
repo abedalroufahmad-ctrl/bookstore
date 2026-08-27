@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:provider/provider.dart';
+
 import '../l10n/app_localizations.dart';
+import '../providers/locale_provider.dart';
+import '../providers/theme_provider.dart';
 
 /// The welcome / landing screen shown to unauthenticated visitors.
 /// Lets them browse as a guest or navigate to login / register.
@@ -26,9 +30,32 @@ class GuestLandingScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        context.watch<ThemeProvider>().isDarkMode
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.language, color: Colors.white),
+                      onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
+                    ),
+                  ],
+                ),
+              ),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -50,7 +77,7 @@ class GuestLandingScreen extends StatelessWidget {
 
                   // App name
                   Text(
-                    t.get('app_title'),
+                    t.appName,
                     style: theme.textTheme.headlineLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -59,7 +86,7 @@ class GuestLandingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    t.get('app_subtitle'),
+                    t.isAr ? 'اكتشف عالم الكتب' : 'Discover the world of books',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: Colors.white70,
                     ),
@@ -83,7 +110,7 @@ class GuestLandingScreen extends StatelessWidget {
                           Navigator.pushReplacementNamed(context, '/home'),
                       icon: const Icon(Icons.explore_outlined),
                       label: Text(
-                        t.get('browse_as_guest'),
+                        t.isAr ? 'تصفح كزائر' : 'Browse as Guest',
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
@@ -107,7 +134,7 @@ class GuestLandingScreen extends StatelessWidget {
                           Navigator.pushNamed(context, '/login'),
                       icon: const Icon(Icons.login_rounded),
                       label: Text(
-                        t.get('login'),
+                        t.navLogin,
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
@@ -118,19 +145,16 @@ class GuestLandingScreen extends StatelessWidget {
                   TextButton(
                     onPressed: () =>
                         Navigator.pushNamed(context, '/register'),
-                    child: Text(
-                      t.get('create_account'),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 15,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Colors.white54,
-                      ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
                     ),
+                    child: Text(t.navRegister),
                   ),
                 ],
               ),
             ),
+          ),
+            ],
           ),
         ),
       ),

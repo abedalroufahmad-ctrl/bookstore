@@ -1,12 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_widgets/flutter_platform_widgets.dart'
-    show isMaterial;
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
+import '../providers/theme_provider.dart';
 import 'account_screen.dart';
 import 'book_list_screen.dart';
 import 'cart_screen.dart';
@@ -57,7 +55,6 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final useMaterial = isMaterial(context);
     final theme = Theme.of(context);
 
     context.watch<LocaleProvider>();
@@ -65,27 +62,23 @@ class _MainShellState extends State<MainShell> {
 
     final navItems = [
       BottomNavigationBarItem(
-        icon: Icon(useMaterial ? Icons.home_outlined : CupertinoIcons.house),
-        activeIcon: Icon(useMaterial ? Icons.home : CupertinoIcons.house_fill),
+        icon: const Icon(Icons.home_outlined),
+        activeIcon: const Icon(Icons.home),
         label: t.navHome,
       ),
       BottomNavigationBarItem(
-        icon: Icon(useMaterial ? Icons.menu_book_outlined : CupertinoIcons.book),
-        activeIcon: Icon(useMaterial ? Icons.menu_book : CupertinoIcons.book_fill),
+        icon: const Icon(Icons.menu_book_outlined),
+        activeIcon: const Icon(Icons.menu_book),
         label: t.navBooks,
       ),
       BottomNavigationBarItem(
-        icon: Icon(
-          useMaterial ? Icons.shopping_cart_outlined : CupertinoIcons.cart,
-        ),
-        activeIcon: Icon(
-          useMaterial ? Icons.shopping_cart : CupertinoIcons.cart_fill,
-        ),
+        icon: const Icon(Icons.shopping_cart_outlined),
+        activeIcon: const Icon(Icons.shopping_cart),
         label: t.navCart,
       ),
       BottomNavigationBarItem(
-        icon: Icon(useMaterial ? Icons.person_outline : CupertinoIcons.person),
-        activeIcon: Icon(useMaterial ? Icons.person : CupertinoIcons.person_fill),
+        icon: const Icon(Icons.person_outline),
+        activeIcon: const Icon(Icons.person),
         label: t.navProfile,
       ),
     ];
@@ -108,21 +101,26 @@ class _MainShellState extends State<MainShell> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Toggle Theme',
+            onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+            icon: Icon(
+              context.watch<ThemeProvider>().isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+          ),
+          IconButton(
             tooltip: t.language,
             onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
-            icon: Icon(useMaterial ? Icons.language : CupertinoIcons.globe),
+            icon: const Icon(Icons.language),
           ),
           IconButton(
             tooltip: t.navCart,
             onPressed: () => _goToCart(auth),
-            icon: Icon(
-              useMaterial ? Icons.shopping_cart_outlined : CupertinoIcons.cart,
-            ),
+            icon: const Icon(Icons.shopping_cart_outlined),
           ),
           PopupMenuButton<String>(
-            icon: Icon(
-              useMaterial ? Icons.more_horiz : CupertinoIcons.ellipsis_vertical,
-            ),
+            icon: const Icon(Icons.more_horiz),
             onSelected: (value) async {
               switch (value) {
                 case 'books':

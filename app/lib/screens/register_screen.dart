@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
+import '../providers/theme_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -55,7 +57,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(t.registerTitle)),
+      appBar: AppBar(
+        title: Text(t.registerTitle),
+        actions: [
+          IconButton(
+            tooltip: 'Toggle Theme',
+            icon: Icon(
+              context.watch<ThemeProvider>().isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+          ),
+          IconButton(
+            tooltip: t.language,
+            icon: const Icon(Icons.language),
+            onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

@@ -14,13 +14,13 @@ String _resolveCoverUrl(String path) {
   return path.startsWith('/') ? '$origin$path' : '$origin/$path';
 }
 
-Widget _buildLogoPlaceholder({double? width, double? height}) {
-  return Image.asset(
-    'assets/app_icon.png',
+Widget _buildLogoPlaceholder(BuildContext context, {double? width, double? height}) {
+  return Container(
     width: width,
     height: height,
-    fit: BoxFit.cover,
-    errorBuilder: (_, _, _) => Icon(Icons.menu_book_outlined, size: width != null ? 64 : 40),
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    alignment: Alignment.center,
+    child: Icon(Icons.menu_book_rounded, size: width != null ? 64 : 40, color: Theme.of(context).colorScheme.outline),
   );
 }
 
@@ -269,7 +269,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return SizedBox(
         width: w,
         height: h,
-        child: _buildLogoPlaceholder(width: w, height: h),
+        child: _buildLogoPlaceholder(context, width: w, height: h),
       );
     }
     return GestureDetector(
@@ -290,7 +290,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         errorBuilder: (_, _, _) => SizedBox(
           width: w,
           height: h,
-          child: _buildLogoPlaceholder(width: w, height: h),
+          child: _buildLogoPlaceholder(context, width: w, height: h),
         ),
       ),
     );

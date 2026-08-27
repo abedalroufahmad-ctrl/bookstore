@@ -28,24 +28,24 @@ class BookCard extends StatelessWidget {
         url.isNotEmpty &&
         (url.toLowerCase() == 'null' || url.toLowerCase() == 'undefined');
     if (url == null || url.isEmpty || isNullLike) {
-      return _buildLogoPlaceholder();
+      return _buildLogoPlaceholder(context);
     }
     return Image.network(
       _resolveCoverUrl(url),
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        return _buildLogoPlaceholder();
+        return _buildLogoPlaceholder(context);
       },
-      errorBuilder: (_, _, _) => _buildLogoPlaceholder(),
+      errorBuilder: (_, _, _) => _buildLogoPlaceholder(context),
     );
   }
 
-  static Widget _buildLogoPlaceholder() {
-    return Image.asset(
-      'assets/app_icon.png',
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => const Icon(Icons.menu_book_outlined, size: 40),
+  static Widget _buildLogoPlaceholder(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(Icons.menu_book_rounded, size: 48, color: Theme.of(context).colorScheme.outline),
     );
   }
 

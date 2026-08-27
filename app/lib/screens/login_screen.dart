@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/theme_provider.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -76,6 +78,26 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Toggle Theme',
+            icon: Icon(
+              context.watch<ThemeProvider>().isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+          ),
+          IconButton(
+            tooltip: t.language,
+            icon: const Icon(Icons.language),
+            onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

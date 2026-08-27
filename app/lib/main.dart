@@ -7,6 +7,7 @@ import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/profile_provider.dart';
+import 'providers/theme_provider.dart';
 import 'theme.dart';
 import 'screens/book_detail_screen.dart';
 import 'screens/book_list_screen.dart';
@@ -53,15 +54,16 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: Consumer<LocaleProvider>(
-        builder: (context, localeProvider, _) {
+      child: Consumer2<LocaleProvider, ThemeProvider>(
+        builder: (context, localeProvider, themeProvider, _) {
           return MaterialApp(
             title: 'Book Store',
             debugShowCheckedModeBanner: false,
             theme: buildTokyoNightLightTheme(),
             darkTheme: buildTokyoNightDarkTheme(),
-            themeMode: ThemeMode.system,
+            themeMode: themeProvider.themeMode,
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
