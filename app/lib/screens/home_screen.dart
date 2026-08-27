@@ -124,6 +124,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final newestBooks = _books.reversed.take(10).toList();
 
     final localeCode = Localizations.localeOf(context).languageCode;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final viewportFraction = (220.0 / screenWidth).clamp(0.15, 0.85);
 
     final mainTopics = [
       {'code': '000', 'name': localeCode == 'ar' ? 'المعلومات، الحواسيب، الأعمال العامة' : 'Information, Computers, Public Business', 'icon': '💻'},
@@ -195,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 340,
                               autoPlay: true,
                               enlargeCenterPage: true,
-                              viewportFraction: 0.55,
+                              viewportFraction: viewportFraction,
                             ),
                             items: featuredBooks.map((book) {
                               return BookCard(
