@@ -21,12 +21,21 @@ class EmployeeOrderController extends BaseApiController
             'assigned_to_me' => $request->boolean('assigned_to_me'),
         ];
         $employee = auth('employee')->user();
-        if ($employee && UserRole::isOrderWarehouseScoped($employee->role)) {
-            $managedIds = $employee->getManagedWarehouseIds();
-            if (! empty($managedIds)) {
-                $filters['warehouse_ids'] = $managedIds;
-            } else {
-                $filters['warehouse_ids'] = ['__none__'];
+        if ($employee) {
+            if ($employee->role === \App\Domain\Auth\Enums\UserRole::Accounting->value) {
+                $filters['status_in'] = [
+                    \App\Domain\Order\Enums\OrderStatus::ShippedCollectingPayment->value,
+                    \App\Domain\Order\Enums\OrderStatus::Completed->value,
+                ];
+            }
+
+            if (UserRole::isOrderWarehouseScoped($employee->role)) {
+                $managedIds = $employee->getManagedWarehouseIds();
+                if (! empty($managedIds)) {
+                    $filters['warehouse_ids'] = $managedIds;
+                } else {
+                    $filters['warehouse_ids'] = ['__none__'];
+                }
             }
         }
         $perPage = min((int) $request->get('per_page', 15), 100);
@@ -103,6 +112,16 @@ class EmployeeOrderController extends BaseApiController
         $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
         if ($orderWarehouseId === null || ! $employee->managesWarehouse((string) $orderWarehouseId)) {
             return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
+        }
+
+        if ($employee->role === \App\Domain\Auth\Enums\UserRole::Accounting->value) {
+            $allowed = [
+                \App\Domain\Order\Enums\OrderStatus::ShippedCollectingPayment->value,
+                \App\Domain\Order\Enums\OrderStatus::Completed->value,
+            ];
+            if (! in_array($order->status, $allowed, true)) {
+                return $this->errorResponse('Forbidden. Accounting can only manage shipped or completed orders.', 403);
+            }
         }
 
         return null;
