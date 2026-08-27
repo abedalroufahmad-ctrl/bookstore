@@ -756,6 +756,21 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> adminOrdersBulkDelete(List<String> ids) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/admin/orders/bulk-delete',
+      body: {'ids': ids},
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: res.data as Map<String, dynamic>,
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
   Future<ApiResponse<Order>> adminOrdersSubmitWarehouseQuote(
     String id, {
     required double shippingFee,

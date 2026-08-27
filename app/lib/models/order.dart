@@ -21,6 +21,7 @@ class Order {
     this.shippingMethod,
     this.paymentStatus,
     this.paymentMethod,
+    this.warehouseId,
   });
 
   final String id;
@@ -36,6 +37,7 @@ class Order {
   final String? shippingMethod;
   final String? paymentStatus;
   final String? paymentMethod;
+  final String? warehouseId;
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final id = json['_id'] ?? json['id'] ?? '';
@@ -61,6 +63,7 @@ class Order {
       shippingMethod: json['shipping_method']?.toString(),
       paymentStatus: json['payment_status']?.toString(),
       paymentMethod: json['payment_method']?.toString(),
+      warehouseId: json['warehouse_id']?.toString(),
     );
   }
 }

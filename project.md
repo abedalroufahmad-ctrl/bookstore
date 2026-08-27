@@ -71,9 +71,9 @@ Roles: `manager`, `shipping`, `review`, `accounting`, `employee`, `warehouse_man
 | **Publishers** | CRUD; each publisher can own **multiple warehouses** |
 | **Publisher settings** | Support contact, return policy, default discount, enabled payment methods (from global list) |
 | Warehouses | Belong to a publisher; warehouse_manager scoped to assigned warehouse(s) |
-| **Publisher manager** | Scoped to their publisher’s warehouses/books; can update own publisher settings |
-| Customers / employees | Admin management; convert customer → employee |
-| Orders | List, assign, status, warehouse quote |
+| **Publisher manager** | Scoped to their publisher’s warehouses/books/employees/orders; can update own publisher settings |
+| Customers / employees | Admin management; convert customer → employee; shipping role can have multiple warehouses |
+| Orders | List, assign, status, warehouse quote, bulk delete; accounting role can manage shipped/completed orders |
 | Settings | Global site options, payment methods, catalog items per page (default **25**) |
 | Countries / reports | Sync utilities; books-without-cover report; browse books by warehouse |
 

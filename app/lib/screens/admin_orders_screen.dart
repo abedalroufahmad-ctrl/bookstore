@@ -37,6 +37,8 @@ class AdminOrdersScreen extends StatefulWidget {
 class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   List<Order> _orders = [];
   List<Employee> _employees = [];
+  List<Map<String, dynamic>> _warehouses = [];
+  final Set<String> _selectedIds = {};
   bool _loading = true;
   String? _statusFilter;
 
@@ -55,6 +57,14 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     final res = widget.useEmployeeApi
         ? await ApiService.instance.employeeOrdersList(status: _statusFilter)
         : await ApiService.instance.adminOrdersList(status: _statusFilter);
+    if (!widget.useEmployeeApi) {
+      final wRes = await ApiService.instance.adminWarehousesList();
+      if (mounted && wRes.success && wRes.data != null) {
+        setState(() {
+          _warehouses = List<Map<String, dynamic>>.from(wRes.data!);
+        });
+      }
+    }
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -77,6 +87,41 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         ? await ApiService.instance.employeeOrdersGet(id)
         : await ApiService.instance.adminOrdersGet(id);
     return res.success ? res.data : null;
+  }
+
+  Future<void> _handleBulkDelete() async {
+    final t = AppLocalizations.of(context);
+    if (_selectedIds.isEmpty) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.isAr ? 'حذف الطلبات' : 'Delete Orders'),
+        content: Text(t.isAr ? 'هل أنت متأكد أنك تريد حذف هذه الطلبات؟' : 'Are you sure you want to delete these orders?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(t.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _loading = true);
+    final res = await ApiService.instance.adminOrdersBulkDelete(_selectedIds.toList());
+    if (mounted) {
+      if (res.success) {
+        setState(() => _selectedIds.clear());
+        _load();
+      } else {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message)));
+      }
+    }
   }
 
   @override
@@ -128,6 +173,21 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
               ],
             ),
           ),
+          if (!widget.useEmployeeApi && _selectedIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Text(t.isAr ? '${_selectedIds.length} محدد' : '${_selectedIds.length} selected'),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _handleBulkDelete,
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    label: Text(t.delete, style: const TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -142,7 +202,17 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                             margin: const EdgeInsets.only(bottom: 8),
                             child: InkWell(
                               onTap: () => _openOrderDetail(context, o),
-                              child: Padding(
+                              onLongPress: !widget.useEmployeeApi ? () {
+                                setState(() {
+                                  if (_selectedIds.contains(o.id)) {
+                                    _selectedIds.remove(o.id);
+                                  } else {
+                                    _selectedIds.add(o.id);
+                                  }
+                                });
+                              } : null,
+                              child: Container(
+                                color: _selectedIds.contains(o.id) ? Colors.amber.withValues(alpha: 0.1) : null,
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,11 +221,28 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          t.orderNumber(o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        Row(
+                                          children: [
+                                            if (!widget.useEmployeeApi)
+                                              Checkbox(
+                                                value: _selectedIds.contains(o.id),
+                                                onChanged: (val) {
+                                                  setState(() {
+                                                    if (val == true) {
+                                                      _selectedIds.add(o.id);
+                                                    } else {
+                                                      _selectedIds.remove(o.id);
+                                                    }
+                                                  });
+                                                },
+                                              ),
+                                            Text(
+                                              t.orderNumber(o.id.length > 8 ? o.id.substring(o.id.length - 8) : o.id),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         Text(
                                           t.orderStatus(o.status),
@@ -174,6 +261,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                           .textTheme
                                           .bodySmall,
                                     ),
+                                    if (o.warehouseId != null)
+                                      Text(
+                                        '${t.isAr ? 'المستودع' : 'Warehouse'}: ${_warehouses.cast<Map<String, dynamic>>().firstWhere((w) => w['_id'] == o.warehouseId, orElse: () => <String, dynamic>{})['name'] ?? o.warehouseId}',
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
                                     Text(
                                       '${t.totalLabel}: \$${o.total.toStringAsFixed(2)}',
                                       style: Theme.of(context)
@@ -406,6 +498,8 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
               ),
               const SizedBox(height: 12),
               Text('${t.customerLabel}: ${o.customer?.name ?? o.customer?.email ?? '-'}'),
+              if (o.warehouseId != null)
+                Text('${t.isAr ? 'المستودع' : 'Warehouse'}: ${o.warehouseId}'),
               Text('${t.paymentStatusLabel}: ${o.paymentStatus ?? '—'}'),
               if (o.paymentMethod != null && o.paymentMethod!.isNotEmpty)
                 Text('${t.paymentMethodLabel}: ${o.paymentMethod}'),
