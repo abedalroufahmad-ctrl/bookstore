@@ -58,7 +58,7 @@ class EmployeeController extends BaseApiController
     public function store(EmployeeStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
-        if (($data['role'] ?? '') === UserRole::WarehouseManager->value && ! empty($data['warehouse_ids'] ?? [])) {
+        if ((($data['role'] ?? '') === UserRole::WarehouseManager->value || ($data['role'] ?? '') === UserRole::Shipping->value) && ! empty($data['warehouse_ids'] ?? [])) {
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
@@ -117,7 +117,7 @@ class EmployeeController extends BaseApiController
     public function update(EmployeeUpdateRequest $request, string $id): JsonResponse
     {
         $data = $request->validated();
-        if (isset($data['role']) && $data['role'] === UserRole::WarehouseManager->value && ! empty($data['warehouse_ids'] ?? [])) {
+        if (isset($data['role']) && ($data['role'] === UserRole::WarehouseManager->value || $data['role'] === UserRole::Shipping->value) && ! empty($data['warehouse_ids'] ?? [])) {
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
@@ -292,7 +292,7 @@ class EmployeeController extends BaseApiController
         // Warehouse-based staff stay on this publisher manager's publisher.
         $data['publisher_id'] = $publisherId;
 
-        if ($role === UserRole::WarehouseManager->value) {
+        if ($role === UserRole::WarehouseManager->value || $role === UserRole::Shipping->value) {
             $ids = array_values(array_map('strval', $data['warehouse_ids'] ?? ($existing?->warehouse_ids ?? [])));
             if ($ids === []) {
                 return $this->errorResponse('Forbidden. Select at least one of your publisher\'s warehouses.', 403);

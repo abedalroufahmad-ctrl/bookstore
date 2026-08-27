@@ -79,8 +79,8 @@ export function AdminDashboard() {
           </Link>
         )}
         {(isManager || isWarehouseManager || isPublisherManager || employeeRole === 'shipping' || employeeRole === 'accounting') && (
-        <Link
-          to="/admin/orders"
+          <Link
+            to="/admin/orders"
           className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
         >
           <h2 className="font-semibold text-amber-900">{t('admin.orders')}</h2>

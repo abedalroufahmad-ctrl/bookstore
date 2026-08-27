@@ -206,7 +206,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         setSheet(() => role = v);
                       },
                     ),
-                    if (role == 'warehouse_manager') ...[
+                    if (role == 'warehouse_manager' || role == 'shipping') ...[
                       const SizedBox(height: 8),
                       Text(t.adminSelectWarehouse),
                       ..._warehouses.map((w) {
@@ -306,7 +306,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                 body['password'] = password;
                                 body['password_confirmation'] = confirm;
                               }
-                              if (role == 'warehouse_manager') {
+                              if (role == 'warehouse_manager' || role == 'shipping') {
                                 body['warehouse_ids'] = warehouseIds.toList();
                               } else if (role == 'publisher_manager') {
                                 body['publisher_id'] = publisherId;

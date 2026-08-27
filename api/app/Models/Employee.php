@@ -38,11 +38,11 @@ class Employee extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Whether this employee (warehouse manager) can manage the given warehouse.
+     * Whether this employee (warehouse manager or shipping) can manage the given warehouse.
      */
     public function managesWarehouse(string $warehouseId): bool
     {
-        if ($this->role !== UserRole::WarehouseManager->value) {
+        if ($this->role !== UserRole::WarehouseManager->value && $this->role !== UserRole::Shipping->value) {
             return (string) $this->warehouse_id === (string) $warehouseId;
         }
         $ids = $this->warehouse_ids ?? [];
@@ -54,11 +54,11 @@ class Employee extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Warehouse IDs this employee can manage (for warehouse_manager: warehouse_ids, else single warehouse_id).
+     * Warehouse IDs this employee can manage (for warehouse_manager and shipping: warehouse_ids, else single warehouse_id).
      */
     public function getManagedWarehouseIds(): array
     {
-        if ($this->role === UserRole::WarehouseManager->value) {
+        if ($this->role === UserRole::WarehouseManager->value || $this->role === UserRole::Shipping->value) {
             $ids = $this->warehouse_ids ?? [];
             if (is_array($ids) && ! empty($ids)) {
                 return array_values(array_map('strval', $ids));

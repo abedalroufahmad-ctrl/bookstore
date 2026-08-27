@@ -135,15 +135,15 @@ export function AdminEmployees() {
   }
 
   const warehouseNameForEmployee = (emp: EmployeeItem) => {
-    if (emp.warehouse?.name) return emp.warehouse.name
-    if (emp.warehouse_id) {
-      return warehouses.find((w) => w._id === emp.warehouse_id)?.name ?? '-'
-    }
     if (Array.isArray(emp.warehouse_ids) && emp.warehouse_ids.length > 0) {
       const names = emp.warehouse_ids
         .map((id) => warehouses.find((w) => w._id === id)?.name)
         .filter(Boolean)
       return names.length ? names.join(', ') : '-'
+    }
+    if (emp.warehouse?.name) return emp.warehouse.name
+    if (emp.warehouse_id) {
+      return warehouses.find((w) => w._id === emp.warehouse_id)?.name ?? '-'
     }
     return '-'
   }
@@ -186,7 +186,7 @@ export function AdminEmployees() {
     const publisherId = data.publisher_id
     if (data.role === 'publisher_manager') {
       payload.publisher_id = publisherId
-    } else if (data.role === 'warehouse_manager') {
+    } else if (data.role === 'warehouse_manager' || data.role === 'shipping') {
       payload.warehouse_ids = data.warehouse_ids
       if (canEditPublisher && publisherId) payload.publisher_id = publisherId
     } else {
@@ -365,7 +365,7 @@ export function AdminEmployees() {
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault()
-    const isWMRole = editingForm.role === 'warehouse_manager'
+    const isWMRole = editingForm.role === 'warehouse_manager' || editingForm.role === 'shipping'
     const isPMRole = editingForm.role === 'publisher_manager'
     const hasScope = isWMRole
       ? (Array.isArray(editingForm.warehouse_ids) && editingForm.warehouse_ids.length > 0)
@@ -399,7 +399,7 @@ export function AdminEmployees() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const isWMRole = form.role === 'warehouse_manager'
+    const isWMRole = form.role === 'warehouse_manager' || form.role === 'shipping'
     const isPMRole = form.role === 'publisher_manager'
     const hasWarehouse = isWarehouseManager
       ? !!form.warehouse_id
@@ -604,7 +604,7 @@ export function AdminEmployees() {
                         </option>
                       ))}
                     </select>
-                  ) : isWarehouseManagerRole(editingForm.role) ? (
+                  ) : (isWarehouseManagerRole(editingForm.role) || editingForm.role === 'shipping') ? (
                     <div className="space-y-2">
                       <select
                         multiple
@@ -650,7 +650,7 @@ export function AdminEmployees() {
                   !editingForm.name.trim() ||
                   !editingForm.email.trim() ||
                   (canEditPublisher && !editingForm.publisher_id) ||
-                  (isWarehouseManagerRole(editingForm.role)
+                  ((isWarehouseManagerRole(editingForm.role) || editingForm.role === 'shipping')
                     ? !(editingForm.warehouse_ids?.length)
                     : isPublisherManagerRole(editingForm.role)
                       ? !editingForm.publisher_id
@@ -783,7 +783,7 @@ export function AdminEmployees() {
                         </option>
                       ))}
                     </select>
-                  ) : isWarehouseManagerRole(form.role) ? (
+                  ) : (isWarehouseManagerRole(form.role) || form.role === 'shipping') ? (
                     <div className="space-y-2">
                       <select
                         multiple

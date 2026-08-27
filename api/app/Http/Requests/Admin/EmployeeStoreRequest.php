@@ -34,7 +34,7 @@ class EmployeeStoreRequest extends BaseFormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($employeeRoles)],
             'warehouse_id' => [Rule::requiredIf(! in_array($role, $rolesWithoutWarehouse, true)), 'nullable', 'string'],
-            'warehouse_ids' => ['required_if:role,'.UserRole::WarehouseManager->value, 'nullable', 'array', 'min:1'],
+            'warehouse_ids' => ['required_if:role,'.UserRole::WarehouseManager->value.',shipping', 'nullable', 'array', 'min:1'],
             'warehouse_ids.*' => ['string'],
             'publisher_id' => ['required_if:role,'.UserRole::PublisherManager->value, 'nullable', 'string'],
         ];
