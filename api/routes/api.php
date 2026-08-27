@@ -75,10 +75,14 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::put('publishers/{id}/settings', [PublisherController::class, 'updateSettings']);
         });
 
-        // Shared warehouse + settings read/update (do not register these twice — last route wins)
-        Route::middleware('role:manager,publisher_manager,warehouse_manager')->group(function () {
+        // Warehouses: read-only for order-management roles
+        Route::middleware('role:manager,publisher_manager,warehouse_manager,shipping,accounting')->group(function () {
             Route::get('warehouses', [WarehouseController::class, 'index']);
             Route::get('warehouses/{id}', [WarehouseController::class, 'show']);
+        });
+
+        // Shared warehouse + settings update
+        Route::middleware('role:manager,publisher_manager,warehouse_manager')->group(function () {
             Route::put('warehouses/{id}', [WarehouseController::class, 'update']);
             Route::get('settings', [SettingController::class, 'index']);
         });
@@ -110,11 +114,15 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::get('countries/{id}', [CountryController::class, 'show']);
         });
 
-        // Employees: global managers + warehouse managers + publisher managers (scoped in controller)
-        Route::middleware('role:manager,warehouse_manager,publisher_manager')->group(function () {
+        // Employees: read-only for order-management roles so they can assign orders
+        Route::middleware('role:manager,warehouse_manager,publisher_manager,shipping,accounting')->group(function () {
             Route::get('employees', [EmployeeController::class, 'index']);
-            Route::post('employees', [EmployeeController::class, 'store']);
             Route::get('employees/{id}', [EmployeeController::class, 'show']);
+        });
+
+        // Employees: write operations for managers
+        Route::middleware('role:manager,warehouse_manager,publisher_manager')->group(function () {
+            Route::post('employees', [EmployeeController::class, 'store']);
             Route::put('employees/{id}', [EmployeeController::class, 'update']);
             Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
         });

@@ -81,11 +81,15 @@ enum UserRole: string
     }
 
     /**
-     * Only warehouse managers are limited to assigned warehouse(s).
+     * Staff who are limited to assigned warehouse(s).
      */
     public static function isLimitedToAssignedWarehouses(string $role): bool
     {
-        return $role === self::WarehouseManager->value;
+        return in_array($role, [
+            self::WarehouseManager->value,
+            self::Shipping->value,
+            self::Accounting->value,
+        ], true);
     }
 
     /**
