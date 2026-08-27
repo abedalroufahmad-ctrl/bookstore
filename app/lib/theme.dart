@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-ThemeData buildGruvboxLightTheme() {
-  const bg0 = Color(0xFFfbf1c7);
-  const bg1 = Color(0xFFebdbb2);
-  const fg0 = Color(0xFF282828);
-  const fg1 = Color(0xFF3c3836);
-  const primary = Color(0xFF45707a); // Blue
-  const secondary = Color(0xFFc35e0a); // Orange
-  const red = Color(0xFFc14a4a);
-  const outline = Color(0xFFa89984);
+ThemeData buildTokyoNightLightTheme() {
+  const bg0 = Color(0xFFe1e2e7);
+  const bg1 = Color(0xFFd5d6db);
+  const fg0 = Color(0xFF3760bf);
+  const fg1 = Color(0xFF4c505e);
+  const primary = Color(0xFF2e7de9); // Blue
+  const secondary = Color(0xFF9854f1); // Purple
+  const red = Color(0xFFf52a65);
+  const outline = Color(0xFF9699a3);
 
   return ThemeData(
     useMaterial3: true,
@@ -122,15 +122,15 @@ ThemeData buildGruvboxLightTheme() {
   );
 }
 
-ThemeData buildGruvboxDarkTheme() {
-  const bg0 = Color(0xFF282828);
-  const bg1 = Color(0xFF3c3836);
-  const fg0 = Color(0xFFfbf1c7);
-  const fg1 = Color(0xFFebdbb2);
-  const primary = Color(0xFF83a598); // Blue
-  const secondary = Color(0xFFfe8019); // Orange
-  const red = Color(0xFFfb4934);
-  const outline = Color(0xFFa89984);
+ThemeData buildTokyoNightDarkTheme() {
+  const bg0 = Color(0xFF1a1b26);
+  const bg1 = Color(0xFF16161e);
+  const fg0 = Color(0xFFc0caf5);
+  const fg1 = Color(0xFFa9b1d6);
+  const primary = Color(0xFF7aa2f7); // Blue
+  const secondary = Color(0xFFbb9af7); // Purple
+  const red = Color(0xFFf7768e);
+  const outline = Color(0xFF565f89);
 
   return ThemeData(
     useMaterial3: true,
