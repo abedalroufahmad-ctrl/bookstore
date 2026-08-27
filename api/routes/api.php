@@ -165,8 +165,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::delete('cart/items/{bookId}', [CartController::class, 'removeItem']);
             Route::patch('cart/items/{bookId}', [CartController::class, 'updateItem']);
 
-            Route::post('orders/checkout', [OrderController::class, 'checkout'])->middleware('throttle:10,1');
-            Route::post('orders/paypal/start', [PayPalController::class, 'start'])->middleware('throttle:10,1');
+            Route::post('orders/checkout', [OrderController::class, 'checkout'])->middleware('throttle:30,1');
+            Route::post('orders/paypal/start', [PayPalController::class, 'start'])->middleware('throttle:30,1');
             Route::get('orders', [OrderController::class, 'index']);
             Route::post('orders/{id}/confirm-quote', [OrderController::class, 'confirmQuote']);
             Route::get('orders/{id}', [OrderController::class, 'show']);
