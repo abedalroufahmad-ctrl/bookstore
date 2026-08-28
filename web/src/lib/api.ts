@@ -516,6 +516,14 @@ export interface Order {
   customer_id?: string
   employee_id?: string
   warehouse_id?: string
+  warehouse?: {
+    _id: string
+    name: string
+    publisher?: {
+      _id: string
+      name: string
+    }
+  }
   created_at?: string
   payment_method?: string
   payment_status?: string

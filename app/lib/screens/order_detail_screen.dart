@@ -194,6 +194,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     '${t.ordersStatusLabel}: ${t.orderStatus(o.status)}',
                     style: theme.textTheme.bodyLarge,
                   ),
+                  if (o.warehouse != null) ...[
+                    const SizedBox(height: 8),
+                    if (o.warehouse!['publisher']?['name'] != null)
+                      Text(
+                        '${t.ordersPublisherLabel}: ${o.warehouse!['publisher']['name']}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    Text(
+                      '${t.ordersWarehouseLabel}: ${o.warehouse!['name'] ?? ''}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
                   if (o.booksSubtotal != null || o.shippingFee != null) ...[
                     const SizedBox(height: 12),
                     Row(

@@ -52,7 +52,7 @@ class OrderController extends BaseApiController
     public function show(string $id): JsonResponse
     {
         $customer = auth('customer')->user();
-        $order = $this->orderService->getOrderById($id, $customer->getKey());
+        $order = $this->orderService->getOrderById($id, $customer->getKey(), ['warehouse.publisher']);
 
         if (! $order) {
             return $this->errorResponse('Order not found', 404);

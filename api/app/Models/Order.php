@@ -52,4 +52,9 @@ class Order extends Model
     {
         return $this->belongsTo(Employee::class);
     }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
 }

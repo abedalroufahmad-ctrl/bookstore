@@ -14,6 +14,14 @@ type OrderPayload = {
   payment_method?: string
   payment_status?: string
   shipping_address?: { address?: string; city?: string; country?: string; postal_code?: string }
+  warehouse?: {
+    _id: string
+    name: string
+    publisher?: {
+      _id: string
+      name: string
+    }
+  }
   items: { book_id: string; quantity: number; price: number; book_title?: string }[]
   created_at?: string
 }
@@ -90,6 +98,22 @@ export function OrderDetail() {
             {t(`admin.orderStatus.${order.status}`, order.status)}
           </span>
         </div>
+        {order.warehouse && (
+          <>
+            <div>
+              <span className="text-sm font-medium text-stone-600">{t('admin.publisher', 'Publisher')}:</span>{' '}
+              <span className="text-stone-800">
+                {order.warehouse.publisher?.name ?? '-'}
+              </span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-stone-600">{t('admin.warehouse', 'Warehouse')}:</span>{' '}
+              <span className="text-stone-800">
+                {order.warehouse.name}
+              </span>
+            </div>
+          </>
+        )}
         <div className="space-y-1">
           {(order.books_subtotal != null || order.shipping_fee != null) && (
             <>

@@ -144,6 +144,8 @@ class AppLocalizations {
   String get ordersBooksSubtotal => _s('مجموع الكتب', 'Books subtotal');
   String get ordersTotalLabel => _s('الإجمالي', 'Total');
   String get ordersStatusLabel => _s('الحالة', 'Status');
+  String get ordersWarehouseLabel => _s('المستودع', 'Warehouse');
+  String get ordersPublisherLabel => _s('الناشر', 'Publisher');
   String get ordersPayWithPayPal => _s('الدفع عبر PayPal', 'Pay with PayPal');
   String get ordersConfirmWithWarehouse =>
       _s('تأكيد وإرسال إلى المستودع', 'Confirm & resubmit to warehouse');
