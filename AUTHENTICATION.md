@@ -70,3 +70,78 @@ The Flutter mobile application uses Provider for state management and local stor
 - **التخزين**: عند تسجيل الدخول، يستخدم حزمة `shared_preferences` لحفظ `token` و `userType` بأمان في مساحة تخزين الجهاز.
 - **عميل واجهة برمجة التطبيقات (API Client)**: يقوم `api_client.dart` بجلب الرمز من `SharedPreferences` ويقوم بحقن ترويسة `Authorization: Bearer $token` في كل طلب HTTP يتم إرساله.
 - **استمرار الجلسة**: عند تشغيل التطبيق، يستدعي `AuthProvider` وظيفة `_loadStored()`، ويقرأ الرمز/النوع المخزن، ثم يتحقق من صلاحية الجلسة عبر طلب نقطة النهاية `/me` من الخادم. في حال انتهاء صلاحية الرمز، يتم مسح بيانات الجلسة.
+
+---
+
+## Visual Workflow Diagram / مخطط سير العمل
+
+This Mermaid sequence diagram illustrates the lifecycle of authentication—from login to subsequent requests and session recovery on app reload.
+يوضح مخطط التسلسل (Sequence Diagram) هذا دورة حياة المصادقة: بدءاً من تسجيل الدخول، وصولاً إلى الطلبات اللاحقة واستعادة الجلسة عند إعادة فتح التطبيق.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / مستخدم
+    participant Client as Frontend (React/Flutter)
+    participant API as Backend API (Laravel)
+    participant DB as Database (MongoDB)
+
+    %% 1. Login Flow / عملية تسجيل الدخول
+    rect rgb(240, 248, 255)
+    Note right of User: 1. Login Flow / عملية تسجيل الدخول
+    User->>Client: Enters credentials (email & password)
+    Client->>API: POST /login
+    API->>DB: Verify credentials
+    alt Invalid Credentials
+        DB-->>API: Not Found / Wrong Password
+        API-->>Client: 401 Unauthorized
+        Client-->>User: Show Error Message
+    else Valid Credentials
+        DB-->>API: Valid User
+        API->>API: Generate JWT Token
+        API-->>Client: 200 OK (Returns Token + User Data)
+        Client->>Client: Save Token & UserType to Local Storage
+        Client-->>User: Navigate to Dashboard / Home
+    end
+    end
+
+    %% 2. Authenticated Request Flow / مسار الطلبات المحمية
+    rect rgb(240, 255, 240)
+    Note right of User: 2. Authenticated Request / مسار الطلبات المحمية
+    User->>Client: Interacts with app (e.g. view orders)
+    Client->>Client: Fetch Token from Local Storage
+    Client->>API: HTTP Request (Header: Authorization: Bearer <Token>)
+    API->>API: Middleware verifies JWT Token
+    alt Token Invalid/Expired
+        API-->>Client: 401 Unauthorized
+        Client->>Client: Clear Storage & Auth State
+        Client-->>User: Redirect to Login
+    else Token Valid
+        API->>DB: Fetch requested data
+        DB-->>API: Data
+        API-->>Client: 200 OK (Returns Data)
+        Client-->>User: Display Data
+    end
+    end
+
+    %% 3. Session Restore (App Startup) / استعادة الجلسة عند بدء التطبيق
+    rect rgb(255, 245, 240)
+    Note right of User: 3. Session Restore (Startup) / استعادة الجلسة
+    User->>Client: Opens App / Reloads Page
+    Client->>Client: Read Token & UserType from Storage
+    alt Token Exists
+        Client->>API: GET /me (Header: Bearer <Token>)
+        alt Token Valid
+            API-->>Client: 200 OK + Fresh User Profile
+            Client->>Client: Update State in Context/Provider
+            Client-->>User: Show Authenticated App
+        else Token Expired/Invalid
+            API-->>Client: 401 Unauthorized
+            Client->>Client: Remove Token & Clear State
+            Client-->>User: Show Login Screen
+        end
+    else No Token
+        Client-->>User: Show Login Screen
+    end
+    end
+```
