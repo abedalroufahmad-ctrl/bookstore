@@ -8,6 +8,7 @@ class ApiClient {
   ApiClient({String? baseUrl}) : _baseUrl = baseUrl ?? apiBaseUrl;
 
   final String _baseUrl;
+  void Function()? onUnauthenticated;
 
   Future<bool> _isArabic() async {
     final prefs = await SharedPreferences.getInstance();
@@ -132,6 +133,7 @@ class ApiClient {
           success: false,
           message: ar ? 'استجابة غير صالحة' : 'Invalid response',
           data: null,
+          statusCode: res.statusCode,
         );
       }
       final success = map['success'] as bool? ?? false;
@@ -150,7 +152,10 @@ class ApiClient {
       } else {
         parsed = data as T?;
       }
-      return ApiResponse(success: success, message: message, data: parsed);
+      if (res.statusCode == 401) {
+        onUnauthenticated?.call();
+      }
+      return ApiResponse(success: success, message: message, data: parsed, statusCode: res.statusCode);
     } catch (e) {
       final ar = await _isArabic();
       return ApiResponse(
@@ -178,8 +183,9 @@ class ApiClient {
 }
 
 class ApiResponse<T> {
-  ApiResponse({required this.success, required this.message, this.data});
+  ApiResponse({required this.success, required this.message, this.data, this.statusCode});
   final bool success;
   final String message;
   final T? data;
+  final int? statusCode;
 }

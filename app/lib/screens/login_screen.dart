@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       err = await auth.loginAsCustomer(
-        _emailController.text,
+        _emailController.text.trim(),
         _passwordController.text,
         rememberMe: _rememberMe,
       );

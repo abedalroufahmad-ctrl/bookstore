@@ -22,7 +22,7 @@ String getApiBaseUrl() {
 /// Override: `--dart-define=API_HOST=YOUR_LAN_IP` or `10.0.2.2` for emulator.
 const String _androidApiHost = String.fromEnvironment(
   'API_HOST',
-  defaultValue: '192.168.187.197',
+  defaultValue: '192.168.117.197',
 );
 
 const String _iosApiHost = String.fromEnvironment(

@@ -39,8 +39,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     final auth = context.read<AuthProvider>();
     final err = await auth.register({
-      'name': _nameController.text,
-      'email': _emailController.text,
+      'name': _nameController.text.trim(),
+      'email': _emailController.text.trim(),
       'password': _passwordController.text,
       'password_confirmation': _confirmController.text,
     });

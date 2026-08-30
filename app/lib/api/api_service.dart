@@ -29,6 +29,10 @@ class ApiService {
 
   static final ApiService instance = ApiService(ApiClient());
 
+  void setOnUnauthenticated(void Function() cb) {
+    _client.onUnauthenticated = cb;
+  }
+
   // Public catalog
   Future<ApiResponse<dynamic>> getBooks({Map<String, String>? params}) async {
     final res = await _client.get<dynamic>('/books', params: params);

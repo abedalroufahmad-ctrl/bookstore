@@ -8,6 +8,11 @@ enum UserType { none, customer, employee }
 
 class AuthProvider with ChangeNotifier {
   AuthProvider() {
+    ApiService.instance.setOnUnauthenticated(() {
+      if (_token != null) {
+        _clearSession(callApiLogout: false).then((_) => notifyListeners());
+      }
+    });
     _loadStored();
   }
 
@@ -51,14 +56,14 @@ class AuthProvider with ChangeNotifier {
       final res = await ApiService.instance.customerMe();
       if (res.success && res.data != null) {
         _customer = res.data;
-      } else if (logoutOnFailure) {
+      } else if (logoutOnFailure && res.statusCode == 401) {
         await _clearSession(callApiLogout: false);
       }
     } else if (_userType == UserType.employee) {
       final res = await ApiService.instance.employeeMe();
       if (res.success && res.data != null) {
         _employee = res.data;
-      } else if (logoutOnFailure) {
+      } else if (logoutOnFailure && res.statusCode == 401) {
         await _clearSession(callApiLogout: false);
       }
     }

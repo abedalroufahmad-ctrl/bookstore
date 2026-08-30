@@ -10,8 +10,7 @@ class CustomerAuthService extends BaseService implements CustomerAuthServiceInte
 {
     public function register(array $data): Customer
     {
-        $data['password'] = Hash::make($data['password']);
-
+        // Password is automatically hashed by the 'hashed' cast on the Customer model.
         return Customer::create($data);
     }
 
