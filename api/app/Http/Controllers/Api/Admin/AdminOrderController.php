@@ -31,9 +31,11 @@ class AdminOrderController extends BaseApiController
 
         $employee = auth('employee')->user();
         if ($employee) {
-            if ($employee->role === \App\Domain\Auth\Enums\UserRole::Accounting->value) {
-                // Accounting can only see orders that are shipped or completed
+            if ($employee->role === \App\Domain\Auth\Enums\UserRole::Shipping->value) {
+                // Shipping can only see shipping-related orders
                 $filters['status_in'] = [
+                    \App\Domain\Order\Enums\OrderStatus::ResubmittedToWarehouse->value,
+                    \App\Domain\Order\Enums\OrderStatus::ProcessingFulfillment->value,
                     \App\Domain\Order\Enums\OrderStatus::ShippedCollectingPayment->value,
                     \App\Domain\Order\Enums\OrderStatus::Completed->value,
                 ];
@@ -248,13 +250,15 @@ class AdminOrderController extends BaseApiController
             return $this->errorResponse('Forbidden. Order does not belong to your warehouses.', 403);
         }
 
-        if ($employee->role === \App\Domain\Auth\Enums\UserRole::Accounting->value) {
+        if ($employee->role === \App\Domain\Auth\Enums\UserRole::Shipping->value) {
             $allowed = [
+                \App\Domain\Order\Enums\OrderStatus::ResubmittedToWarehouse->value,
+                \App\Domain\Order\Enums\OrderStatus::ProcessingFulfillment->value,
                 \App\Domain\Order\Enums\OrderStatus::ShippedCollectingPayment->value,
                 \App\Domain\Order\Enums\OrderStatus::Completed->value,
             ];
             if (! in_array($order->status, $allowed, true)) {
-                return $this->errorResponse('Forbidden. Accounting can only manage shipped or completed orders.', 403);
+                return $this->errorResponse('Forbidden. Shipping can only manage shipping-related orders.', 403);
             }
         }
 
