@@ -31,6 +31,62 @@ class AppLocalizations {
   String get navRegister => _s('إنشاء حساب', 'Register');
   String get navLogout => _s('تسجيل الخروج', 'Logout');
 
+  String get adminPosTerminal => _s('نقطة البيع', 'Point of Sale');
+  String get adminPosTerminalHint => _s('إنشاء فواتير للعملاء مباشرة (الاسم اختياري)', 'Create walk-in invoices (name optional)');
+  String get adminPosReports => _s('فواتير المبيعات', 'Sales invoices');
+  String get adminPosReportsHint => _s('مراجعة الفواتير وإجمالي اليوم والشهر والسنة', 'Review invoices and daily, monthly, and yearly totals');
+  String get adminPosWalkIn => _s('عميل مباشر بدون اسم', 'Walk-in (no name)');
+  String get adminPosCustomerOptional => _s('اسم العميل (اختياري)', 'Customer name (optional)');
+  String get adminPosCompleteSale => _s('إنشاء الفاتورة', 'Create invoice');
+  String get adminPosNewSale => _s('بيع جديد', 'New sale');
+  String get adminPosInvoiceCreated => _s('تم إنشاء الفاتورة', 'Invoice created');
+  String get adminPosCartEmpty => _s('اختر الكتب لإضافتها إلى الفاتورة', 'Select books to add them to the invoice');
+  String get adminPosOwnWarehouseDefault => _s('يُعرض مستودعك افتراضياً. يمكنك التبديل إلى مستودع أو دار نشر أخرى.', 'Your warehouse is selected by default. You can switch to another warehouse or publisher.');
+  String get adminAllPublishers => _s('كل الناشرين', 'All publishers');
+  String get adminAllWarehouses => _s('كل المستودعات', 'All warehouses');
+  String get adminTotalToday => _s('اليوم', 'Today');
+  String get adminTotalThisMonth => _s('هذا الشهر', 'This month');
+  String get adminTotalThisYear => _s('هذه السنة', 'This year');
+  String get adminTotalAllTime => _s('الإجمالي الكلي', 'All time');
+  String get adminNoInvoices => _s('لا توجد فواتير بعد', 'No invoices yet');
+  String get adminNoReports => _s('لا توجد مبيعات في هذه الفترة', 'No sales in this period');
+  String get adminPrint => _s('طباعة', 'Print');
+  String get adminOpenInvoice => _s('فتح', 'Open');
+  String get adminBackToInvoices => _s('العودة إلى الفواتير', 'Back to invoices');
+  String get adminInvoiceNotFound => _s('الفاتورة غير موجودة', 'Invoice not found');
+  String get adminCurrentSale => _s('البيع الحالي', 'Current sale');
+  String get adminInvoiceId => _s('الفاتورة', 'Invoice');
+  String get adminDate => _s('التاريخ', 'Date');
+  String get adminWarehouse => _s('المستودع', 'Warehouse');
+  String get adminReportDaily => _s('حسب اليوم', 'By day');
+  String get adminReportMonthly => _s('حسب الشهر', 'By month');
+  String get adminReportYearly => _s('حسب السنة', 'By year');
+  String get adminRecentInvoices => _s('الفواتير', 'Invoices');
+  String get adminItemTitle => _s('العنوان', 'Title');
+  String get adminItemPrice => _s('السعر', 'Price');
+  String invoicesCount(int count) => _s('$count فاتورة', '$count invoices');
+
+  String adminRoleLabel(String role) {
+    switch (role) {
+      case 'manager':
+        return _s('مدير', 'Manager');
+      case 'shipping':
+        return _s('شحن', 'Shipping');
+      case 'review':
+        return _s('مراجعة', 'Review');
+      case 'accounting':
+        return _s('محاسبة', 'Accounting');
+      case 'warehouse_manager':
+        return _s('مدير مستودع', 'Warehouse Manager');
+      case 'publisher_manager':
+        return _s('مدير دار نشر', 'Publisher Manager');
+      case 'direct_sales':
+        return _s('مبيعات مباشرة', 'Direct Sales');
+      default:
+        return role.replaceAll('_', ' ');
+    }
+  }
+
   // ── Auth ────────────────────────────────────────────────────────────────────
   String get loginTitle => _s('تسجيل الدخول', 'Login');
   String get loginBtn => _s('دخول', 'Login');
@@ -232,7 +288,6 @@ class AppLocalizations {
   String get adminSelectCategory => _s('اختر التصنيف', 'Select category');
   String get adminRole => _s('الدور', 'Role');
   String get adminPublisher => _s('الناشر', 'Publisher');
-  String get adminWarehouse => _s('المستودع', 'Warehouse');
   String get adminFailedSave => _s('فشل الحفظ', 'Failed to save');
   String get adminNoItems => _s('لا توجد عناصر', 'No items');
   String get adminAddAuthor => _s('إضافة مؤلف', 'Add author');

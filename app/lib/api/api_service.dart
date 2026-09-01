@@ -29,6 +29,8 @@ class ApiService {
 
   static final ApiService instance = ApiService(ApiClient());
 
+  String get baseUrl => _client.baseUrl;
+
   void setOnUnauthenticated(void Function() cb) {
     _client.onUnauthenticated = cb;
   }
@@ -375,6 +377,73 @@ class ApiService {
       );
     }
     return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<dynamic>> adminPosCreateInvoice({
+    required List<Map<String, dynamic>> items,
+    required String warehouseId,
+    String? customerName,
+  }) async {
+    return _client.post(
+      '/admin/pos/invoices',
+      body: {
+        'items': items,
+        'warehouse_id': warehouseId,
+        if (customerName != null && customerName.isNotEmpty) 'customer_name': customerName,
+      },
+    );
+  }
+
+  Future<ApiResponse<PaginatedResult<Book>>> adminPosBooks({
+    int page = 1,
+    int perPage = 50,
+    String? search,
+    String? warehouseId,
+    String? publisherId,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'per_page': perPage.toString(),
+    };
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    if (warehouseId != null && warehouseId.isNotEmpty) {
+      params['warehouse_id'] = warehouseId;
+    }
+    if (publisherId != null && publisherId.isNotEmpty) {
+      params['publisher_id'] = publisherId;
+    }
+    final res = await _client.get<dynamic>('/admin/pos/books', params: params);
+    return _parsePaginatedBooks(res);
+  }
+
+  Future<ApiResponse<dynamic>> adminPosInvoices({
+    int page = 1,
+    int perPage = 15,
+    String? warehouseId,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'per_page': perPage.toString(),
+      if (warehouseId != null && warehouseId.isNotEmpty) 'warehouse_id': warehouseId,
+    };
+    return _client.get('/admin/pos/invoices', params: params);
+  }
+
+  Future<ApiResponse<dynamic>> adminPosGetInvoice(String id) async {
+    return _client.get('/admin/pos/invoices/$id');
+  }
+
+  Future<ApiResponse<dynamic>> adminPosReports({
+    required String type,
+    String? warehouseId,
+  }) async {
+    final params = {
+      'type': type,
+      if (warehouseId != null && warehouseId.isNotEmpty) 'warehouse_id': warehouseId,
+    };
+    return _client.get('/admin/pos/reports', params: params);
   }
 
   Future<ApiResponse<void>> customerLogout() async {

@@ -172,6 +172,7 @@ class CartService extends BaseService implements CartServiceInterface
                 'book_id' => (string) $bookId,
                 'quantity' => $qty,
                 'price' => $this->calculateDiscountedPrice($book),
+                'book_title' => $book->title,
             ];
         }
 

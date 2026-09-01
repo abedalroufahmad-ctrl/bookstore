@@ -70,5 +70,18 @@ class EmployeeSeeder extends Seeder
                 'warehouse_id' => $warehouse->getKey(),
             ]
         );
+
+        Employee::firstOrCreate(
+            ['email' => 'direct-sales@bookstore.test'],
+            [
+                'name' => 'Direct Sales',
+                'email' => 'direct-sales@bookstore.test',
+                'phone' => '+1234567894',
+                'password' => 'password',
+                'role' => 'direct_sales',
+                'warehouse_id' => $warehouse->getKey(),
+                'warehouse_ids' => [(string) $warehouse->getKey()],
+            ]
+        );
     }
 }

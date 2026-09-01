@@ -29,8 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => Authenticate::class,
             'jwt.refresh' => RefreshToken::class,
         ]);
-        $middleware->appendToGroup('api', [
+        $middleware->prependToGroup('api', [
             SetLocaleFromAcceptLanguage::class,
+        ]);
+        $middleware->appendToGroup('api', [
             ForceJsonResponse::class,
         ]);
     })

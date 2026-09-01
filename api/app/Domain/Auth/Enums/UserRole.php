@@ -12,6 +12,7 @@ enum UserRole: string
     case WarehouseManager = 'warehouse_manager';
     case PublisherManager = 'publisher_manager';
     case Customer = 'customer';
+    case DirectSales = 'direct_sales';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum UserRole: string
             self::WarehouseManager => 'Warehouse Manager',
             self::PublisherManager => 'Publisher Manager',
             self::Customer => 'Customer',
+            self::DirectSales => 'Direct Sales',
         };
     }
 
@@ -39,6 +41,7 @@ enum UserRole: string
             self::Accounting->value,
             self::WarehouseManager->value,
             self::PublisherManager->value,
+            self::DirectSales->value,
         ];
     }
 
@@ -112,6 +115,7 @@ enum UserRole: string
         return [
             self::Shipping->value,
             self::Accounting->value,
+            self::DirectSales->value,
         ];
     }
 
@@ -126,6 +130,7 @@ enum UserRole: string
             self::Accounting->value,
             self::WarehouseManager->value,
             self::PublisherManager->value,
+            self::DirectSales->value,
         ];
     }
 }

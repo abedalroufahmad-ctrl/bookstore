@@ -331,6 +331,17 @@ export const admin = {
         { params: opts },
       ),
   },
+  pos: {
+    books: (params?: Record<string, string | number>) =>
+      api.get<ApiResponse<any>>('/admin/pos/books', { params }),
+    createInvoice: (data: { items: { book_id: string; quantity: number }[]; warehouse_id: string; customer_name?: string }) =>
+      api.post<ApiResponse<any>>('/admin/pos/invoices', data),
+    invoices: (params?: Record<string, string | number>) =>
+      api.get<ApiResponse<any>>('/admin/pos/invoices', { params }),
+    getInvoice: (id: string) => api.get<ApiResponse<any>>(`/admin/pos/invoices/${id}`),
+    reports: (params?: { type: string; warehouse_id?: string }) =>
+      api.get<ApiResponse<any>>('/admin/pos/reports', { params }),
+  },
 }
 
 export interface Book {

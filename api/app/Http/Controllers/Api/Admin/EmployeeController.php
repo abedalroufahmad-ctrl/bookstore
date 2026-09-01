@@ -58,7 +58,7 @@ class EmployeeController extends BaseApiController
     public function store(EmployeeStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
-        if ((($data['role'] ?? '') === UserRole::WarehouseManager->value || ($data['role'] ?? '') === UserRole::Shipping->value) && ! empty($data['warehouse_ids'] ?? [])) {
+        if ((($data['role'] ?? '') === UserRole::WarehouseManager->value || ($data['role'] ?? '') === UserRole::Shipping->value || ($data['role'] ?? '') === UserRole::DirectSales->value) && ! empty($data['warehouse_ids'] ?? [])) {
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
@@ -73,7 +73,7 @@ class EmployeeController extends BaseApiController
             }
             $role = (string) ($data['role'] ?? '');
             if (! in_array($role, UserRole::warehouseManagerStaffRoles(), true)) {
-                return $this->errorResponse('Forbidden. Warehouse managers can only add shipping or accounting staff to their warehouse.', 403);
+                return $this->errorResponse('Forbidden. Warehouse managers can only add shipping, accounting, or direct sales staff to their warehouse.', 403);
             }
         }
 
@@ -117,7 +117,7 @@ class EmployeeController extends BaseApiController
     public function update(EmployeeUpdateRequest $request, string $id): JsonResponse
     {
         $data = $request->validated();
-        if (isset($data['role']) && ($data['role'] === UserRole::WarehouseManager->value || $data['role'] === UserRole::Shipping->value) && ! empty($data['warehouse_ids'] ?? [])) {
+        if (isset($data['role']) && ($data['role'] === UserRole::WarehouseManager->value || $data['role'] === UserRole::Shipping->value || $data['role'] === UserRole::DirectSales->value) && ! empty($data['warehouse_ids'] ?? [])) {
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
@@ -205,7 +205,7 @@ class EmployeeController extends BaseApiController
                 return $this->errorResponse('Forbidden. You can only delete staff in your warehouse(s).', 403);
             }
             if (! in_array((string) $existing->role, UserRole::warehouseManagerStaffRoles(), true)) {
-                return $this->errorResponse('Forbidden. Warehouse managers can only delete shipping or accounting staff.', 403);
+                return $this->errorResponse('Forbidden. Warehouse managers can only delete shipping, accounting, or direct sales staff.', 403);
             }
         }
 
@@ -273,7 +273,7 @@ class EmployeeController extends BaseApiController
 
         if ($role === '' || ! in_array($role, UserRole::publisherManagerStaffRoles(), true)) {
             return $this->errorResponse(
-                'Forbidden. Publisher managers can only assign shipping, review, accounting, warehouse manager, or publisher manager roles.',
+                'Forbidden. Publisher managers can only assign shipping, review, accounting, warehouse manager, publisher manager, or direct sales roles.',
                 403
             );
         }
@@ -292,7 +292,7 @@ class EmployeeController extends BaseApiController
         // Warehouse-based staff stay on this publisher manager's publisher.
         $data['publisher_id'] = $publisherId;
 
-        if ($role === UserRole::WarehouseManager->value || $role === UserRole::Shipping->value) {
+        if ($role === UserRole::WarehouseManager->value || $role === UserRole::Shipping->value || $role === UserRole::DirectSales->value) {
             $ids = array_values(array_map('strval', $data['warehouse_ids'] ?? ($existing?->warehouse_ids ?? [])));
             if ($ids === []) {
                 return $this->errorResponse('Forbidden. Select at least one of your publisher\'s warehouses.', 403);

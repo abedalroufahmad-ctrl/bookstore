@@ -42,7 +42,7 @@ class Employee extends Authenticatable implements JWTSubject
      */
     public function managesWarehouse(string $warehouseId): bool
     {
-        if ($this->role !== UserRole::WarehouseManager->value && $this->role !== UserRole::Shipping->value) {
+        if ($this->role !== UserRole::WarehouseManager->value && $this->role !== UserRole::Shipping->value && $this->role !== UserRole::DirectSales->value) {
             return (string) $this->warehouse_id === (string) $warehouseId;
         }
         $ids = $this->warehouse_ids ?? [];
@@ -58,7 +58,7 @@ class Employee extends Authenticatable implements JWTSubject
      */
     public function getManagedWarehouseIds(): array
     {
-        if ($this->role === UserRole::WarehouseManager->value || $this->role === UserRole::Shipping->value) {
+        if ($this->role === UserRole::WarehouseManager->value || $this->role === UserRole::Shipping->value || $this->role === UserRole::DirectSales->value) {
             $ids = $this->warehouse_ids ?? [];
             if (is_array($ids) && ! empty($ids)) {
                 return array_values(array_map('strval', $ids));

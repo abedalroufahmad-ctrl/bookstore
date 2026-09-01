@@ -22,10 +22,21 @@ class EmployeeStoreRequest extends BaseFormRequest
             UserRole::Accounting->value,
             UserRole::WarehouseManager->value,
             UserRole::PublisherManager->value,
+            UserRole::DirectSales->value,
         ];
 
         $role = $this->input('role');
-        $rolesWithoutWarehouse = [UserRole::WarehouseManager->value, UserRole::PublisherManager->value];
+        $rolesUsingWarehouseIds = [
+            UserRole::WarehouseManager->value,
+            UserRole::Shipping->value,
+            UserRole::DirectSales->value,
+        ];
+        $rolesWithoutWarehouse = [
+            UserRole::WarehouseManager->value,
+            UserRole::PublisherManager->value,
+            UserRole::Shipping->value,
+            UserRole::DirectSales->value,
+        ];
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -34,7 +45,7 @@ class EmployeeStoreRequest extends BaseFormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in($employeeRoles)],
             'warehouse_id' => [Rule::requiredIf(! in_array($role, $rolesWithoutWarehouse, true)), 'nullable', 'string'],
-            'warehouse_ids' => ['required_if:role,'.UserRole::WarehouseManager->value.',shipping', 'nullable', 'array', 'min:1'],
+            'warehouse_ids' => ['required_if:role,'.implode(',', $rolesUsingWarehouseIds), 'nullable', 'array', 'min:1'],
             'warehouse_ids.*' => ['string'],
             'publisher_id' => ['required_if:role,'.UserRole::PublisherManager->value, 'nullable', 'string'],
         ];

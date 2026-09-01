@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Http\Middleware\SetLocaleFromAcceptLanguage;
 use App\Support\MessageLocalizer;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -54,6 +55,8 @@ class Handler extends ExceptionHandler
 
     private function apiResponse($request, Throwable $e)
     {
+        SetLocaleFromAcceptLanguage::apply($request);
+
         if ($e instanceof TokenExpiredException) {
             return response()->json([
                 'success' => false,

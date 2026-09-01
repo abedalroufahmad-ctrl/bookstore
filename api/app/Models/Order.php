@@ -17,6 +17,8 @@ class Order extends Model
 
     protected $fillable = [
         'customer_id',
+        'customer_name', // for walk-in direct sales
+        'is_direct_sale', // boolean flag for POS orders
         'employee_id',
         'warehouse_id',
         'items',
@@ -34,6 +36,7 @@ class Order extends Model
     protected function casts(): array
     {
         return [
+            'is_direct_sale' => 'boolean',
             'items' => 'array',
             'books_subtotal' => 'float',
             'shipping_fee' => 'float',

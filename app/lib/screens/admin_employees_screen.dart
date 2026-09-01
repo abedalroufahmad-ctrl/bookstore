@@ -13,6 +13,7 @@ const _allRoles = [
   'accounting',
   'warehouse_manager',
   'publisher_manager',
+  'direct_sales',
 ];
 
 class AdminEmployeesScreen extends StatefulWidget {
@@ -37,7 +38,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
 
   List<String> _rolesFor(String? myRole) {
     if (myRole == 'warehouse_manager') {
-      return const ['shipping', 'accounting'];
+      return const ['shipping', 'accounting', 'direct_sales'];
     }
     if (myRole == 'publisher_manager') {
       return const [
@@ -46,6 +47,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
         'accounting',
         'warehouse_manager',
         'publisher_manager',
+        'direct_sales',
       ];
     }
     return _allRoles;
@@ -197,7 +199,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                           .map(
                             (r) => DropdownMenuItem(
                               value: r,
-                              child: Text(r.replaceAll('_', ' ')),
+                              child: Text(t.adminRoleLabel(r)),
                             ),
                           )
                           .toList(),
@@ -206,7 +208,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         setSheet(() => role = v);
                       },
                     ),
-                    if (role == 'warehouse_manager' || role == 'shipping') ...[
+                    if (role == 'warehouse_manager' || role == 'shipping' || role == 'direct_sales') ...[
                       const SizedBox(height: 8),
                       Text(t.adminSelectWarehouse),
                       ..._warehouses.map((w) {
@@ -306,7 +308,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                 body['password'] = password;
                                 body['password_confirmation'] = confirm;
                               }
-                              if (role == 'warehouse_manager' || role == 'shipping') {
+                              if (role == 'warehouse_manager' || role == 'shipping' || role == 'direct_sales') {
                                 body['warehouse_ids'] = warehouseIds.toList();
                               } else if (role == 'publisher_manager') {
                                 body['publisher_id'] = publisherId;
@@ -415,7 +417,7 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                             final e = _employees[i];
                             final subtitle = [
                               e.email,
-                              e.role,
+                              e.role != null && e.role!.isNotEmpty ? t.adminRoleLabel(e.role!) : null,
                               e.warehouseName,
                               e.publisherName,
                             ]

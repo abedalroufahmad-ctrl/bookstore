@@ -13,5 +13,6 @@ class DatabaseSeeder extends Seeder
         $this->call(PublisherSeeder::class);
         $this->call(ArabicLocationsSeeder::class);
         $this->call(CatalogSeeder::class);
+        $this->call(PosInvoiceSeeder::class);
     }
 }

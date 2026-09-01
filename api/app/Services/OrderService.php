@@ -34,6 +34,70 @@ class OrderService extends BaseService implements OrderServiceInterface
         protected PaymentRepository $paymentRepository
     ) {}
 
+    public function createPosInvoice(array $items, string $warehouseId, ?string $employeeId = null, ?string $customerName = null): Order
+    {
+        if (empty($items)) {
+            throw new \InvalidArgumentException('Invoice items cannot be empty.');
+        }
+
+        $doCreate = function () use ($items, $warehouseId, $employeeId, $customerName) {
+            $repricedItems = $this->cartService->repriceItems($items);
+            if ($repricedItems === []) {
+                throw new \InvalidArgumentException('Some items are invalid or unavailable.');
+            }
+
+            // Ensure all items are from the same warehouse
+            $grouped = $this->groupCartItemsByWarehouse($repricedItems);
+            if (count($grouped) > 1 || ! isset($grouped[$warehouseId])) {
+                throw new \InvalidArgumentException('All books must belong to the selected warehouse.');
+            }
+
+            $this->stockService->validateAvailability($repricedItems);
+            $booksSubtotal = $this->calculateItemsTotal($repricedItems);
+
+            $order = $this->orderRepository->create([
+                'employee_id' => $employeeId,
+                'customer_name' => $customerName,
+                'is_direct_sale' => true,
+                'warehouse_id' => $warehouseId,
+                'items' => $repricedItems,
+                'status' => OrderStatus::Completed->value,
+                'books_subtotal' => $booksSubtotal,
+                'shipping_fee' => 0,
+                'shipping_method' => 'pos',
+                'total' => $booksSubtotal,
+                'shipping_address' => [],
+                'payment_info' => [],
+                'payment_method' => 'cash',
+                'payment_status' => Payment::statusPaid(),
+            ]);
+
+            $this->paymentRepository->create([
+                'order_id' => $order->getKey(),
+                'user_id' => $employeeId, // Track employee taking payment
+                'amount' => $booksSubtotal,
+                'currency' => 'USD',
+                'method' => 'cash',
+                'status' => Payment::statusPaid(),
+                'transaction_id' => 'POS-'.time(),
+            ]);
+
+            $this->stockService->validateAndDeduct($repricedItems);
+
+            $this->enrichOrderItemsWithBookTitles($order);
+            $order->loadMissing(['warehouse.publisher', 'employee']);
+
+            return $order;
+        };
+
+        // Standalone MongoDB cannot run multi-document transactions (needs replica set / mongos).
+        if (config('database.mongodb_transactions_enabled', false)) {
+            return DB::connection('mongodb')->transaction($doCreate);
+        }
+
+        return $doCreate();
+    }
+
     public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array
     {
         $cart = $this->cartService->getOrCreateActiveCart($customer);

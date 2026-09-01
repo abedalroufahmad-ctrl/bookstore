@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\CountryController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\EmployeeController;
+use App\Http\Controllers\Api\Admin\PosController;
 use App\Http\Controllers\Api\Admin\PublisherController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\UploadAuthorPhotoController;
@@ -76,7 +77,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         });
 
         // Warehouses: read-only for order-management roles
-        Route::middleware('role:manager,publisher_manager,warehouse_manager,shipping,accounting')->group(function () {
+        Route::middleware('role:manager,publisher_manager,warehouse_manager,shipping,accounting,direct_sales')->group(function () {
             Route::get('warehouses', [WarehouseController::class, 'index']);
             Route::get('warehouses/{id}', [WarehouseController::class, 'show']);
         });
@@ -125,6 +126,15 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::post('employees', [EmployeeController::class, 'store']);
             Route::put('employees/{id}', [EmployeeController::class, 'update']);
             Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
+        });
+
+        // POS: walk-in invoices (optional customer name). Direct sales may browse any warehouse.
+        Route::middleware('role:manager,publisher_manager,warehouse_manager,direct_sales')->group(function () {
+            Route::get('pos/books', [PosController::class, 'books']);
+            Route::post('pos/invoices', [PosController::class, 'createInvoice']);
+            Route::get('pos/invoices', [PosController::class, 'index']);
+            Route::get('pos/invoices/{id}', [PosController::class, 'show']);
+            Route::get('pos/reports', [PosController::class, 'reports']);
         });
 
         // Orders: order-management roles only

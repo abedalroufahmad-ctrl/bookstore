@@ -19,8 +19,12 @@ export function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(type, email, password, type === 'customer' && rememberMe)
-      navigate(type === 'employee' ? '/admin' : '/')
+      const result = await login(type, email, password, type === 'customer' && rememberMe)
+      if (type === 'employee') {
+        navigate(result.role === 'direct_sales' ? '/admin/pos' : '/admin')
+      } else {
+        navigate('/')
+      }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t('auth.loginFailed')
       setError(msg)

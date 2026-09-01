@@ -18,8 +18,17 @@ class MessageLocalizer
         }
 
         $exact = trans('messages.exact');
-        if (is_array($exact) && isset($exact[$message])) {
-            return $exact[$message];
+        if (is_array($exact)) {
+            $candidates = array_unique([
+                $message,
+                rtrim($message, '.'),
+                rtrim($message, '.').'.',
+            ]);
+            foreach ($candidates as $key) {
+                if (isset($exact[$key])) {
+                    return $exact[$key];
+                }
+            }
         }
 
         $patterns = trans('messages.patterns');

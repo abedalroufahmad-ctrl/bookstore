@@ -11,18 +11,22 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SetLocaleFromAcceptLanguage
 {
-    public function handle(Request $request, Closure $next): Response
+    public static function apply(Request $request): void
     {
         $header = strtolower((string) $request->header('Accept-Language', ''));
         $locale = str_starts_with($header, 'ar') ? 'ar' : 'en';
 
-        // Explicit query/header override used by clients
         $forced = strtolower((string) $request->header('X-Locale', $request->query('lang', '')));
         if (in_array($forced, ['ar', 'en'], true)) {
             $locale = $forced;
         }
 
         app()->setLocale($locale);
+    }
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        self::apply($request);
 
         return $next($request);
     }

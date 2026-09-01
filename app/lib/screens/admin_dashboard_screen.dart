@@ -16,7 +16,10 @@ class AdminDashboardScreen extends StatelessWidget {
     final isManager = role == 'manager';
     final isWarehouseManager = role == 'warehouse_manager';
     final isPublisherManager = role == 'publisher_manager';
+    final isDirectSales = role == 'direct_sales';
     final isScoped = isWarehouseManager || (!isManager && auth.userType == UserType.employee);
+
+    final canManagePos = isManager || isWarehouseManager || isPublisherManager || isDirectSales;
 
     final tiles = <_AdminTile>[
       if (!isScoped || isWarehouseManager || isPublisherManager)
@@ -96,6 +99,20 @@ class AdminDashboardScreen extends StatelessWidget {
           icon: Icons.tune,
           route: '/admin/publisher-settings',
         ),
+      if (canManagePos) ...[
+        _AdminTile(
+          title: t.adminPosTerminal,
+          subtitle: t.adminPosTerminalHint,
+          icon: Icons.point_of_sale_outlined,
+          route: '/admin/pos',
+        ),
+        _AdminTile(
+          title: t.adminPosReports,
+          subtitle: t.adminPosReportsHint,
+          icon: Icons.bar_chart_outlined,
+          route: '/admin/pos/reports',
+        ),
+      ],
     ];
 
     return Scaffold(

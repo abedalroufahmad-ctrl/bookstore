@@ -64,7 +64,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
       if (!mounted) return;
-      // Leave the login route whether it was named `/login` or pushed another way.
+      if (_loginAsStaff && context.read<AuthProvider>().employee?.role == 'direct_sales') {
+        Navigator.of(context).pushReplacementNamed('/admin/pos');
+        return;
+      }
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       } else {

@@ -22,6 +22,7 @@ class EmployeeUpdateRequest extends BaseFormRequest
             UserRole::Accounting->value,
             UserRole::WarehouseManager->value,
             UserRole::PublisherManager->value,
+            UserRole::DirectSales->value,
         ];
 
         $id = $this->route('id');
@@ -33,7 +34,7 @@ class EmployeeUpdateRequest extends BaseFormRequest
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['sometimes', 'string', Rule::in($employeeRoles)],
             'warehouse_id' => ['sometimes', 'nullable', 'string'],
-            'warehouse_ids' => ['sometimes', 'nullable', 'array', 'min:1'],
+            'warehouse_ids' => ['required_if:role,'.UserRole::WarehouseManager->value.',shipping,'.UserRole::DirectSales->value, 'sometimes', 'nullable', 'array', 'min:1'],
             'warehouse_ids.*' => ['string'],
             'publisher_id' => ['required_if:role,'.UserRole::PublisherManager->value, 'nullable', 'string'],
         ];

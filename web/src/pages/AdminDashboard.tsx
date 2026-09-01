@@ -9,7 +9,10 @@ export function AdminDashboard() {
   const isManager = employeeRole === 'manager'
   const isWarehouseManager = employeeRole === 'warehouse_manager'
   const isPublisherManager = employeeRole === 'publisher_manager'
+  const isDirectSales = employeeRole === 'direct_sales'
   const isScopedWarehouseUser = isWarehouseManager || (!isManager && userType === 'employee')
+
+  const canManagePos = isManager || isWarehouseManager || isPublisherManager || isDirectSales
 
   return (
     <div>
@@ -131,6 +134,24 @@ export function AdminDashboard() {
             <h2 className="font-semibold text-amber-900">{t('admin.reports.booksWithoutCover') ?? 'Books without cover'}</h2>
             <p className="text-sm text-stone-500 mt-1">{t('admin.reports.booksWithoutCoverHint') ?? 'List books missing cover image'}</p>
           </Link>
+        )}
+        {canManagePos && (
+          <>
+            <Link
+              to="/admin/pos"
+              className="block p-6 bg-white rounded-lg border border-amber-200 hover:shadow-md hover:border-amber-400 transition"
+            >
+              <h2 className="font-semibold text-amber-900">{t('admin.posTerminal', 'Point of Sale')}</h2>
+              <p className="text-sm text-stone-500 mt-1">{t('admin.posTerminalHint', 'Create direct sales invoices')}</p>
+            </Link>
+            <Link
+              to="/admin/pos/reports"
+              className="block p-6 bg-white rounded-lg border border-stone-200 hover:shadow-md hover:border-amber-300 transition"
+            >
+              <h2 className="font-semibold text-amber-900">{t('admin.posReports', 'Sales Reports')}</h2>
+              <p className="text-sm text-stone-500 mt-1">{t('admin.posReportsHint', 'View daily, monthly, and yearly totals')}</p>
+            </Link>
+          </>
         )}
       </div>
     </div>

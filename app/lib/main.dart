@@ -28,6 +28,9 @@ import 'screens/admin_customers_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/admin_employees_screen.dart';
 import 'screens/admin_orders_screen.dart';
+import 'screens/admin_pos_screen.dart';
+import 'screens/admin_pos_invoice_screen.dart';
+import 'screens/admin_pos_reports_screen.dart';
 import 'screens/admin_publisher_settings_screen.dart';
 import 'screens/admin_publishers_screen.dart';
 import 'screens/admin_settings_screen.dart';
@@ -103,10 +106,22 @@ class BookStoreApp extends StatelessWidget {
               '/admin/settings': (context) => const AdminSettingsScreen(),
               '/admin/publisher-settings': (context) =>
                   const AdminPublisherSettingsScreen(),
+              '/admin/pos': (context) => const AdminPosScreen(),
+              '/admin/pos/reports': (context) => const AdminPosReportsScreen(),
               '/staff/orders': (context) =>
                   const AdminOrdersScreen(useEmployeeApi: true),
             },
             onGenerateRoute: (settings) {
+              if (settings.name?.startsWith('/admin/pos/invoices/') == true) {
+                final id = settings.name!.replaceFirst('/admin/pos/invoices/', '');
+                final args = settings.arguments;
+                Map<String, dynamic>? initial;
+                if (args is Map<String, dynamic>) initial = args;
+                return MaterialPageRoute(
+                  builder: (_) => AdminPosInvoiceScreen(invoiceId: id, initialInvoice: initial),
+                  settings: settings,
+                );
+              }
               if (settings.name?.startsWith('/book/') == true) {
                 return MaterialPageRoute(
                   builder: (_) => const BookDetailScreen(),

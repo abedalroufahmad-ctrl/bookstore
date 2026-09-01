@@ -8,6 +8,7 @@ class ApiClient {
   ApiClient({String? baseUrl}) : _baseUrl = baseUrl ?? apiBaseUrl;
 
   final String _baseUrl;
+  String get baseUrl => _baseUrl;
   void Function()? onUnauthenticated;
 
   Future<bool> _isArabic() async {
@@ -28,6 +29,17 @@ class ApiClient {
       'X-Locale': locale,
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  Future<String> _localizeStatusMessage(String message, int statusCode) async {
+    final normalized = message.trim().replaceAll(RegExp(r'\.+$'), '').toLowerCase();
+    if (statusCode == 429 || normalized == 'too many attempts') {
+      final ar = await _isArabic();
+      return ar
+          ? 'محاولات كثيرة جداً. حاول مرة أخرى بعد دقيقة.'
+          : 'Too many attempts. Please try again in a minute.';
+    }
+    return message;
   }
 
   Future<String> _connectionError(Object e) async {
@@ -138,6 +150,7 @@ class ApiClient {
       }
       final success = map['success'] as bool? ?? false;
       var message = map['message'] as String? ?? '';
+      message = await _localizeStatusMessage(message, res.statusCode);
       dynamic data = map['data'];
       if (!success && data is Map && data['errors'] != null) {
         message = _firstValidationErrorMessage(message, data['errors']);

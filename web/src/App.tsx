@@ -51,6 +51,10 @@ const queryClient = new QueryClient({
   },
 })
 
+import { AdminPos } from './pages/AdminPos'
+import { AdminPosReports } from './pages/AdminPosReports'
+import { AdminPosInvoice } from './pages/AdminPosInvoice'
+
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { userType, isLoading } = useAuth()
   const { t } = useTranslation()
@@ -281,6 +285,30 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminCountries />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/pos"
+          element={
+            <AdminRoute>
+              <AdminPos />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/pos/reports"
+          element={
+            <AdminRoute>
+              <AdminPosReports />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/pos/invoices/:id"
+          element={
+            <AdminRoute>
+              <AdminPosInvoice />
             </AdminRoute>
           }
         />

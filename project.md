@@ -63,7 +63,7 @@ Legacy MongoDB status strings are normalized on read when possible. Multi-wareho
 
 ### Administration & operations (employees)
 
-Roles: `manager`, `shipping`, `review`, `accounting`, `employee`, `warehouse_manager`, `publisher_manager`.
+Roles: `manager`, `shipping`, `review`, `accounting`, `warehouse_manager`, `publisher_manager`, `direct_sales`.
 
 | Capability | Notes |
 |------------|--------|
@@ -72,8 +72,9 @@ Roles: `manager`, `shipping`, `review`, `accounting`, `employee`, `warehouse_man
 | **Publisher settings** | Support contact, return policy, default discount, enabled payment methods (from global list) |
 | Warehouses | Belong to a publisher; warehouse_manager scoped to assigned warehouse(s) |
 | **Publisher manager** | Scoped to their publisher’s warehouses/books/employees/orders; can update own publisher settings |
-| Customers / employees | Admin management; convert customer → employee; shipping role can have multiple warehouses |
-| Orders | List, assign, status, warehouse quote, bulk delete; accounting role can manage shipped/completed orders |
+| Customers / employees | Admin management; convert customer → employee; shipping and **direct sales** can have multiple warehouses |
+| **Direct sales (POS)** | Walk-in invoices with optional customer name (no customer login). Staff pick books, create and print the invoice. Default catalog is the employee’s own warehouse; they may switch to other warehouses or publishers. Publisher managers, warehouse managers, and direct-sales staff can review invoices. Totals for **today**, **this month**, **this year**, and **all time** are always shown, plus a day/month/year breakdown. |
+| Orders | List, assign, status, warehouse quote, bulk delete; shipping staff see fulfillment statuses; accounting sees all statuses |
 | Settings | Global site options, payment methods, catalog items per page (default **25**) |
 | Countries / reports | Sync utilities; books-without-cover report; browse books by warehouse |
 
@@ -116,6 +117,10 @@ Set `MONGODB_URI` / `MONGODB_DATABASE`. For physical phones, serve on `0.0.0.0` 
 | admin@bookstore.test | password | manager |
 | manager@bookstore.test | password | manager |
 | shipping@bookstore.test | password | shipping |
+| warehouse-manager@bookstore.test | password | warehouse_manager |
+| direct-sales@bookstore.test | password | direct_sales |
+
+Demo POS invoices (named, walk-in, quantities, other warehouses, day/month/year): `php artisan db:seed --class=PosInvoiceSeeder`
 
 ### Web
 
@@ -199,6 +204,7 @@ Send JWT as `Authorization: Bearer <token>` (not Basic Auth).
 | * | `/employees/me`, refresh, logout |
 | * | `/employees/orders`… (warehouse quote for staff app) |
 | * | `/admin/*` — books, warehouses, authors, categories, publishers (+ settings), employees, customers, orders, settings, countries, uploads |
+| GET/POST | `/admin/pos/books`, `/admin/pos/invoices`, `/admin/pos/invoices/{id}`, `/admin/pos/reports` — walk-in invoices (`direct_sales`, warehouse/publisher managers, manager) |
 
 Admin group middleware includes warehouse_manager / publisher_manager scoping.
 
@@ -228,7 +234,7 @@ if (json.success && json.data && json.data.token) {
 
 - **Publisher** → has many **Warehouses**; books have `publisher_id` + `warehouse_id`.
 - **Book** → authors (`author_ids`), category, publisher, warehouse; `has_cover` boolean (maintained on save) for catalog filters.
-- **Cart / Order / Payment** — MongoDB collections with indexes on customer, status, warehouse, dates.
+- **Direct sale / POS invoice** — `is_direct_sale`, optional `customer_name` (no customer login), `employee_id` of the selling staff.
 - **Settings** — global; publisher `settings` array for per-publisher options.
 
 ---

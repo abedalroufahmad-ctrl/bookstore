@@ -23,7 +23,7 @@ class RestrictWarehouseManagerToScopedRoutes
         }
 
         $path = $request->path();
-        $allowedPrefixes = ['warehouses', 'employees', 'orders', 'settings'];
+        $allowedPrefixes = ['warehouses', 'employees', 'orders', 'settings', 'pos'];
         $isAllowed = false;
         foreach ($allowedPrefixes as $prefix) {
             if (str_contains($path, 'admin/'.$prefix)) {

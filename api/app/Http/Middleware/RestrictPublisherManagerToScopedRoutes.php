@@ -27,7 +27,7 @@ class RestrictPublisherManagerToScopedRoutes
         $path = $request->path();
 
         // Full access (create/edit/delete) — per-record ownership is enforced in controllers.
-        $fullAccessPrefixes = ['books', 'authors', 'warehouses', 'employees', 'orders', 'upload-cover', 'upload-author-photo'];
+        $fullAccessPrefixes = ['books', 'authors', 'warehouses', 'employees', 'orders', 'pos', 'upload-cover', 'upload-author-photo'];
         foreach ($fullAccessPrefixes as $prefix) {
             if (str_contains($path, 'admin/'.$prefix)) {
                 return $next($request);

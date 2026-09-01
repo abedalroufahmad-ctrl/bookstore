@@ -8,7 +8,7 @@ interface AuthContextType {
   user: { id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[]; publisher_id?: string } | null
   userType: UserType
   token: string | null
-  login: (type: 'customer' | 'employee', email: string, password: string, rememberMe?: boolean) => Promise<void>
+  login: (type: 'customer' | 'employee', email: string, password: string, rememberMe?: boolean) => Promise<{ role?: string }>
   register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
   logout: () => Promise<void>
   /** Refetch current user from API (e.g. after profile update). */
@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? { id: u._id, name: u.name, email: u.email }
         : { id: u._id, name: u.name, email: u.email, role: u.role, warehouse_id: u.warehouse_id, warehouse_ids: u.warehouse_ids, publisher_id: u.publisher_id }
     )
+    return { role: type === 'employee' ? u.role : undefined }
   }
 
   const register = async (name: string, email: string, password: string, passwordConfirmation: string) => {
