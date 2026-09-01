@@ -82,8 +82,11 @@ class ApiService {
     int perPage = _defaultPerPage;
     if (d is Map) {
       final rawList = d['data'];
-      if (rawList is List) {
-        list = rawList.map((e) => Book.fromJson(e as Map<String, dynamic>)).toList();
+            if (rawList is List) {
+        list = rawList
+            .whereType<Map>()
+            .map((e) => Book.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
       }
       currentPage = (d['current_page'] as num?)?.toInt() ?? 1;
       lastPage = (d['last_page'] as num?)?.toInt() ?? 1;

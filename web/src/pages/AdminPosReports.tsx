@@ -7,6 +7,12 @@ import { Pagination } from '../components/Pagination'
 
 type ReportBucket = { period: string; total: number; count: number }
 
+function formatDateTime(raw: unknown): string {
+  if (raw == null || raw === '') return '-'
+  const d = new Date(String(raw))
+  return Number.isNaN(d.getTime()) ? String(raw) : d.toLocaleString()
+}
+
 export function AdminPosReports() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -90,7 +96,7 @@ export function AdminPosReports() {
         >
           <option value="">{t('admin.allWarehouses')}</option>
           {warehouses.map((w: any) => (
-            <option key={w._id} value={w._id}>{w.name}</option>
+            <option key={String(w._id)} value={String(w._id)}>{w.name}</option>
           ))}
         </select>
       </div>
@@ -160,20 +166,20 @@ export function AdminPosReports() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-200">
-                {invoicesList.map((inv: any) => {
+                {invoicesList.map((inv: any, i: number) => {
                   const invoiceId = String(inv._id ?? inv.id ?? '')
                   return (
                   <tr
-                    key={invoiceId}
+                    key={invoiceId || `inv-${i}`}
                     className="hover:bg-amber-50/70 cursor-pointer"
                     onClick={() => {
                       if (invoiceId) navigate(`/admin/pos/invoices/${invoiceId}`)
                     }}
                   >
                     <td className="px-4 py-2 font-mono text-xs text-stone-500">{invoiceId}</td>
-                    <td className="px-4 py-2">{inv.created_at ? new Date(inv.created_at).toLocaleString() : '-'}</td>
+                    <td className="px-4 py-2">{inv.created_at ? formatDateTime(inv.created_at) : '-'}</td>
                     <td className="px-4 py-2">{inv.customer_name || t('admin.walkInCustomer')}</td>
-                    <td className="px-4 py-2">{warehouses.find((w: any) => w._id === inv.warehouse_id)?.name || inv.warehouse_id}</td>
+                    <td className="px-4 py-2">{warehouses.find((w: any) => String(w._id) === String(inv.warehouse_id))?.name || inv.warehouse_id}</td>
                     <td className="px-4 py-2 text-end font-medium">${Number(inv.total ?? 0).toFixed(2)}</td>
                     <td className="px-4 py-2 text-end print:hidden">
                       <Link
@@ -193,10 +199,10 @@ export function AdminPosReports() {
             {invoicesMeta && (
               <div className="p-4 border-t border-stone-200 flex justify-center">
                 <Pagination
-                  currentPage={invoicesMeta.current_page}
-                  lastPage={invoicesMeta.last_page}
-                  total={invoicesMeta.total}
-                  perPage={invoicesMeta.per_page}
+                  currentPage={Number(invoicesMeta.current_page) || 1}
+                  lastPage={Number(invoicesMeta.last_page) || 1}
+                  total={Number(invoicesMeta.total) || 0}
+                  perPage={Number(invoicesMeta.per_page) || 15}
                   onPageChange={setPage}
                 />
               </div>

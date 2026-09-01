@@ -339,8 +339,12 @@ export const admin = {
     invoices: (params?: Record<string, string | number>) =>
       api.get<ApiResponse<any>>('/admin/pos/invoices', { params }),
     getInvoice: (id: string) => api.get<ApiResponse<any>>(`/admin/pos/invoices/${id}`),
-    reports: (params?: { type: string; warehouse_id?: string }) =>
-      api.get<ApiResponse<any>>('/admin/pos/reports', { params }),
+    reports: (params?: { type: string; warehouse_id?: string }) => {
+      const query: Record<string, string> = {}
+      if (params?.type) query.type = params.type
+      if (params?.warehouse_id) query.warehouse_id = params.warehouse_id
+      return api.get<ApiResponse<any>>('/admin/pos/reports', { params: query })
+    },
   },
 }
 

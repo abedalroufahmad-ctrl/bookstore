@@ -163,9 +163,18 @@ class PosController extends BaseApiController
 
         foreach ($orders as $order) {
             $total = (float) ($order->total ?? 0);
-            $date = Carbon::parse($order->created_at);
             $summary['all']['total'] += $total;
             $summary['all']['count']++;
+
+            if ($order->created_at === null) {
+                continue;
+            }
+            try {
+                $date = Carbon::parse($order->created_at);
+            } catch (\Throwable) {
+                continue;
+            }
+
             if ($date->format('Y-m-d') === $todayKey) {
                 $summary['today']['total'] += $total;
                 $summary['today']['count']++;
@@ -193,9 +202,19 @@ class PosController extends BaseApiController
 
         krsort($periods);
 
+        foreach ($summary as &$bucket) {
+            $bucket['total'] = round((float) $bucket['total'], 2);
+        }
+        unset($bucket);
+        $periodList = array_map(static function (array $bucket): array {
+            $bucket['total'] = round((float) $bucket['total'], 2);
+
+            return $bucket;
+        }, array_values($periods));
+
         return $this->successResponse([
             'summary' => $summary,
-            'periods' => array_values($periods),
+            'periods' => $periodList,
             'type' => $type,
         ]);
     }

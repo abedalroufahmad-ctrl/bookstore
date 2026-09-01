@@ -52,37 +52,48 @@ class OrderService extends BaseService implements OrderServiceInterface
                 throw new \InvalidArgumentException('All books must belong to the selected warehouse.');
             }
 
-            $this->stockService->validateAvailability($repricedItems);
+            $this->stockService->validateAndDeduct($repricedItems);
             $booksSubtotal = $this->calculateItemsTotal($repricedItems);
 
-            $order = $this->orderRepository->create([
-                'employee_id' => $employeeId,
-                'customer_name' => $customerName,
-                'is_direct_sale' => true,
-                'warehouse_id' => $warehouseId,
-                'items' => $repricedItems,
-                'status' => OrderStatus::Completed->value,
-                'books_subtotal' => $booksSubtotal,
-                'shipping_fee' => 0,
-                'shipping_method' => 'pos',
-                'total' => $booksSubtotal,
-                'shipping_address' => [],
-                'payment_info' => [],
-                'payment_method' => 'cash',
-                'payment_status' => Payment::statusPaid(),
-            ]);
+            $order = null;
+            try {
+                $order = $this->orderRepository->create([
+                    'employee_id' => $employeeId,
+                    'customer_name' => $customerName,
+                    'is_direct_sale' => true,
+                    'warehouse_id' => $warehouseId,
+                    'items' => $repricedItems,
+                    'status' => OrderStatus::Completed->value,
+                    'books_subtotal' => $booksSubtotal,
+                    'shipping_fee' => 0,
+                    'shipping_method' => 'pos',
+                    'total' => $booksSubtotal,
+                    'shipping_address' => [],
+                    'payment_info' => [],
+                    'payment_method' => 'cash',
+                    'payment_status' => Payment::statusPaid(),
+                ]);
 
-            $this->paymentRepository->create([
-                'order_id' => $order->getKey(),
-                'user_id' => $employeeId, // Track employee taking payment
-                'amount' => $booksSubtotal,
-                'currency' => 'USD',
-                'method' => 'cash',
-                'status' => Payment::statusPaid(),
-                'transaction_id' => 'POS-'.time(),
-            ]);
+                $this->paymentRepository->create([
+                    'order_id' => $order->getKey(),
+                    'user_id' => $employeeId,
+                    'amount' => $booksSubtotal,
+                    'currency' => 'USD',
+                    'method' => 'cash',
+                    'status' => Payment::statusPaid(),
+                    'transaction_id' => 'POS-'.$order->getKey().'-'.uniqid('', true),
+                ]);
+            } catch (\Throwable $e) {
+                $this->stockService->restore($repricedItems);
+                if ($order) {
+                    $order->delete();
+                }
+                throw $e;
+            }
 
-            $this->stockService->validateAndDeduct($repricedItems);
+            if (! $order instanceof Order) {
+                throw new \RuntimeException('Failed to create invoice.');
+            }
 
             $this->enrichOrderItemsWithBookTitles($order);
             $order->loadMissing(['warehouse.publisher', 'employee']);

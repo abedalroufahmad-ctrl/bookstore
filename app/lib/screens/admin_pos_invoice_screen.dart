@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
-import '../utils/print_page.dart' if (dart.library.html) '../utils/print_page_web.dart';
+import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
 import '../widgets/pos_section_nav.dart';
 
 class AdminPosInvoiceScreen extends StatefulWidget {
@@ -25,12 +25,15 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
   void initState() {
     super.initState();
     _invoice = widget.initialInvoice;
+    _loading = widget.initialInvoice == null;
     _load();
   }
 
   Future<void> _load() async {
     setState(() {
-      _loading = true;
+      if (widget.initialInvoice == null) {
+        _loading = true;
+      }
       _error = null;
     });
     final whRes = await ApiService.instance.adminWarehousesList();
@@ -64,6 +67,11 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
     final hh = l.hour.toString().padLeft(2, '0');
     final min = l.minute.toString().padLeft(2, '0');
     return '${l.year}-$mm-$dd $hh:$min';
+  }
+
+  double _asMoney(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   String _money(num value) => '\$${value.toDouble().toStringAsFixed(2)}';
@@ -121,7 +129,7 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
   }
 
   Widget _buildInvoice(AppLocalizations t, ThemeData theme, Map<String, dynamic> inv) {
-    final total = (inv['total'] as num?)?.toDouble() ?? 0;
+    final total = _asMoney(inv['total']);
     final name = (inv['customer_name']?.toString().isNotEmpty == true) ? inv['customer_name'].toString() : t.adminPosWalkIn;
     final items = (inv['items'] as List?) ?? [];
     final created = inv['created_at']?.toString();
@@ -155,7 +163,7 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
         ...items.map((raw) {
           final item = Map<String, dynamic>.from(raw as Map);
           final qty = item['quantity'] as num? ?? 1;
-          final price = (item['price'] as num?)?.toDouble() ?? 0;
+          final price = _asMoney(item['price']);
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(

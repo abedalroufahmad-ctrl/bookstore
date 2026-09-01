@@ -34,6 +34,8 @@ class Handler extends ExceptionHandler
     protected function unauthenticated($request, AuthenticationException $exception)
     {
         if ($request->is('api/*') || $request->expectsJson()) {
+            SetLocaleFromAcceptLanguage::apply($request);
+
             return response()->json([
                 'success' => false,
                 'message' => MessageLocalizer::localize('Unauthenticated.'),
@@ -91,6 +93,7 @@ class Handler extends ExceptionHandler
 
         if ($e instanceof ValidationException) {
             $firstError = collect($e->errors())->flatten()->first();
+
             return response()->json([
                 'success' => false,
                 'message' => $firstError ? MessageLocalizer::localize($firstError) : MessageLocalizer::localize('Validation failed.'),

@@ -90,12 +90,14 @@ class _AdminPosReportsScreenState extends State<AdminPosReportsScreen> {
     });
   }
 
+  double _asMoney(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   double _bucketTotal(String key) {
     final raw = _summary[key];
-    if (raw is Map) {
-      final t = raw['total'];
-      if (t is num) return t.toDouble();
-    }
+    if (raw is Map) return _asMoney(raw['total']);
     return 0;
   }
 
@@ -104,6 +106,7 @@ class _AdminPosReportsScreenState extends State<AdminPosReportsScreen> {
     if (raw is Map) {
       final c = raw['count'];
       if (c is num) return c.toInt();
+      return int.tryParse(c?.toString() ?? '') ?? 0;
     }
     return 0;
   }
@@ -215,7 +218,7 @@ class _AdminPosReportsScreenState extends State<AdminPosReportsScreen> {
                             runSpacing: 12,
                             children: _periods.map((r) {
                               final map = Map<String, dynamic>.from(r as Map);
-                              final total = (map['total'] as num?)?.toDouble() ?? 0;
+                              final total = _asMoney(map['total']);
                               final count = (map['count'] as num?)?.toInt() ?? 0;
                               return SizedBox(
                                 width: 160,
@@ -243,7 +246,7 @@ class _AdminPosReportsScreenState extends State<AdminPosReportsScreen> {
                         else
                           ..._invoices.map((raw) {
                             final inv = Map<String, dynamic>.from(raw as Map);
-                            final total = (inv['total'] as num?)?.toDouble() ?? 0;
+                            final total = _asMoney(inv['total']);
                             final name = (inv['customer_name']?.toString().isNotEmpty == true)
                                 ? inv['customer_name'].toString()
                                 : t.adminPosWalkIn;

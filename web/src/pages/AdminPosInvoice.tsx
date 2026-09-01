@@ -14,6 +14,12 @@ function unwrapInvoice(payload: unknown): any {
   return nested ?? null
 }
 
+function formatDateTime(raw: unknown): string {
+  if (raw == null || raw === '') return '-'
+  const d = new Date(String(raw))
+  return Number.isNaN(d.getTime()) ? String(raw) : d.toLocaleString()
+}
+
 export function AdminPosInvoice() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
@@ -58,7 +64,7 @@ export function AdminPosInvoice() {
 
   const warehouseName =
     data.warehouse?.name
-    ?? warehouses.find((w: { _id: string }) => w._id === data.warehouse_id)?.name
+    ?? warehouses.find((w: { _id: string }) => String(w._id) === String(data.warehouse_id))?.name
     ?? data.warehouse_id
   const items = Array.isArray(data.items) ? data.items : []
 
@@ -70,7 +76,7 @@ export function AdminPosInvoice() {
       </div>
 
       <div className="mb-6 space-y-2 text-sm border-b border-stone-200 pb-6">
-        <p><strong>{t('admin.date')}:</strong> {data.created_at ? new Date(data.created_at).toLocaleString() : '-'}</p>
+        <p><strong>{t('admin.date')}:</strong> {formatDateTime(data.created_at)}</p>
         <p><strong>{t('admin.warehouse')}:</strong> {warehouseName || '-'}</p>
         <p>
           <strong>{t('admin.customer')}:</strong>{' '}

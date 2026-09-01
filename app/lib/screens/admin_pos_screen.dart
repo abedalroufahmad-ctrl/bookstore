@@ -6,7 +6,7 @@ import '../config.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
-import '../utils/print_page.dart' if (dart.library.html) '../utils/print_page_web.dart';
+import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
 import '../widgets/pos_section_nav.dart';
 
 class AdminPosScreen extends StatefulWidget {
@@ -26,6 +26,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
   String _searchQuery = '';
   int _page = 1;
   int _lastPage = 1;
+  int _booksRequestSeq = 0;
 
   final List<_PosCartItem> _cart = [];
   final TextEditingController _customerNameCtrl = TextEditingController();
@@ -98,6 +99,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
 
   Future<void> _loadBooks() async {
     if (_warehouseId.isEmpty) return;
+    final seq = ++_booksRequestSeq;
     setState(() => _loadingBooks = true);
     final res = await ApiService.instance.adminPosBooks(
       page: _page,
@@ -106,7 +108,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
       warehouseId: _warehouseId,
       publisherId: _publisherId.isEmpty ? null : _publisherId,
     );
-    if (!mounted) return;
+    if (!mounted || seq != _booksRequestSeq) return;
     setState(() {
       _loadingBooks = false;
       _books = res.data?.items ?? [];
@@ -180,6 +182,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
       customerName: _customerNameCtrl.text.trim(),
     );
     if (!mounted) return;
+    final t = AppLocalizations.of(context);
     setState(() => _submitting = false);
     if (res.success && res.data != null) {
       final data = res.data;
@@ -192,6 +195,11 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
         } else {
           invoice = map;
         }
+      }
+      if (invoice == null || (invoice['_id'] == null && invoice['items'] == null)) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message.isNotEmpty ? res.message : t.adminInvoiceNotFound)));
+        _loadBooks();
+        return;
       }
       setState(() {
         _createdInvoice = invoice;
@@ -215,12 +223,17 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     return '${l.year}-$mm-$dd $hh:$min';
   }
 
+  double _asMoney(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   String _money(num value) => '\$${value.toDouble().toStringAsFixed(2)}';
 
   Widget _buildInvoiceView() {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final total = (_createdInvoice!['total'] as num?)?.toDouble() ?? 0;
+    final total = _asMoney(_createdInvoice!['total']);
     final created = _createdInvoice!['created_at']?.toString();
     final warehouseId = _createdInvoice!['warehouse_id']?.toString();
     return Scaffold(
@@ -260,7 +273,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                 ...((_createdInvoice!['items'] as List?) ?? []).map((raw) {
                   final item = Map<String, dynamic>.from(raw as Map);
                   final qty = item['quantity'] as num? ?? 1;
-                  final price = (item['price'] as num?)?.toDouble() ?? 0;
+                  final price = _asMoney(item['price']);
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
@@ -293,7 +306,10 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => setState(() => _createdInvoice = null),
+                        onPressed: () {
+                          setState(() => _createdInvoice = null);
+                          _loadBooks();
+                        },
                         child: Text(t.adminPosNewSale),
                       ),
                     ),
@@ -318,6 +334,16 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     final warehouseValue = warehouseItems.any((w) => w['_id']?.toString() == _warehouseId)
         ? _warehouseId
         : (warehouseItems.isNotEmpty ? warehouseItems.first['_id']?.toString() : null);
+    if (warehouseValue != null && warehouseValue.isNotEmpty && warehouseValue != _warehouseId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _warehouseId = warehouseValue;
+          _page = 1;
+        });
+        _loadBooks();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(t.adminPosTerminal)),

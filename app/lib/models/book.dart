@@ -82,7 +82,7 @@ class Book {
           ?.whereType<Map>()
           .map((e) => Author.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
-      warehouse: json['warehouse'] != null
+      warehouse: json['warehouse'] is Map
           ? Warehouse.fromJson({
               ...Map<String, dynamic>.from(json['warehouse'] as Map),
               if ((json['warehouse'] as Map)['_id'] == null &&

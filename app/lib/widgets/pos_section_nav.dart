@@ -32,7 +32,7 @@ class PosSectionNav extends StatelessWidget {
             selected: reportsActive,
             onTap: reportsActive
                 ? null
-                : () => Navigator.of(context).pushNamed('/admin/pos/reports'),
+                : () => Navigator.of(context).pushReplacementNamed('/admin/pos/reports'),
             theme: theme,
           ),
         ],

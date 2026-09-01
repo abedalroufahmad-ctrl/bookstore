@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, publishersPublic, type Book } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,9 +12,16 @@ function discountedPrice(book: Book): number {
   return book.price - (book.price * discount) / 100
 }
 
+function formatDateTime(raw: unknown): string {
+  if (raw == null || raw === '') return '-'
+  const d = new Date(String(raw))
+  return Number.isNaN(d.getTime()) ? String(raw) : d.toLocaleString()
+}
+
 export function AdminPos() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const queryClient = useQueryClient()
 
   const defaultWarehouseId =
     user?.warehouse_id
@@ -23,7 +30,7 @@ export function AdminPos() {
 
   const [page, setPage] = useState(1)
   const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
-  const [warehouseFilter, setWarehouseFilter] = useState(defaultWarehouseId)
+  const [warehouseFilter, setWarehouseFilter] = useState(defaultWarehouseId ? String(defaultWarehouseId) : '')
   const [publisherFilter, setPublisherFilter] = useState('')
 
   const [cart, setCart] = useState<Array<{ book: Book; quantity: number }>>([])
@@ -67,13 +74,24 @@ export function AdminPos() {
   useEffect(() => {
     if (warehouseFilter) return
     if (defaultWarehouseId) {
-      setWarehouseFilter(defaultWarehouseId)
+      setWarehouseFilter(String(defaultWarehouseId))
       return
     }
     if (warehouses.length > 0) {
       setWarehouseFilter(String(warehouses[0]._id))
     }
   }, [defaultWarehouseId, warehouseFilter, warehouses])
+
+  useEffect(() => {
+    if (!filteredWarehouses.length || !warehouseFilter) return
+    const stillValid = filteredWarehouses.some((w: { _id?: string }) => String(w._id) === String(warehouseFilter))
+    if (!stillValid) {
+      const own = filteredWarehouses.find((w: { _id?: string }) => String(w._id) === String(defaultWarehouseId))
+      setWarehouseFilter(String(own?._id ?? filteredWarehouses[0]?._id ?? ''))
+      setPage(1)
+      setCart([])
+    }
+  }, [filteredWarehouses, warehouseFilter, defaultWarehouseId])
 
   const { data: booksData, isLoading } = useQuery({
     queryKey: ['pos-books', page, committedSearch, warehouseFilter, publisherFilter],
@@ -98,9 +116,16 @@ export function AdminPos() {
       })
     },
     onSuccess: (res) => {
-      setCreatedInvoice(res.data.data)
+      const payload = res.data as { data?: unknown } | undefined
+      const invoice = payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object'
+        ? payload.data
+        : payload
+      setCreatedInvoice(invoice)
       setCart([])
       setCustomerName('')
+      void queryClient.invalidateQueries({ queryKey: ['pos-books'] })
+      void queryClient.invalidateQueries({ queryKey: ['pos-invoices'] })
+      void queryClient.invalidateQueries({ queryKey: ['pos-reports'] })
     },
   })
 
@@ -116,19 +141,28 @@ export function AdminPos() {
     })
   }
 
-  const removeFromCart = (bookId: string) => {
-    setCart(prev => prev.filter(i => i.book._id !== bookId))
-  }
-
   const updateQuantity = (bookId: string, q: number) => {
-    if (q <= 0) return removeFromCart(bookId)
+    if (q <= 0) {
+      setCart(prev => prev.filter(i => i.book._id !== bookId))
+      return
+    }
     setCart(prev => prev.map(i => i.book._id === bookId ? { ...i, quantity: q } : i))
   }
 
   const subtotal = cart.reduce((acc, item) => acc + discountedPrice(item.book) * item.quantity, 0)
 
   if (createdInvoice) {
+    const invoiceItems = Array.isArray(createdInvoice.items) ? createdInvoice.items : []
+    const invoiceTotal = Number(createdInvoice.total ?? 0)
+    const createdAt = formatDateTime(createdInvoice.created_at)
     return (
+      <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 print:hidden">
+        <span className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-900 text-white">{t('admin.posTerminal')}</span>
+        <Link to="/admin/pos/reports" className="px-4 py-2 rounded-lg text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
+          {t('admin.posReports')}
+        </Link>
+      </div>
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold mb-2">{t('admin.invoiceCreated', 'Invoice Created')}</h1>
@@ -136,8 +170,8 @@ export function AdminPos() {
         </div>
         
         <div className="mb-6 space-y-2 text-sm border-b border-stone-200 pb-6">
-          <p><strong>{t('admin.date')}:</strong> {new Date(createdInvoice.created_at).toLocaleString()}</p>
-          <p><strong>{t('admin.warehouse')}:</strong> {warehouses.find((w: any) => w._id === createdInvoice.warehouse_id)?.name ?? createdInvoice.warehouse_id}</p>
+          <p><strong>{t('admin.date')}:</strong> {createdAt}</p>
+          <p><strong>{t('admin.warehouse')}:</strong> {warehouses.find((w: any) => String(w._id) === String(createdInvoice.warehouse_id))?.name ?? createdInvoice.warehouse_id}</p>
           {createdInvoice.customer_name && (
             <p><strong>{t('admin.customer')}:</strong> {createdInvoice.customer_name}</p>
           )}
@@ -154,17 +188,17 @@ export function AdminPos() {
             </tr>
           </thead>
           <tbody>
-            {createdInvoice.items.map((item: any, i: number) => (
+            {invoiceItems.map((item: { book_title?: string; book_id?: string; quantity?: number; price?: number }, i: number) => (
               <tr key={i} className="border-b border-stone-100">
                 <td className="py-2">{item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span></td>
-                <td className="py-2 text-end">${(item.price * item.quantity).toFixed(2)}</td>
+                <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
               <th className="text-start py-4 text-lg">{t('orders.total')}</th>
-              <th className="text-end py-4 text-lg">${createdInvoice.total.toFixed(2)}</th>
+              <th className="text-end py-4 text-lg">${invoiceTotal.toFixed(2)}</th>
             </tr>
           </tfoot>
         </table>
@@ -177,6 +211,7 @@ export function AdminPos() {
             {t('admin.newSale', 'New Sale')}
           </button>
         </div>
+      </div>
       </div>
     )
   }
@@ -219,10 +254,10 @@ export function AdminPos() {
               const list = nextPub
                 ? warehouses.filter((w: any) => String(w.publisher_id ?? w.publisher?._id ?? '') === nextPub)
                 : warehouses
-              const stillValid = list.some((w: any) => w._id === warehouseFilter)
+              const stillValid = list.some((w: any) => String(w._id) === String(warehouseFilter))
               if (!stillValid) {
-                const own = list.find((w: any) => w._id === defaultWarehouseId)
-                setWarehouseFilter(own?._id ?? list[0]?._id ?? '')
+                const own = list.find((w: any) => String(w._id) === String(defaultWarehouseId))
+                setWarehouseFilter(own?._id ? String(own._id) : String(list[0]?._id ?? ''))
               }
             }}
             className="px-3 py-2 border border-stone-300 rounded max-w-xs"
@@ -243,7 +278,7 @@ export function AdminPos() {
             className="px-3 py-2 border border-stone-300 rounded max-w-xs"
           >
             {filteredWarehouses.map((w: any) => (
-              <option key={w._id} value={w._id}>{w.name}{w.publisher?.name ? ` — ${w.publisher.name}` : ''}</option>
+              <option key={String(w._id)} value={String(w._id)}>{w.name}{w.publisher?.name ? ` — ${w.publisher.name}` : ''}</option>
             ))}
           </select>
         </div>
@@ -254,9 +289,9 @@ export function AdminPos() {
             <div className="text-center py-8">{t('common.loading')}</div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-              {booksList.map((book: Book) => (
+              {booksList.map((book: Book, i: number) => (
                 <div 
-                  key={book._id} 
+                  key={book._id || `book-${i}`} 
                   onClick={() => addToCart(book)}
                   className={`bg-white p-3 rounded border border-stone-200 cursor-pointer hover:border-amber-400 hover:shadow-sm transition ${(book.stock_quantity ?? 0) <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
                 >

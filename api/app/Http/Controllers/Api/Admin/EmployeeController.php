@@ -66,14 +66,14 @@ class EmployeeController extends BaseApiController
             return $this->errorResponse('Forbidden. Only managers or warehouse managers can create employees.', 403);
         }
         if ($currentEmployee && UserRole::isWarehouseScoped($currentEmployee->role)) {
-            $wid = $data['warehouse_id'] ?? null;
             $managedIds = $currentEmployee->getManagedWarehouseIds();
-            if (empty($managedIds) || $wid === null || ! in_array((string) $wid, $managedIds, true)) {
-                return $this->errorResponse('Forbidden. You can only add staff to one of your warehouses.', 403);
-            }
             $role = (string) ($data['role'] ?? '');
             if (! in_array($role, UserRole::warehouseManagerStaffRoles(), true)) {
                 return $this->errorResponse('Forbidden. Warehouse managers can only add shipping, accounting, or direct sales staff to their warehouse.', 403);
+            }
+            $assignedIds = $this->warehouseIdsFromPayload($data);
+            if (! $this->allWarehousesAreManaged($assignedIds, $managedIds)) {
+                return $this->errorResponse('Forbidden. You can only add staff to one of your warehouses.', 403);
             }
         }
 
@@ -135,23 +135,24 @@ class EmployeeController extends BaseApiController
             $inMyWarehouse = $existingWid !== '' && in_array($existingWid, $managedIds, true);
 
             if ($inMyWarehouse) {
-                if (isset($data['warehouse_id']) && ! in_array((string) $data['warehouse_id'], $managedIds, true)) {
+                if ((isset($data['warehouse_id']) || isset($data['warehouse_ids'])) && ! $this->allWarehousesAreManaged($this->warehouseIdsFromPayload($data), $managedIds)) {
                     return $this->errorResponse('Forbidden. You cannot assign employees to a warehouse you do not manage.', 403);
                 }
                 if (isset($data['role']) && ! in_array((string) $data['role'], UserRole::warehouseManagerStaffRoles(), true)) {
-                    return $this->errorResponse('Forbidden. Warehouse managers can only assign shipping or accounting roles to staff in their warehouse.', 403);
+                    return $this->errorResponse('Forbidden. Warehouse managers can only assign shipping, accounting, or direct sales roles to staff in their warehouse.', 403);
                 }
             } else {
                 // Employee is not in one of this manager's warehouses: allow assigning them into a managed warehouse only.
                 if ($existing->role === UserRole::WarehouseManager->value) {
                     return $this->errorResponse('Forbidden. You cannot reassign warehouse managers.', 403);
                 }
-                if (empty($data['warehouse_id']) || ! in_array((string) $data['warehouse_id'], $managedIds, true)) {
+                $assignIds = $this->warehouseIdsFromPayload($data);
+                if (! $this->allWarehousesAreManaged($assignIds, $managedIds)) {
                     return $this->errorResponse('Forbidden. Set warehouse to one you manage to assign this employee.', 403);
                 }
                 $finalRole = array_key_exists('role', $data) ? (string) $data['role'] : (string) $existing->role;
                 if (! in_array($finalRole, UserRole::warehouseManagerStaffRoles(), true)) {
-                    return $this->errorResponse('Forbidden. Role must be shipping or accounting when assigning to your warehouse.', 403);
+                    return $this->errorResponse('Forbidden. Role must be shipping, accounting, or direct sales when assigning to your warehouse.', 403);
                 }
             }
         }
@@ -316,5 +317,39 @@ class EmployeeController extends BaseApiController
         unset($data['warehouse_ids']);
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    private function warehouseIdsFromPayload(array $data): array
+    {
+        if (! empty($data['warehouse_ids']) && is_array($data['warehouse_ids'])) {
+            return array_values(array_filter(array_map(static fn ($id) => (string) $id, $data['warehouse_ids'])));
+        }
+        if (! empty($data['warehouse_id'])) {
+            return [(string) $data['warehouse_id']];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @param  list<string>  $managedIds
+     */
+    private function allWarehousesAreManaged(array $ids, array $managedIds): bool
+    {
+        if ($ids === [] || $managedIds === []) {
+            return false;
+        }
+        foreach ($ids as $id) {
+            if (! in_array((string) $id, $managedIds, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
