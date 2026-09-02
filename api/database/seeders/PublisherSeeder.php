@@ -23,7 +23,11 @@ class PublisherSeeder extends Seeder
         ];
 
         foreach ($publishers as $data) {
-            Publisher::firstOrCreate(['name' => $data['name']], $data);
+            Publisher::firstOrCreate(['name' => $data['name']], array_merge($data, [
+                'settings' => [
+                    'platform_commission_percent' => 10,
+                ],
+            ]));
         }
     }
 }

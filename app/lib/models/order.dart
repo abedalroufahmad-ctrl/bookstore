@@ -23,6 +23,10 @@ class Order {
     this.paymentMethod,
     this.warehouseId,
     this.warehouse,
+    this.platformCommissionPercent,
+    this.platformCommissionAmount,
+    this.publisherPayoutAmount,
+    this.payoutPaypalEmail,
   });
 
   final String id;
@@ -40,6 +44,10 @@ class Order {
   final String? paymentMethod;
   final String? warehouseId;
   final Map<String, dynamic>? warehouse;
+  final double? platformCommissionPercent;
+  final double? platformCommissionAmount;
+  final double? publisherPayoutAmount;
+  final String? payoutPaypalEmail;
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final id = json['_id'] ?? json['id'] ?? '';
@@ -67,6 +75,10 @@ class Order {
       paymentMethod: json['payment_method']?.toString(),
       warehouseId: json['warehouse_id']?.toString(),
       warehouse: json['warehouse'] as Map<String, dynamic>?,
+      platformCommissionPercent: _numToDouble(json['platform_commission_percent']),
+      platformCommissionAmount: _numToDouble(json['platform_commission_amount']),
+      publisherPayoutAmount: _numToDouble(json['publisher_payout_amount']),
+      payoutPaypalEmail: json['payout_paypal_email']?.toString(),
     );
   }
 }

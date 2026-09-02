@@ -272,8 +272,52 @@ class AppLocalizations {
   String get adminGlobalSettings =>
       _s('إعدادات الموقع العامة', 'Global site configurations');
   String get adminPublisherSettings => _s('إعدادات الناشر', 'Publisher settings');
-  String get adminConfigurePublisher =>
-      _s('تهيئة سياسة الإرجاع والخصومات', 'Configure return policy and discounts');
+  String get adminConfigurePublisher => _s(
+        'تهيئة حسابات التحصيل وسياسة الإرجاع والخصومات',
+        'Configure payout accounts, return policy, and discounts',
+      );
+  String get adminNoPublisherSelected => _s(
+        'لم يُحدد ناشر أو ليس لديك صلاحية.',
+        'No publisher selected or you do not have permission.',
+      );
+  String get adminSupportEmail => _s('بريد الدعم', 'Support email');
+  String get adminSupportPhone => _s('هاتف الدعم', 'Support phone');
+  String get adminDefaultDiscount => _s('الخصم الافتراضي (%)', 'Default discount (%)');
+  String get adminDefaultDiscountHint => _s(
+        'سيُطبَّق هذا الخصم على كل كتبك ما لم يُتجاوز بخصم خاص.',
+        'Applied to all your books unless overridden.',
+      );
+  String get adminReturnPolicy => _s('سياسة الإرجاع', 'Return policy');
+  String get adminPayoutAccounts => _s('حسابات التحصيل', 'Payout accounts');
+  String get adminPayoutAccountsHint => _s(
+        'يدفع العملاء لهذا الناشر مباشرة عند إدخال حساب. تحتفظ إدارة المشروع بالنسبة المتفق عليها من إيراد الكتب.',
+        'Customers pay this publishing house directly when an account is set. Project management keeps the agreed percentage of book revenue.',
+      );
+  String get adminPaypalEmail => _s('بريد PayPal', 'PayPal email');
+  String get adminPaypalMerchantId => _s('معرّف تاجر PayPal', 'PayPal merchant ID');
+  String get adminPaypalMerchantIdHint => _s(
+        'اختياري. استخدمه إذا زوّدك PayPal بمعرّف تاجر لهذا الناشر.',
+        'Optional. Use if PayPal provided a merchant ID for this house.',
+      );
+  String get adminBankName => _s('اسم البنك', 'Bank name');
+  String get adminBankAccountNumber => _s('رقم الحساب البنكي', 'Bank account number');
+  String get adminPlatformCommissionPercent =>
+      _s('عمولة إدارة المشروع (%)', 'Project management commission (%)');
+  String get adminPlatformCommissionPercentHint => _s(
+        'حصة إدارة المشروع من إيراد الكتب (بدون الشحن) حسب الاتفاق مع هذا الناشر.',
+        'Share of book revenue (not shipping) kept by project management, as agreed with this publishing house.',
+      );
+  String get adminPlatformCommissionReadOnly => _s(
+        'تُحدَّد هذه النسبة مع إدارة المشروع ولا يمكن تغييرها من هنا.',
+        'This rate is set with project management and cannot be changed here.',
+      );
+  String get adminPaymentMethods => _s('طرق الدفع', 'Payment methods');
+  String get adminNoGlobalPaymentMethods =>
+      _s('لا توجد طرق دفع مفعلة عالمياً.', 'No payment methods are globally enabled.');
+  String get adminPlatformCommissionAmount =>
+      _s('حصة إدارة المشروع', 'Project management share');
+  String get adminPublisherPayoutAmount => _s('حصة دار النشر', 'Publishing house share');
+  String get adminPayoutPaypalEmail => _s('تحصيل PayPal', 'PayPal payout');
   String get adminAddBook => _s('إضافة كتاب', 'Add book');
   String get adminEditBook => _s('تعديل كتاب', 'Edit book');
   String get adminSave => _s('حفظ', 'Save');

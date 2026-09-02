@@ -11,6 +11,11 @@ interface PublisherSettingsData {
   return_policy?: string
   default_discount?: number
   payment_methods?: string[]
+  paypal_email?: string
+  paypal_merchant_id?: string
+  bank_name?: string
+  bank_account_number?: string
+  platform_commission_percent?: number
 }
 
 interface PaymentMethodItem {
@@ -26,6 +31,7 @@ export function PublisherSettings() {
   const { user, userType } = useAuth()
   
   const isPublisherManager = userType === 'employee' && user?.role === 'publisher_manager'
+  const isManager = userType === 'employee' && user?.role === 'manager'
   const managedPublisherId = isPublisherManager ? user?.publisher_id : undefined
 
   // If publisher manager, force their own ID. Otherwise (admin), use URL param.
@@ -37,6 +43,11 @@ export function PublisherSettings() {
     return_policy: '',
     default_discount: 0,
     payment_methods: [],
+    paypal_email: '',
+    paypal_merchant_id: '',
+    bank_name: '',
+    bank_account_number: '',
+    platform_commission_percent: 0,
   })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -86,6 +97,11 @@ export function PublisherSettings() {
         return_policy: data.data.return_policy ?? '',
         default_discount: Number(data.data.default_discount) || 0,
         payment_methods: Array.isArray(data.data.payment_methods) ? data.data.payment_methods : [],
+        paypal_email: data.data.paypal_email ?? '',
+        paypal_merchant_id: data.data.paypal_merchant_id ?? '',
+        bank_name: data.data.bank_name ?? '',
+        bank_account_number: data.data.bank_account_number ?? '',
+        platform_commission_percent: Number(data.data.platform_commission_percent) || 0,
       })
     }
   }, [data])
@@ -111,6 +127,7 @@ export function PublisherSettings() {
     updateMutation.mutate({
       ...form,
       default_discount: Number(form.default_discount),
+      platform_commission_percent: Number(form.platform_commission_percent),
     })
   }
 
@@ -193,6 +210,102 @@ export function PublisherSettings() {
             <p className="text-sm text-stone-500 mt-1">
               {t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')}
             </p>
+          </div>
+
+          <div className="border-t border-stone-200 pt-6 space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-amber-900">
+                {t('admin.payoutAccounts', 'Payout accounts')}
+              </h2>
+              <p className="text-sm text-stone-500 mt-1">
+                {t(
+                  'admin.payoutAccountsHint',
+                  'Customers pay this publishing house directly when an account is set. Project management keeps the agreed percentage of book revenue.',
+                )}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  {t('admin.paypalEmail', 'PayPal email')}
+                </label>
+                <input
+                  type="email"
+                  value={form.paypal_email}
+                  onChange={(e) => setForm({ ...form, paypal_email: e.target.value })}
+                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="publisher@paypal.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  {t('admin.paypalMerchantId', 'PayPal merchant ID')}
+                </label>
+                <input
+                  type="text"
+                  value={form.paypal_merchant_id}
+                  onChange={(e) => setForm({ ...form, paypal_merchant_id: e.target.value })}
+                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <p className="text-sm text-stone-500 mt-1">
+                  {t('admin.paypalMerchantIdHint', 'Optional. Use if PayPal provided a merchant ID for this house.')}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  {t('admin.bankName', 'Bank name')}
+                </label>
+                <input
+                  type="text"
+                  value={form.bank_name}
+                  onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
+                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  {t('admin.bankAccountNumber', 'Bank account number')}
+                </label>
+                <input
+                  type="text"
+                  value={form.bank_account_number}
+                  onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })}
+                  autoComplete="off"
+                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                {t('admin.platformCommissionPercent', 'Project management commission (%)')}
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={form.platform_commission_percent}
+                onChange={(e) => setForm({ ...form, platform_commission_percent: Number(e.target.value) })}
+                disabled={!isManager}
+                className="w-full max-w-[200px] px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-70"
+              />
+              <p className="text-sm text-stone-500 mt-1">
+                {isManager
+                  ? t(
+                      'admin.platformCommissionPercentHint',
+                      'Share of book revenue (not shipping) kept by project management, as agreed with this publishing house.',
+                    )
+                  : t(
+                      'admin.platformCommissionReadOnly',
+                      'This rate is set with project management and cannot be changed here.',
+                    )}
+              </p>
+            </div>
           </div>
 
           <div>

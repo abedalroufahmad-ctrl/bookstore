@@ -6,6 +6,7 @@ use App\Domain\Order\Enums\OrderStatus;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Http\Requests\Order\CheckoutRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
+use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,7 +28,7 @@ class OrderController extends BaseApiController
             );
 
             return $this->successResponse([
-                'orders' => $orders,
+                'orders' => array_map(fn (Order $order) => $order->hideInternalPayouts(), $orders),
                 'count' => count($orders),
             ], 'Order(s) created successfully', 201);
         } catch (\InvalidArgumentException $e) {
@@ -45,6 +46,7 @@ class OrderController extends BaseApiController
         $customer = auth('customer')->user();
         $perPage = min((int) $request->get('per_page', 15), 100);
         $orders = $this->orderService->getOrdersForCustomer($customer, $perPage);
+        $orders->getCollection()->transform(fn (Order $order) => $order->hideInternalPayouts());
 
         return $this->successResponse($orders);
     }
@@ -58,7 +60,7 @@ class OrderController extends BaseApiController
             return $this->errorResponse('Order not found', 404);
         }
 
-        return $this->successResponse($order);
+        return $this->successResponse($order->hideInternalPayouts());
     }
 
     public function updateStatus(UpdateOrderStatusRequest $request, string $id): JsonResponse
@@ -79,7 +81,7 @@ class OrderController extends BaseApiController
 
             $order = $this->orderService->updateStatus($order, $newStatus);
 
-            return $this->successResponse($order, 'Order cancelled');
+            return $this->successResponse($order->hideInternalPayouts(), 'Order cancelled');
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }
@@ -97,7 +99,7 @@ class OrderController extends BaseApiController
 
             $order = $this->orderService->confirmOrderQuoteByCustomer($order, $customer);
 
-            return $this->successResponse($order, 'Order confirmed with warehouse.');
+            return $this->successResponse($order->hideInternalPayouts(), 'Order confirmed with warehouse.');
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }

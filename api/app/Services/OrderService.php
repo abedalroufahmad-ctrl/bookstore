@@ -31,7 +31,8 @@ class OrderService extends BaseService implements OrderServiceInterface
         protected CartServiceInterface $cartService,
         protected OrderRepositoryInterface $orderRepository,
         protected StockServiceInterface $stockService,
-        protected PaymentRepository $paymentRepository
+        protected PaymentRepository $paymentRepository,
+        protected PublisherPayoutService $publisherPayoutService
     ) {}
 
     public function createPosInvoice(array $items, string $warehouseId, ?string $employeeId = null, ?string $customerName = null): Order
@@ -54,10 +55,11 @@ class OrderService extends BaseService implements OrderServiceInterface
 
             $this->stockService->validateAndDeduct($repricedItems);
             $booksSubtotal = $this->calculateItemsTotal($repricedItems);
+            $payout = $this->publisherPayoutService->snapshotForWarehouse($warehouseId, $booksSubtotal);
 
             $order = null;
             try {
-                $order = $this->orderRepository->create([
+                $order = $this->orderRepository->create(array_merge([
                     'employee_id' => $employeeId,
                     'customer_name' => $customerName,
                     'is_direct_sale' => true,
@@ -72,7 +74,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                     'payment_info' => [],
                     'payment_method' => 'cash',
                     'payment_status' => Payment::statusPaid(),
-                ]);
+                ], $payout));
 
                 $this->paymentRepository->create([
                     'order_id' => $order->getKey(),
@@ -131,8 +133,9 @@ class OrderService extends BaseService implements OrderServiceInterface
             foreach ($groupedByWarehouse as $warehouseId => $items) {
                 $this->stockService->validateAvailability($items);
                 $booksSubtotal = $this->calculateItemsTotal($items);
+                $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal);
 
-                $order = $this->orderRepository->create([
+                $order = $this->orderRepository->create(array_merge([
                     'customer_id' => $customer->getKey(),
                     'warehouse_id' => $warehouseId,
                     'items' => $items,
@@ -145,7 +148,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                     'payment_info' => $paymentInfo ?? [],
                     'payment_method' => $paymentMethod,
                     'payment_status' => $paymentStatusPending,
-                ]);
+                ], $payout));
 
                 $this->paymentRepository->create([
                     'order_id' => $order->getKey(),
@@ -184,14 +187,15 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $booksSubtotal = (float) ($order->books_subtotal ?? $this->calculateItemsTotal($order->items ?? []));
         $total = round($booksSubtotal + $shippingFee, 2);
+        $payout = $this->publisherPayoutService->snapshotForOrder($order, $booksSubtotal);
 
-        $update = [
+        $update = array_merge([
             'books_subtotal' => $booksSubtotal,
             'shipping_fee' => $shippingFee,
             'shipping_method' => isset($data['shipping_method']) ? (string) $data['shipping_method'] : ($order->shipping_method ?? null),
             'total' => $total,
             'status' => OrderStatus::AwaitingCustomerConfirmation->value,
-        ];
+        ], $payout);
 
         if (! empty($data['payment_method']) && is_string($data['payment_method'])) {
             $update['payment_method'] = $data['payment_method'];

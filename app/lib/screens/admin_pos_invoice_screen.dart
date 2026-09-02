@@ -182,6 +182,26 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
             Text(_money(total), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
           ],
         ),
+        if (inv['publisher_payout_amount'] != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(t.adminPublisherPayoutAmount, style: theme.textTheme.bodySmall),
+              Text(_money(_asMoney(inv['publisher_payout_amount'])), style: theme.textTheme.bodySmall),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${t.adminPlatformCommissionAmount}${inv['platform_commission_percent'] != null ? ' (${inv['platform_commission_percent']}%)' : ''}',
+                style: theme.textTheme.bodySmall,
+              ),
+              Text(_money(_asMoney(inv['platform_commission_amount'])), style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         Row(
           children: [

@@ -505,6 +505,21 @@ function OrderDetailModal({
                   {t('orders.shippingFee', 'Shipping')}: ${(displayOrder.shipping_fee ?? 0).toFixed(2)}
                 </span>
               )}
+              {displayOrder.publisher_payout_amount != null && (
+                <span className="block text-xs text-stone-500 mt-1">
+                  {t('admin.publisherPayoutAmount')}: ${Number(displayOrder.publisher_payout_amount).toFixed(2)}
+                  {' · '}
+                  {t('admin.platformCommissionAmount')}: ${Number(displayOrder.platform_commission_amount ?? 0).toFixed(2)}
+                  {displayOrder.platform_commission_percent != null
+                    ? ` (${Number(displayOrder.platform_commission_percent)}%)`
+                    : ''}
+                </span>
+              )}
+              {displayOrder.payout_paypal_email && (
+                <span className="block text-xs text-stone-500 mt-1">
+                  {t('admin.payoutPaypalEmail')}: {displayOrder.payout_paypal_email}
+                </span>
+              )}
             </div>
 
             {needsWarehouseQuote && (

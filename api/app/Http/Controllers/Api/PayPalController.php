@@ -6,6 +6,7 @@ use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Http\Requests\Order\PayPalQuotedOrdersRequest;
 use App\Models\Order;
 use App\Services\PayPalService;
+use App\Services\PublisherPayoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,8 @@ class PayPalController extends BaseApiController
 {
     public function __construct(
         private OrderServiceInterface $orderService,
-        private PayPalService $payPalService
+        private PayPalService $payPalService,
+        private PublisherPayoutService $publisherPayoutService
     ) {}
 
     public function start(PayPalQuotedOrdersRequest $request): JsonResponse
@@ -45,19 +47,38 @@ class PayPalController extends BaseApiController
                 return $this->errorResponse('Too many orders for a single PayPal payment.', 422);
             }
 
-            $total = 0.0;
+            $units = [];
             foreach ($orders as $order) {
-                $total += (float) $order->total;
+                $payee = $this->publisherPayoutService->paypalPayeeForOrder($order);
+                $units[] = [
+                    'amount' => number_format((float) $order->total, 2, '.', ''),
+                    'custom_id' => (string) $order->getKey(),
+                    'reference_id' => (string) $order->getKey(),
+                    'payee_email' => $payee['email'],
+                    'payee_merchant_id' => $payee['merchant_id'],
+                ];
             }
-            $amount = number_format($total, 2, '.', '');
 
-            $created = $this->payPalService->createOrder(
-                $amount,
-                (string) config('paypal.currency'),
-                $customId,
-                $returnUrl,
-                $cancelUrl
-            );
+            try {
+                $created = $this->payPalService->createCheckoutOrder(
+                    $units,
+                    (string) config('paypal.currency'),
+                    $returnUrl,
+                    $cancelUrl,
+                    true
+                );
+            } catch (\Throwable $payeeError) {
+                Log::warning('PayPal publisher payee rejected; collecting on platform account', [
+                    'message' => $payeeError->getMessage(),
+                ]);
+                $created = $this->payPalService->createCheckoutOrder(
+                    $units,
+                    (string) config('paypal.currency'),
+                    $returnUrl,
+                    $cancelUrl,
+                    false
+                );
+            }
         } catch (\Throwable $e) {
             Log::error($e->getMessage(), ['exception' => $e]);
 
@@ -72,7 +93,7 @@ class PayPalController extends BaseApiController
         }
 
         return $this->successResponse([
-            'orders' => $orders,
+            'orders' => array_map(fn (Order $order) => $order->hideInternalPayouts(), $orders),
             'count' => count($orders),
             'paypal_order_id' => $created['id'],
             'approval_url' => $created['approval_url'],
@@ -161,30 +182,49 @@ class PayPalController extends BaseApiController
             return ['', null, null];
         }
 
-        $pu = $units[0];
-        if (! is_array($pu)) {
-            return ['', null, null];
-        }
-
-        $customId = is_string($pu['custom_id'] ?? null) ? $pu['custom_id'] : '';
+        $ids = [];
         $captureId = null;
-        $capturedAmount = null;
-        $payments = $pu['payments'] ?? null;
-        if (is_array($payments)) {
-            $captures = $payments['captures'] ?? [];
-            if (is_array($captures) && $captures !== [] && is_array($captures[0])) {
-                $c0 = $captures[0];
-                if (is_string($c0['id'] ?? null)) {
-                    $captureId = $c0['id'];
+        $capturedAmount = 0.0;
+        $hasAmount = false;
+        foreach ($units as $pu) {
+            if (! is_array($pu)) {
+                continue;
+            }
+            $customId = is_string($pu['custom_id'] ?? null) ? $pu['custom_id'] : '';
+            if ($customId !== '') {
+                foreach (explode(',', $customId) as $id) {
+                    $id = trim($id);
+                    if ($id !== '') {
+                        $ids[] = $id;
+                    }
                 }
-                $amountValue = $c0['amount']['value'] ?? null;
+            }
+            $payments = $pu['payments'] ?? null;
+            if (! is_array($payments)) {
+                continue;
+            }
+            $captures = $payments['captures'] ?? [];
+            if (! is_array($captures)) {
+                continue;
+            }
+            foreach ($captures as $capture) {
+                if (! is_array($capture)) {
+                    continue;
+                }
+                if ($captureId === null && is_string($capture['id'] ?? null)) {
+                    $captureId = $capture['id'];
+                }
+                $amountValue = $capture['amount']['value'] ?? null;
                 if (is_numeric($amountValue)) {
-                    $capturedAmount = round((float) $amountValue, 2);
+                    $capturedAmount += (float) $amountValue;
+                    $hasAmount = true;
                 }
             }
         }
 
-        return [$customId, $captureId, $capturedAmount];
+        $ids = array_values(array_unique($ids));
+
+        return [implode(',', $ids), $captureId, $hasAmount ? round($capturedAmount, 2) : null];
     }
 
     private function redirectToConfiguredUrl(string $base, string $querySuffix): RedirectResponse

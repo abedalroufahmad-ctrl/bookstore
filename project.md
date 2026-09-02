@@ -69,7 +69,7 @@ Roles: `manager`, `shipping`, `review`, `accounting`, `warehouse_manager`, `publ
 |------------|--------|
 | Books / authors / categories | CRUD; cover & author photo upload; employee quick-edit from public book/author pages |
 | **Publishers** | CRUD; each publisher can own **multiple warehouses** |
-| **Publisher settings** | Support contact, return policy, default discount, enabled payment methods (from global list) |
+| **Publisher settings** | Support contact, return policy, default discount, enabled payment methods, **payout accounts** (PayPal email / merchant ID, bank), and the **agreed project-management commission %** (manager-set; publisher can view) |
 | Warehouses | Belong to a publisher; warehouse_manager scoped to assigned warehouse(s) |
 | **Publisher manager** | Scoped to their publisher’s warehouses/books/employees/orders; can update own publisher settings |
 | Customers / employees | Admin management; convert customer → employee; shipping and **direct sales** can have multiple warehouses |
@@ -82,6 +82,8 @@ Roles: `manager`, `shipping`, `review`, `accounting`, `warehouse_manager`, `publ
 
 - Admin toggles COD / Stripe / PayPal globally.
 - At checkout, methods = **global enabled ∩ all publishers in the cart**.
+- Each publishing house stores its own payout accounts (PayPal email / merchant ID, bank). Customer PayPal payments are routed to that house when PayPal accepts the payee; otherwise the platform account collects and the split is still recorded.
+- Project management’s commission is an agreed **percentage of book revenue** (not shipping), stored per publisher and snapshotted on each order and POS invoice (`platform_commission_*`, `publisher_payout_amount`).
 - PayPal: after quote, `POST .../orders/paypal/start` with `order_ids` → approve → `GET /api/v1/paypal/complete`; webhook `PAYMENT.CAPTURE.COMPLETED` when configured.
 - Env: `PAYPAL_*` — see `api/.env.example` and `api/config/paypal.php`.
 
@@ -348,6 +350,7 @@ CI: GitHub Actions workflow under `.github/workflows/` (when present).
 - كل كتاب مرتبط بمستودع وناشر. السلة من عدة مستودعات قد تُقسَّم إلى عدة طلبات.
 - مسار: مراجعة المستودع → عرض سعر → تأكيد العميل → تجهيز → شحن → إكمال.
 - طرق الدفع عند الدفع = تقاطع الإعدادات العامة مع إعدادات **كل ناشر** في السلة.
+- لكل دار نشر حسابات تحصيل خاصة (مثل PayPal). عمولة إدارة المشروع نسبة متفق عليها من إيراد الكتب وتُحفظ على الطلب.
 
 ## الأداء على بيانات كبيرة
 
@@ -359,4 +362,4 @@ CI: GitHub Actions workflow under `.github/workflows/` (when present).
 
 ---
 
-*Last updated to match publishers, publisher managers, catalog performance work, publisher/warehouse links, and current API surface.*
+*Last updated to match publisher payout accounts, platform commission, publishers, publisher managers, catalog performance work, publisher/warehouse links, and current API surface.*

@@ -542,6 +542,10 @@ export interface Order {
   created_at?: string
   payment_method?: string
   payment_status?: string
+  platform_commission_percent?: number
+  platform_commission_amount?: number
+  publisher_payout_amount?: number
+  payout_paypal_email?: string
 }
 
 export interface RegisterData {

@@ -1055,6 +1055,40 @@ class ApiService {
     return _client.delete('/admin/publishers/$id');
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> adminPublisherSettingsGet(
+    String id,
+  ) async {
+    final res = await _client.get<Map<String, dynamic>>(
+      '/admin/publishers/$id/settings',
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Map<String, dynamic>.from(res.data as Map),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> adminPublisherSettingsUpdate(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.put<Map<String, dynamic>>(
+      '/admin/publishers/$id/settings',
+      body: data,
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Map<String, dynamic>.from(res.data as Map),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> adminWarehousesCreate(
     Map<String, dynamic> data,
   ) async {

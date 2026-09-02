@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\PublisherStoreRequest;
 use App\Http\Requests\Admin\PublisherUpdateRequest;
@@ -66,7 +67,7 @@ class PublisherController extends BaseApiController
     public function getSettings(string $id): JsonResponse
     {
         $user = auth('employee')->user();
-        if (\App\Domain\Auth\Enums\UserRole::isPublisherScoped($user->role) && $user->getManagedPublisherId() !== $id) {
+        if (UserRole::isPublisherScoped($user->role) && $user->getManagedPublisherId() !== $id) {
             return $this->errorResponse('Forbidden', 403);
         }
 
@@ -81,7 +82,7 @@ class PublisherController extends BaseApiController
     public function updateSettings(Request $request, string $id): JsonResponse
     {
         $user = auth('employee')->user();
-        if (\App\Domain\Auth\Enums\UserRole::isPublisherScoped($user->role) && $user->getManagedPublisherId() !== $id) {
+        if (UserRole::isPublisherScoped($user->role) && $user->getManagedPublisherId() !== $id) {
             return $this->errorResponse('Forbidden', 403);
         }
 
@@ -90,16 +91,33 @@ class PublisherController extends BaseApiController
             return $this->errorResponse('Publisher not found', 404);
         }
 
-        $settings = $request->validate([
+        $isManager = $user->role === UserRole::Manager->value;
+
+        $rules = [
             'support_email' => 'nullable|email',
-            'support_phone' => 'nullable|string',
+            'support_phone' => 'nullable|string|max:50',
             'return_policy' => 'nullable|string',
             'default_discount' => 'nullable|numeric|min:0|max:100',
             'payment_methods' => 'nullable|array',
             'payment_methods.*' => 'string',
-        ]);
+            'paypal_email' => 'nullable|email|max:255',
+            'paypal_merchant_id' => 'nullable|string|max:64',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:128',
+        ];
+        if ($isManager) {
+            $rules['platform_commission_percent'] = 'nullable|numeric|min:0|max:100';
+        }
 
-        $publisher->settings = array_merge($publisher->settings ?? [], $settings);
+        $settings = $request->validate($rules);
+        $merged = array_merge($publisher->settings ?? [], $settings);
+        if (! $isManager) {
+            $merged['platform_commission_percent'] = $publisher->settings['platform_commission_percent'] ?? 0;
+        } elseif (array_key_exists('platform_commission_percent', $settings)) {
+            $merged['platform_commission_percent'] = (float) $settings['platform_commission_percent'];
+        }
+
+        $publisher->settings = $merged;
         $publisher->save();
 
         return $this->successResponse($publisher->settings, 'Settings updated');

@@ -215,9 +215,26 @@ class _AdminPublishersScreenState extends State<AdminPublishersScreen> {
                                 subtitle:
                                     subtitle.isEmpty ? null : Text(subtitle),
                                 onTap: () => _showForm(row: p),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () => _confirmDelete(p),
+                                trailing: SizedBox(
+                                  width: 96,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.tune),
+                                        tooltip: t.adminPublisherSettings,
+                                        onPressed: () => Navigator.pushNamed(
+                                          context,
+                                          '/admin/publisher-settings',
+                                          arguments: _idOf(p),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline),
+                                        onPressed: () => _confirmDelete(p),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             );

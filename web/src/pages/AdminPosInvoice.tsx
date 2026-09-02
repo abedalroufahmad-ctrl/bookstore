@@ -106,6 +106,21 @@ export function AdminPosInvoice() {
             <th className="text-start py-4 text-lg">{t('orders.total')}</th>
             <th className="text-end py-4 text-lg">${Number(data.total ?? 0).toFixed(2)}</th>
           </tr>
+          {data.publisher_payout_amount != null && (
+            <>
+              <tr>
+                <td className="text-start py-1 text-sm text-stone-600">{t('admin.publisherPayoutAmount')}</td>
+                <td className="text-end py-1 text-sm text-stone-600">${Number(data.publisher_payout_amount).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td className="text-start py-1 text-sm text-stone-600">
+                  {t('admin.platformCommissionAmount')}
+                  {data.platform_commission_percent != null ? ` (${Number(data.platform_commission_percent)}%)` : ''}
+                </td>
+                <td className="text-end py-1 text-sm text-stone-600">${Number(data.platform_commission_amount ?? 0).toFixed(2)}</td>
+              </tr>
+            </>
+          )}
         </tfoot>
       </table>
 

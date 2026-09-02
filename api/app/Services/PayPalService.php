@@ -72,28 +72,26 @@ class PayPalService
     }
 
     /**
+     * @param  list<array{
+     *     amount: string,
+     *     custom_id: string,
+     *     reference_id?: string,
+     *     payee_email?: string|null,
+     *     payee_merchant_id?: string|null
+     * }>  $units
      * @return array{approval_url: string|null, id: string|null, raw: array<string, mixed>}
      */
-    public function createOrder(
-        string $amountValue,
+    public function createCheckoutOrder(
+        array $units,
         string $currencyCode,
-        string $customId,
         string $returnUrl,
-        string $cancelUrl
+        string $cancelUrl,
+        bool $routeToPublisherPayee
     ): array {
         $brand = (string) config('app.name', 'Book Store');
-
         $payload = [
             'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'amount' => [
-                        'currency_code' => strtoupper($currencyCode),
-                        'value' => $amountValue,
-                    ],
-                    'custom_id' => $customId,
-                ],
-            ],
+            'purchase_units' => $this->buildPurchaseUnits($units, strtoupper($currencyCode), $routeToPublisherPayee),
             'application_context' => [
                 'return_url' => $returnUrl,
                 'cancel_url' => $cancelUrl,
@@ -104,7 +102,11 @@ class PayPalService
 
         $response = $this->authorizedPost('/v2/checkout/orders', $payload);
         if (! $response->successful()) {
-            Log::warning('PayPal create order failed', ['status' => $response->status()]);
+            Log::warning('PayPal create order failed', [
+                'status' => $response->status(),
+                'body' => $response->json() ?: $response->body(),
+                'route_to_publisher' => $routeToPublisherPayee,
+            ]);
 
             throw new \RuntimeException('Could not create PayPal order.');
         }
@@ -147,6 +149,103 @@ class PayPalService
 
         /** @var array<string, mixed> */
         return $response->json();
+    }
+
+    /**
+     * @param  list<array{
+     *     amount: string,
+     *     custom_id: string,
+     *     reference_id?: string,
+     *     payee_email?: string|null,
+     *     payee_merchant_id?: string|null
+     * }>  $units
+     * @return list<array<string, mixed>>
+     */
+    private function buildPurchaseUnits(array $units, string $currency, bool $routeToPublisherPayee): array
+    {
+        if ($units === []) {
+            throw new \InvalidArgumentException('PayPal order has no purchase units.');
+        }
+
+        if (! $routeToPublisherPayee) {
+            return [$this->combinedUnit($units, $currency, null)];
+        }
+
+        $payeeKeys = [];
+        foreach ($units as $unit) {
+            $payeeKeys[] = trim((string) ($unit['payee_email'] ?? '')).'|'.trim((string) ($unit['payee_merchant_id'] ?? ''));
+        }
+        $unique = array_values(array_unique($payeeKeys));
+        if (count($unique) <= 1) {
+            return [$this->combinedUnit($units, $currency, $this->payeePayload($units[0]))];
+        }
+
+        $out = [];
+        foreach ($units as $index => $unit) {
+            $reference = (string) ($unit['reference_id'] ?? $unit['custom_id'] ?? (string) $index);
+            $row = [
+                'reference_id' => substr($reference, 0, 256),
+                'custom_id' => substr((string) $unit['custom_id'], 0, 127),
+                'amount' => [
+                    'currency_code' => $currency,
+                    'value' => $unit['amount'],
+                ],
+            ];
+            $payee = $this->payeePayload($unit);
+            if ($payee !== null) {
+                $row['payee'] = $payee;
+            }
+            $out[] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array{amount: string, custom_id: string, payee_email?: string|null, payee_merchant_id?: string|null}>  $units
+     * @param  array<string, string>|null  $payee
+     * @return array<string, mixed>
+     */
+    private function combinedUnit(array $units, string $currency, ?array $payee): array
+    {
+        $total = 0.0;
+        $ids = [];
+        foreach ($units as $unit) {
+            $total += (float) $unit['amount'];
+            $ids[] = (string) $unit['custom_id'];
+        }
+
+        $row = [
+            'amount' => [
+                'currency_code' => $currency,
+                'value' => number_format($total, 2, '.', ''),
+            ],
+            'custom_id' => substr(implode(',', $ids), 0, 127),
+        ];
+        if ($payee !== null) {
+            $row['payee'] = $payee;
+        }
+
+        return $row;
+    }
+
+    /**
+     * @param  array{payee_email?: string|null, payee_merchant_id?: string|null}  $unit
+     * @return array<string, string>|null
+     */
+    private function payeePayload(array $unit): ?array
+    {
+        $payload = [];
+        $email = trim((string) ($unit['payee_email'] ?? ''));
+        $merchantId = trim((string) ($unit['payee_merchant_id'] ?? ''));
+        if ($email !== '') {
+            $payload['email_address'] = $email;
+        }
+        if ($merchantId !== '') {
+            $payload['merchant_id'] = $merchantId;
+        }
+
+        return $payload === [] ? null : $payload;
     }
 
     private function authorizedGet(string $path): Response

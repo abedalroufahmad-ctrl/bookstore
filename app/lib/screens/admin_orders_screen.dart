@@ -509,6 +509,16 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
                   '${t.booksSubtotalLabel}: \$${o.booksSubtotal!.toStringAsFixed(2)} + ${t.shippingFeeLabel}: \$${(o.shippingFee ?? 0).toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+              if (o.publisherPayoutAmount != null)
+                Text(
+                  '${t.adminPublisherPayoutAmount}: \$${o.publisherPayoutAmount!.toStringAsFixed(2)} · ${t.adminPlatformCommissionAmount}: \$${(o.platformCommissionAmount ?? 0).toStringAsFixed(2)}${o.platformCommissionPercent != null ? ' (${o.platformCommissionPercent}%)' : ''}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              if (o.payoutPaypalEmail != null && o.payoutPaypalEmail!.isNotEmpty)
+                Text(
+                  '${t.adminPayoutPaypalEmail}: ${o.payoutPaypalEmail}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               const SizedBox(height: 8),
               Text('${t.statusLabel}: ${t.orderStatus(o.status)}'),
               const SizedBox(height: 12),

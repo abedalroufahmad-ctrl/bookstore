@@ -31,6 +31,20 @@ class Order extends Model
         'payment_info',
         'payment_method',
         'payment_status',
+        'platform_commission_percent',
+        'platform_commission_amount',
+        'publisher_payout_amount',
+        'payout_paypal_email',
+        'payout_paypal_merchant_id',
+    ];
+
+    /** @var list<string> */
+    public const INTERNAL_PAYOUT_FIELDS = [
+        'platform_commission_percent',
+        'platform_commission_amount',
+        'publisher_payout_amount',
+        'payout_paypal_email',
+        'payout_paypal_merchant_id',
     ];
 
     protected function casts(): array
@@ -43,7 +57,15 @@ class Order extends Model
             'total' => 'float',
             'shipping_address' => 'array',
             'payment_info' => 'array',
+            'platform_commission_percent' => 'float',
+            'platform_commission_amount' => 'float',
+            'publisher_payout_amount' => 'float',
         ];
+    }
+
+    public function hideInternalPayouts(): static
+    {
+        return $this->makeHidden(self::INTERNAL_PAYOUT_FIELDS);
     }
 
     public function customer(): BelongsTo
