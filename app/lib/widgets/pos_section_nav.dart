@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../providers/auth_provider.dart';
 
 class PosSectionNav extends StatelessWidget {
   const PosSectionNav({super.key, required this.reportsActive});
@@ -12,7 +14,7 @@ class PosSectionNav extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -60,6 +62,27 @@ class PosSectionNav extends StatelessWidget {
           child: Text(label, style: theme.textTheme.labelLarge?.copyWith(color: fg, fontWeight: FontWeight.w600)),
         ),
       ),
+    );
+  }
+}
+
+class PosLogoutButton extends StatelessWidget {
+  const PosLogoutButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (!auth.isDirectSales) return const SizedBox.shrink();
+    final t = AppLocalizations.of(context);
+    return IconButton(
+      tooltip: t.navLogout,
+      icon: const Icon(Icons.logout),
+      onPressed: () async {
+        await auth.logout();
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+        }
+      },
     );
   }
 }

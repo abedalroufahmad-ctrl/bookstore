@@ -9,6 +9,7 @@ export function Layout() {
   const { t, i18n } = useTranslation()
   const location = useLocation()
   const isHomePage = location.pathname === '/'
+  const isDirectSales = userType === 'employee' && user?.role === 'direct_sales'
 
   const toggleLang = () => {
     i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar')
@@ -19,8 +20,32 @@ export function Layout() {
       {/* Top bar - Made-in-China style */}
       <header className="top-bar">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Home page: large search bar layout */}
-          {isHomePage ? (
+          {isDirectSales ? (
+            <div className="flex justify-between items-center h-16 gap-4">
+              <Link to="/admin/pos" className="text-xl font-bold shrink-0" style={{ color: 'var(--color-primary)' }}>
+                {t('nav.bookStore')}
+              </Link>
+              <nav className="flex gap-4 items-center shrink-0">
+                <Link to="/admin/pos" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>
+                  {t('admin.posTerminal')}
+                </Link>
+                <Link to="/admin/pos/reports" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>
+                  {t('admin.posReports')}
+                </Link>
+                {user && (
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{user.name}</span>
+                    <button onClick={logout} className="px-3 py-1.5 rounded-lg text-sm font-medium" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
+                      {t('nav.logout')}
+                    </button>
+                  </span>
+                )}
+                <button onClick={toggleLang} title={t('common.switchLanguage')} className="px-2 py-1 rounded text-xs font-bold border" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}>
+                  {i18n.language === 'ar' ? 'EN' : 'عربي'}
+                </button>
+              </nav>
+            </div>
+          ) : isHomePage ? (
             <>
               <div className="flex items-center gap-6 py-4">
                 <Link

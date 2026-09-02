@@ -220,7 +220,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               Text(b.description!, style: Theme.of(context).textTheme.bodyMedium),
             ],
             const SizedBox(height: 24),
-            if (b.isPurchasable) ...[
+            if (b.isPurchasable &&
+                context.watch<AuthProvider>().userType != UserType.employee) ...[
               Row(
                 children: [
                   Text(_s(context, 'الكمية: ', 'Quantity: ')),

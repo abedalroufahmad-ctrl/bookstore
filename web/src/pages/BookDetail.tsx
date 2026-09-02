@@ -264,7 +264,7 @@ export function BookDetail() {
               {t('bookDetail.sold')}
             </p>
           )}
-          {(userType === 'customer' || userType === 'employee') &&
+          {userType === 'customer' &&
             !book.is_sold &&
             book.stock_quantity > 0 && (
             <button

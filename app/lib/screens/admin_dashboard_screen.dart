@@ -21,6 +21,15 @@ class AdminDashboardScreen extends StatelessWidget {
 
     final canManagePos = isManager || isWarehouseManager || isPublisherManager || isDirectSales;
 
+    if (isDirectSales) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          Navigator.of(context).pushReplacementNamed('/admin/pos');
+        }
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final tiles = <_AdminTile>[
       if (!isScoped || isWarehouseManager || isPublisherManager)
         _AdminTile(

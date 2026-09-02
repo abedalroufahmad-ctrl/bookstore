@@ -28,6 +28,9 @@ class AuthProvider with ChangeNotifier {
   UserType get userType => _userType;
   bool get loading => _loading;
   bool get isLoggedIn => _token != null && _token!.isNotEmpty;
+  bool get isDirectSales =>
+      _userType == UserType.employee && _employee?.role == 'direct_sales';
+  bool get isEmployee => _userType == UserType.employee;
 
   Future<void> _loadStored() async {
     final prefs = await SharedPreferences.getInstance();

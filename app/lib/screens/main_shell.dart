@@ -21,17 +21,15 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  String _tabTitle(AppLocalizations t) {
-    switch (_currentIndex) {
-      case 1:
-        return t.booksTitle;
-      case 2:
-        return t.cartTitle;
-      case 3:
-        return t.myProfile;
-      default:
-        return t.navHome;
-    }
+  String _tabTitle(AppLocalizations t, {required bool showCart}) {
+    final titles = <String>[
+      t.navHome,
+      t.booksTitle,
+      if (showCart) t.cartTitle,
+      t.myProfile,
+    ];
+    if (_currentIndex < 0 || _currentIndex >= titles.length) return t.navHome;
+    return titles[_currentIndex];
   }
 
   void _goToCart(AuthProvider auth) {
@@ -59,7 +57,14 @@ class _MainShellState extends State<MainShell> {
 
     context.watch<LocaleProvider>();
     final auth = context.watch<AuthProvider>();
+    final showCart = !auth.isEmployee;
 
+    final screens = <Widget>[
+      const HomeScreen(),
+      const BookListScreen(showAppBar: false),
+      if (showCart) const CartScreen(showAppBar: false),
+      const AccountScreen(showAppBar: false),
+    ];
     final navItems = [
       BottomNavigationBarItem(
         icon: const Icon(Icons.home_outlined),
@@ -71,33 +76,35 @@ class _MainShellState extends State<MainShell> {
         activeIcon: const Icon(Icons.menu_book),
         label: t.navBooks,
       ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.shopping_cart_outlined),
-        activeIcon: const Icon(Icons.shopping_cart),
-        label: t.navCart,
-      ),
+      if (showCart)
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.shopping_cart_outlined),
+          activeIcon: const Icon(Icons.shopping_cart),
+          label: t.navCart,
+        ),
       BottomNavigationBarItem(
         icon: const Icon(Icons.person_outline),
         activeIcon: const Icon(Icons.person),
         label: t.navProfile,
       ),
     ];
+    if (_currentIndex >= screens.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _currentIndex = 0);
+      });
+    }
+    final safeIndex = _currentIndex.clamp(0, screens.length - 1);
 
     final body = IndexedStack(
-      index: _currentIndex,
-      children: [
-        const HomeScreen(),
-        const BookListScreen(showAppBar: false),
-        const CartScreen(showAppBar: false),
-        const AccountScreen(showAppBar: false),
-      ],
+      index: safeIndex,
+      children: screens,
     );
 
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
-          _currentIndex == 0 ? t.appName : _tabTitle(t),
+          _currentIndex == 0 ? t.appName : _tabTitle(t, showCart: showCart),
         ),
         actions: [
           IconButton(
@@ -114,11 +121,12 @@ class _MainShellState extends State<MainShell> {
             onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
             icon: const Icon(Icons.language),
           ),
-          IconButton(
-            tooltip: t.navCart,
-            onPressed: () => _goToCart(auth),
-            icon: const Icon(Icons.shopping_cart_outlined),
-          ),
+          if (showCart)
+            IconButton(
+              tooltip: t.navCart,
+              onPressed: () => _goToCart(auth),
+              icon: const Icon(Icons.shopping_cart_outlined),
+            ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_horiz),
             onSelected: (value) async {
@@ -151,6 +159,12 @@ class _MainShellState extends State<MainShell> {
                 case 'staff_orders':
                   await Navigator.pushNamed(context, '/staff/orders');
                   break;
+                case 'pos':
+                  await Navigator.pushNamed(context, '/admin/pos');
+                  break;
+                case 'pos_reports':
+                  await Navigator.pushNamed(context, '/admin/pos/reports');
+                  break;
                 case 'admin':
                   await Navigator.pushNamed(context, '/admin');
                   break;
@@ -181,11 +195,16 @@ class _MainShellState extends State<MainShell> {
               ];
 
               if (auth.userType == UserType.customer ||
-                  auth.userType == UserType.employee) {
+                  (auth.userType == UserType.employee && !auth.isDirectSales)) {
                 items.add(PopupMenuItem(value: 'orders', child: Text(t.navOrders)));
               }
 
-              if (auth.userType == UserType.employee) {
+              if (auth.isDirectSales) {
+                items.addAll([
+                  PopupMenuItem(value: 'pos', child: Text(t.adminPosTerminal)),
+                  PopupMenuItem(value: 'pos_reports', child: Text(t.adminPosReports)),
+                ]);
+              } else if (auth.userType == UserType.employee) {
                 items.addAll([
                   PopupMenuItem(
                     value: 'admin',
@@ -229,7 +248,7 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
+          currentIndex: safeIndex,
           onTap: (int index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
           items: navItems,

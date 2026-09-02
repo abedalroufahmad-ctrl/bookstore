@@ -237,7 +237,11 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     final created = _createdInvoice!['created_at']?.toString();
     final warehouseId = _createdInvoice!['warehouse_id']?.toString();
     return Scaffold(
-      appBar: AppBar(title: Text(t.adminPosTerminal)),
+      appBar: AppBar(
+        title: Text(t.adminPosTerminal),
+        automaticallyImplyLeading: !context.watch<AuthProvider>().isDirectSales,
+        actions: const [PosLogoutButton()],
+      ),
       body: Column(
         children: [
           const PosSectionNav(reportsActive: false),
@@ -346,95 +350,128 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.adminPosTerminal)),
+      appBar: AppBar(
+        title: Text(t.adminPosTerminal),
+        automaticallyImplyLeading: !context.watch<AuthProvider>().isDirectSales,
+        actions: const [PosLogoutButton()],
+      ),
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
           const PosSectionNav(reportsActive: false),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (_publishers.isNotEmpty)
-                  DropdownButton<String>(
-                    value: _publisherId.isEmpty ? '' : _publisherId,
-                    items: [
-                      DropdownMenuItem(value: '', child: Text(t.adminAllPublishers)),
-                      ..._publishers.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name ?? p.id))),
-                    ],
-                    onChanged: (val) {
-                      if (val == null) return;
-                      setState(() {
-                        _publisherId = val;
-                        _page = 1;
-                        _cart.clear();
-                        final list = _filteredWarehouses;
-                        final defaultWh = _defaultWarehouseId();
-                        if (defaultWh != null && list.any((w) => w['_id']?.toString() == defaultWh)) {
-                          _warehouseId = defaultWh;
-                        } else {
-                          _warehouseId = list.isNotEmpty ? (list.first['_id']?.toString() ?? '') : '';
-                        }
-                      });
-                      _loadBooks();
-                    },
-                  ),
-                if (warehouseItems.isNotEmpty)
-                  DropdownButton<String>(
-                    value: warehouseValue,
-                    items: warehouseItems.map((w) {
-                      return DropdownMenuItem<String>(
-                        value: w['_id']?.toString() ?? '',
-                        child: Text(_warehouseLabel(w)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _warehouseId = val;
-                          _page = 1;
-                          _cart.clear();
-                        });
-                        _loadBooks();
-                      }
-                    },
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(t.adminPosOwnWarehouseDefault, style: theme.textTheme.bodySmall),
-            ),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: _buildFilterBar(t, warehouseItems, warehouseValue),
           ),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final stacked = constraints.maxWidth < 720;
+                final wide = constraints.maxWidth >= 720;
                 final catalog = _buildCatalog(t, theme);
-                final cart = _buildCart(t, theme);
-                if (stacked) {
-                  return Column(
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(flex: 3, child: catalog),
-                      Expanded(flex: 2, child: cart),
+                      Expanded(child: catalog),
+                      SizedBox(width: 340, child: _buildCart(t, theme)),
                     ],
                   );
                 }
-                return Row(
-                  children: [
-                    Expanded(flex: 3, child: catalog),
-                    SizedBox(width: 320, child: cart),
-                  ],
-                );
+                return catalog;
               },
             ),
           ),
+          if (MediaQuery.sizeOf(context).width < 720) _buildMobileSaleBar(t, theme),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterBar(
+    AppLocalizations t,
+    List<dynamic> warehouseItems,
+    String? warehouseValue,
+  ) {
+    return Row(
+      children: [
+        if (_publishers.isNotEmpty) ...[
+          Expanded(
+            child: _denseDropdown<String>(
+              value: _publisherId.isEmpty ? '' : _publisherId,
+              items: [
+                DropdownMenuItem(value: '', child: Text(t.adminAllPublishers, overflow: TextOverflow.ellipsis)),
+                ..._publishers.map(
+                  (p) => DropdownMenuItem(
+                    value: p.id,
+                    child: Text(p.name ?? p.id, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  _publisherId = val;
+                  _page = 1;
+                  _cart.clear();
+                  final list = _filteredWarehouses;
+                  final defaultWh = _defaultWarehouseId();
+                  if (defaultWh != null && list.any((w) => w['_id']?.toString() == defaultWh)) {
+                    _warehouseId = defaultWh;
+                  } else {
+                    _warehouseId = list.isNotEmpty ? (list.first['_id']?.toString() ?? '') : '';
+                  }
+                });
+                _loadBooks();
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        if (warehouseItems.isNotEmpty)
+          Expanded(
+            flex: 2,
+            child: _denseDropdown<String>(
+              value: warehouseValue,
+              items: warehouseItems.map((w) {
+                return DropdownMenuItem<String>(
+                  value: w['_id']?.toString() ?? '',
+                  child: Text(_warehouseLabel(w), overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  _warehouseId = val;
+                  _page = 1;
+                  _cart.clear();
+                });
+                _loadBooks();
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _denseDropdown<T>({
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return InputDecorator(
+      decoration: const InputDecoration(
+        isDense: true,
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          isDense: true,
+          isExpanded: true,
+          value: value,
+          items: items,
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -443,23 +480,31 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: TextField(
             controller: _searchCtrl,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
+              isDense: true,
               hintText: t.searchHint,
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () {
-                  setState(() {
-                    _searchQuery = _searchCtrl.text;
-                    _page = 1;
-                  });
-                  _loadBooks();
-                },
-              ),
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchCtrl.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        setState(() {
+                          _searchQuery = '';
+                          _page = 1;
+                        });
+                        _loadBooks();
+                      },
+                    ),
               border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
+            onChanged: (_) => setState(() {}),
             onSubmitted: (val) {
               setState(() {
                 _searchQuery = val;
@@ -472,73 +517,95 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
         Expanded(
           child: _loadingBooks
               ? const Center(child: CircularProgressIndicator())
-              : GridView.builder(
-                  padding: const EdgeInsets.all(8),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: _books.length,
-                  itemBuilder: (ctx, i) {
-                    final b = _books[i];
-                    final cover = _coverUrl(b);
-                    return InkWell(
-                      onTap: () => _addToCart(b),
-                      child: Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: cover.isNotEmpty
-                                  ? Image.network(cover, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Center(child: Icon(Icons.book, size: 48)))
-                                  : const Center(child: Icon(Icons.book, size: 48)),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(b.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
-                                  const SizedBox(height: 4),
-                                  Text(_money(_unitPrice(b)), style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
-                                  Text('Qty: ${b.stockQuantity}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.secondary)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+              : _books.isEmpty
+                  ? Center(child: Text(t.adminNoItems))
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 180,
+                        childAspectRatio: 0.72,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
                       ),
-                    );
-                  },
-                ),
+                      itemCount: _books.length,
+                      itemBuilder: (ctx, i) {
+                        final b = _books[i];
+                        final cover = _coverUrl(b);
+                        return InkWell(
+                          onTap: () => _addToCart(b),
+                          child: Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: cover.isNotEmpty
+                                      ? Image.network(
+                                          cover,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) =>
+                                              const Center(child: Icon(Icons.book, size: 40)),
+                                        )
+                                      : const Center(child: Icon(Icons.book, size: 40)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        b.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _money(_unitPrice(b)),
+                                        style: theme.textTheme.titleSmall?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
         ),
         if (_lastPage > 1)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: _page > 1
-                    ? () {
-                        setState(() => _page--);
-                        _loadBooks();
-                      }
-                    : null,
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Text('$_page / $_lastPage'),
-              IconButton(
-                onPressed: _page < _lastPage
-                    ? () {
-                        setState(() => _page++);
-                        _loadBooks();
-                      }
-                    : null,
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
+          SafeArea(
+            top: false,
+            bottom: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _page > 1
+                      ? () {
+                          setState(() => _page--);
+                          _loadBooks();
+                        }
+                      : null,
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Text('$_page / $_lastPage'),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _page < _lastPage
+                      ? () {
+                          setState(() => _page++);
+                          _loadBooks();
+                        }
+                      : null,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
           ),
       ],
     );
@@ -553,80 +620,168 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: theme.colorScheme.primary,
-            child: Text(t.adminCurrentSale, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary)),
-          ),
-          Expanded(
-            child: _cart.isEmpty
-                ? Center(child: Text(t.adminPosCartEmpty))
-                : ListView.builder(
-                    itemCount: _cart.length,
-                    itemBuilder: (ctx, i) {
-                      final item = _cart[i];
-                      final finalPrice = _unitPrice(item.book);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(item.book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  Text(_money(finalPrice), style: theme.textTheme.bodySmall),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.remove, size: 16),
-                              onPressed: () => _updateQuantity(i, -1),
-                            ),
-                            Text('${item.quantity}'),
-                            IconButton(
-                              icon: const Icon(Icons.add, size: 16),
-                              onPressed: item.quantity >= item.book.stockQuantity ? null : () => _updateQuantity(i, 1),
-                            ),
-                            SizedBox(
-                              width: 64,
-                              child: Text(_money(finalPrice * item.quantity), textAlign: TextAlign.end),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: _customerNameCtrl,
-                  decoration: InputDecoration(
-                    labelText: t.adminPosCustomerOptional,
-                    hintText: t.adminPosWalkIn,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(t.ordersTotalLabel, style: theme.textTheme.titleLarge),
-                    Text(_money(_subtotal), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                  onPressed: _cart.isEmpty || _submitting ? null : _checkout,
-                  child: _submitting ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(t.adminPosCompleteSale),
-                ),
-              ],
+            child: Text(
+              t.adminCurrentSale,
+              style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary),
             ),
           ),
+          Expanded(child: _buildCartLines(t, theme, shrinkWrap: false)),
+          _buildCheckoutFields(t, theme, compact: false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileSaleBar(AppLocalizations t, ThemeData theme) {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    return Material(
+      elevation: 10,
+      color: theme.colorScheme.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!keyboardOpen)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(t.adminCurrentSale, style: theme.textTheme.titleSmall),
+                    ),
+                    Text(
+                      '${_cart.fold<int>(0, (n, i) => n + i.quantity)} · ${_money(_subtotal)}',
+                      style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+                    ),
+                  ],
+                ),
+              if (!keyboardOpen && _cart.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 132),
+                  child: _buildCartLines(t, theme, shrinkWrap: true),
+                ),
+              ],
+              if (!keyboardOpen && _cart.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(t.adminPosCartEmpty, style: theme.textTheme.bodySmall),
+                ),
+              const SizedBox(height: 8),
+              _buildCheckoutFields(t, theme, compact: true),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCartLines(AppLocalizations t, ThemeData theme, {required bool shrinkWrap}) {
+    if (_cart.isEmpty) {
+      return Center(child: Text(t.adminPosCartEmpty));
+    }
+    return ListView.builder(
+      shrinkWrap: shrinkWrap,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      physics: shrinkWrap ? const ClampingScrollPhysics() : null,
+      itemCount: _cart.length,
+      itemBuilder: (ctx, i) {
+        final item = _cart[i];
+        final finalPrice = _unitPrice(item.book);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.book.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(_money(finalPrice), style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.remove, size: 18),
+                onPressed: () => _updateQuantity(i, -1),
+              ),
+              Text('${item.quantity}'),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.add, size: 18),
+                onPressed: item.quantity >= item.book.stockQuantity
+                    ? null
+                    : () => _updateQuantity(i, 1),
+              ),
+              SizedBox(
+                width: 64,
+                child: Text(_money(finalPrice * item.quantity), textAlign: TextAlign.end),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCheckoutFields(AppLocalizations t, ThemeData theme, {required bool compact}) {
+    final nameField = TextField(
+      controller: _customerNameCtrl,
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        isDense: true,
+        labelText: t.adminPosCustomerOptional,
+        hintText: t.adminPosWalkIn,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+    );
+    final button = FilledButton(
+      style: FilledButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: compact ? 12 : 14, horizontal: 16),
+      ),
+      onPressed: _cart.isEmpty || _submitting ? null : _checkout,
+      child: _submitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(t.adminPosCompleteSale),
+    );
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          nameField,
+          const SizedBox(height: 8),
+          button,
+        ],
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          nameField,
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(t.ordersTotalLabel, style: theme.textTheme.titleMedium),
+              Text(
+                _money(_subtotal),
+                style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          button,
         ],
       ),
     );

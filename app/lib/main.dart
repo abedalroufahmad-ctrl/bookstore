@@ -193,7 +193,9 @@ class AuthWrapper extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        // Always show MainShell so navigation (Home / Books / Cart / Profile) is visible
+        if (auth.isDirectSales) {
+          return const AdminPosScreen();
+        }
         return const MainShell();
       },
     );

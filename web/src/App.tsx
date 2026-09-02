@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -71,8 +71,22 @@ function CustomerRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function DirectSalesPosOnly() {
+  const { user, userType, isLoading } = useAuth()
+  const location = useLocation()
+  if (isLoading) return null
+  const isDirectSales = userType === 'employee' && user?.role === 'direct_sales'
+  if (!isDirectSales) return null
+  if (location.pathname.startsWith('/admin/pos') || location.pathname === '/login') {
+    return null
+  }
+  return <Navigate to="/admin/pos" replace />
+}
+
 function AppRoutes() {
   return (
+    <>
+      <DirectSalesPosOnly />
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
@@ -315,6 +329,7 @@ function AppRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/pos_section_nav.dart';
 
 class AdminPosReportsScreen extends StatefulWidget {
@@ -145,7 +147,11 @@ class _AdminPosReportsScreenState extends State<AdminPosReportsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.adminPosReports)),
+      appBar: AppBar(
+        title: Text(t.adminPosReports),
+        automaticallyImplyLeading: !context.watch<AuthProvider>().isDirectSales,
+        actions: const [PosLogoutButton()],
+      ),
       body: Column(
         children: [
           const PosSectionNav(reportsActive: true),

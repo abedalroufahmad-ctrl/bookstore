@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -13,6 +13,10 @@ export function AdminDashboard() {
   const isScopedWarehouseUser = isWarehouseManager || (!isManager && userType === 'employee')
 
   const canManagePos = isManager || isWarehouseManager || isPublisherManager || isDirectSales
+
+  if (isDirectSales) {
+    return <Navigate to="/admin/pos" replace />
+  }
 
   return (
     <div>
