@@ -444,6 +444,7 @@ class ApiService {
   }) async {
     final params = {
       'type': type,
+      'utc_offset_minutes': DateTime.now().timeZoneOffset.inMinutes.toString(),
       if (warehouseId != null && warehouseId.isNotEmpty) 'warehouse_id': warehouseId,
     };
     return _client.get('/admin/pos/reports', params: params);

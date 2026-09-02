@@ -37,9 +37,14 @@ export function AdminPosReports() {
       : []
 
   const { data: reportsData, isLoading: reportsLoading } = useQuery({
-    queryKey: ['pos-reports', reportType, warehouseFilter],
+    queryKey: ['pos-reports', reportType, warehouseFilter, Intl.DateTimeFormat().resolvedOptions().timeZone],
     queryFn: async () => {
-      const res = await admin.pos.reports({ type: reportType, warehouse_id: warehouseFilter || undefined })
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const res = await admin.pos.reports({
+        type: reportType,
+        warehouse_id: warehouseFilter || undefined,
+        timezone,
+      })
       return res.data
     },
   })
