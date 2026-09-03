@@ -60,7 +60,7 @@ class Book extends Model
         static::saving(function (Book $book) {
             $cover = trim((string) ($book->cover_image ?? ''));
             $thumb = trim((string) ($book->cover_image_thumb ?? ''));
-            $book->has_cover = $cover !== '' || $thumb !== '';
+            $book->has_cover = self::isRealCoverUrl($cover) || self::isRealCoverUrl($thumb);
 
             if ($book->condition === null || $book->condition === '') {
                 $book->condition = 'new';
@@ -80,6 +80,35 @@ class Book extends Model
                 $book->stock_quantity = 0;
             }
         });
+    }
+
+    /**
+     * Returns true when the URL points to an actual cover image,
+     * not a generic placeholder service.
+     */
+    private static function isRealCoverUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        $placeholders = [
+            'via.placeholder.com',
+            'placeholder.com',
+            'placehold.co',
+            'placehold.it',
+            'placekitten.com',
+            'dummyimage.com',
+        ];
+
+        $lower = strtolower($url);
+        foreach ($placeholders as $host) {
+            if (str_contains($lower, $host)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function isUsed(): bool

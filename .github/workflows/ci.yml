@@ -20,7 +20,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mongodb, mbstring, xml, curl, zip
+          # Keep extension version compatible with locked mongodb/* packages.
+          extensions: mongodb-1.15.0, mbstring, xml, curl, zip
           coverage: none
 
       - name: Install Composer dependencies

@@ -1,9 +1,26 @@
+/** Well-known placeholder / dummy image hosts that don't count as real covers. */
+const PLACEHOLDER_HOSTS = [
+  'via.placeholder.com',
+  'placeholder.com',
+  'placehold.co',
+  'placehold.it',
+  'placekitten.com',
+  'dummyimage.com',
+]
+
+function isRealCoverUrl(url: string): boolean {
+  if (!url) return false
+  const lower = url.toLowerCase()
+  if (lower === 'null' || lower === 'undefined') return false
+  return !PLACEHOLDER_HOSTS.some((h) => lower.includes(h))
+}
+
 /** True when the book has at least one cover image URL (thumb or full). */
 export function hasCover(book: { cover_image?: string; cover_image_thumb?: string }): boolean {
-  const c = (book.cover_image_thumb || book.cover_image || '').trim()
-  if (!c) return false
-  const lowered = c.toLowerCase()
-  return lowered !== 'null' && lowered !== 'undefined'
+  return (
+    isRealCoverUrl((book.cover_image_thumb || '').trim()) ||
+    isRealCoverUrl((book.cover_image || '').trim())
+  )
 }
 
 /**

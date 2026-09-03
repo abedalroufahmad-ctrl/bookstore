@@ -6,6 +6,7 @@ import { admin, publishersPublic, type Book } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Pagination } from '../components/Pagination'
 import { useSearchCommit } from '../hooks/useSearchCommit'
+import { hasCover, resolveCoverUrl } from '../lib/utils'
 
 function discountedPrice(book: Book): number {
   const discount = book.discount_percent ?? 0
@@ -237,11 +238,11 @@ export function AdminPos() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && commitSearch(searchInput)}
-            placeholder={t('common.searchPlaceholder')}
+            placeholder={t('search.placeholder')}
             className="flex-1 min-w-[200px] px-3 py-2 border border-stone-300 rounded focus:ring-2 focus:ring-amber-500"
           />
           <button onClick={() => commitSearch(searchInput)} className="px-4 py-2 bg-stone-200 rounded hover:bg-stone-300">
-            {t('common.search')}
+            {t('search.search')}
           </button>
           
           <select
@@ -296,8 +297,8 @@ export function AdminPos() {
                   className={`bg-white p-3 rounded border border-stone-200 cursor-pointer hover:border-amber-400 hover:shadow-sm transition ${(book.stock_quantity ?? 0) <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   <div className="aspect-[3/4] bg-stone-100 rounded mb-2 overflow-hidden flex items-center justify-center">
-                    {book.cover_image ? (
-                      <img src={`${book.cover_image}`} alt="" className="object-cover w-full h-full" />
+                    {hasCover(book) ? (
+                      <img src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)} alt="" className="object-cover w-full h-full" />
                     ) : (
                       <span className="text-stone-300 font-serif">BOOK</span>
                     )}

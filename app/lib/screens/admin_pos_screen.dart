@@ -381,9 +381,11 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
               },
             ),
           ),
-          if (MediaQuery.sizeOf(context).width < 720) _buildMobileSaleBar(t, theme),
         ],
       ),
+      bottomNavigationBar: MediaQuery.sizeOf(context).width < 720
+          ? _buildMobileSaleBar(t, theme)
+          : null,
     );
   }
 
@@ -577,12 +579,9 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                     ),
         ),
         if (_lastPage > 1)
-          SafeArea(
-            top: false,
-            bottom: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   onPressed: _page > 1
@@ -604,8 +603,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                       : null,
                   icon: const Icon(Icons.chevron_right),
                 ),
-              ],
-            ),
+            ],
           ),
       ],
     );
@@ -636,13 +634,14 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
 
   Widget _buildMobileSaleBar(AppLocalizations t, ThemeData theme) {
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final itemCount = _cart.fold<int>(0, (n, i) => n + i.quantity);
     return Material(
-      elevation: 10,
+      elevation: 12,
       color: theme.colorScheme.surface,
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -653,25 +652,66 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                       child: Text(t.adminCurrentSale, style: theme.textTheme.titleSmall),
                     ),
                     Text(
-                      '${_cart.fold<int>(0, (n, i) => n + i.quantity)} · ${_money(_subtotal)}',
+                      itemCount == 0 ? t.adminPosCartEmpty : '$itemCount · ${_money(_subtotal)}',
                       style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
                     ),
                   ],
                 ),
               if (!keyboardOpen && _cart.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 132),
-                  child: _buildCartLines(t, theme, shrinkWrap: true),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _cart.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final item = _cart[i];
+                      return InputChip(
+                        label: Text(
+                          '${item.book.title} ×${item.quantity}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onDeleted: () => _updateQuantity(i, -item.quantity),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    },
+                  ),
                 ),
               ],
-              if (!keyboardOpen && _cart.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(t.adminPosCartEmpty, style: theme.textTheme.bodySmall),
-                ),
               const SizedBox(height: 8),
-              _buildCheckoutFields(t, theme, compact: true),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _customerNameCtrl,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        labelText: t.adminPosCustomerOptional,
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    onPressed: _cart.isEmpty || _submitting ? null : _checkout,
+                    child: _submitting
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(t.adminPosCompleteSale),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

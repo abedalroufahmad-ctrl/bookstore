@@ -354,7 +354,37 @@ class BookRepository implements BookRepositoryInterface
         $cover = trim((string) ($data['cover_image'] ?? ''));
         $thumb = trim((string) ($data['cover_image_thumb'] ?? ''));
 
-        return $cover !== '' || $thumb !== '';
+        return self::isRealCoverUrl($cover) || self::isRealCoverUrl($thumb);
+    }
+
+    /**
+     * Returns true when the URL points to an actual cover image,
+     * not a generic placeholder service.
+     */
+    private static function isRealCoverUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        // Reject well-known placeholder / dummy image services.
+        $placeholders = [
+            'via.placeholder.com',
+            'placeholder.com',
+            'placehold.co',
+            'placehold.it',
+            'placekitten.com',
+            'dummyimage.com',
+        ];
+
+        $lower = strtolower($url);
+        foreach ($placeholders as $host) {
+            if (str_contains($lower, $host)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function hydrateAuthors(Collection $books): void

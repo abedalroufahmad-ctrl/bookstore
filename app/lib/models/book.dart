@@ -51,13 +51,27 @@ class Book {
 
   bool get isPurchasable => isVisible && !isSold && stockQuantity > 0;
 
-  /// True when the book has at least one cover image URL (thumb or full).
-  bool get hasCover {
-    final c = (coverImageThumb ?? coverImage)?.trim();
-    if (c == null || c.isEmpty) return false;
-    final lowered = c.toLowerCase();
-    return lowered != "null" && lowered != "undefined";
+  /// Well-known placeholder hosts that don't count as real covers.
+  static const _placeholderHosts = [
+    'via.placeholder.com',
+    'placeholder.com',
+    'placehold.co',
+    'placehold.it',
+    'placekitten.com',
+    'dummyimage.com',
+  ];
+
+  static bool _isRealCoverUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
+    final l = url.toLowerCase();
+    if (l == 'null' || l == 'undefined') return false;
+    return !_placeholderHosts.any((h) => l.contains(h));
   }
+
+  /// True when the book has at least one real cover image URL (thumb or full).
+  bool get hasCover =>
+      _isRealCoverUrl(coverImageThumb?.trim()) ||
+      _isRealCoverUrl(coverImage?.trim());
 
   static String? _fixUrl(String? url) {
     if (url == null || url.isEmpty) return null;
