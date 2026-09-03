@@ -40,11 +40,11 @@ export default defineConfig({
     proxy: {
       // Same machine as `php artisan serve` — use localhost so LAN IP changes don't break the proxy
       '/api': {
-        target: 'http://192.168.211.197:8000',
+        target: 'http://192.168.25.197:8000',
         changeOrigin: true,
       },
       '/storage': {
-        target: 'http://192.168.211.197:8000',
+        target: 'http://192.168.25.197:8000',
         changeOrigin: true,
       },
     },
