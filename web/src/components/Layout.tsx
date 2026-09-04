@@ -18,7 +18,7 @@ export function Layout() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }} dir={i18n.dir()}>
       {/* Top bar - Made-in-China style */}
-      <header className="top-bar">
+      <header className="top-bar print:hidden">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           {isDirectSales ? (
             <div className="flex justify-between items-center h-16 gap-4">
@@ -154,7 +154,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className={isHomePage ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
+      <main className={`${isHomePage ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'} print:max-w-none print:mx-0 print:px-0 print:py-0`}>
         <Suspense
           fallback={
             <div className="py-16 text-center text-stone-600 text-sm">{t('common.loading')}</div>
@@ -164,7 +164,7 @@ export function Layout() {
         </Suspense>
       </main>
 
-      <footer className="site-footer">
+      <footer className="site-footer print:hidden">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="text-sm">© {new Date().getFullYear()} {t('nav.bookStore')}</div>

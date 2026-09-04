@@ -188,6 +188,11 @@ export const admin = {
     update: (id: string, data: Partial<BookFormData>) =>
       api.put<ApiResponse<Book>>(`/admin/books/${id}`, data),
     delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/books/${id}`),
+    bulkDelete: (ids: string[]) =>
+      api.post<ApiResponse<{ deleted: number; forbidden: number; missing: number }>>(
+        '/admin/books/bulk-delete',
+        { ids }
+      ),
     import: (file: File, warehouseId: string, skipCover = true) => {
       const form = new FormData()
       form.append('file', file)

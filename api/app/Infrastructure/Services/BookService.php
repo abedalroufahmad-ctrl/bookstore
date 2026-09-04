@@ -69,6 +69,27 @@ class BookService
         return $deleted;
     }
 
+    /**
+     * Delete many books and bust the catalog cache once.
+     *
+     * @param  list<string>  $ids
+     */
+    public function deleteMany(array $ids): int
+    {
+        $deleted = 0;
+        foreach ($ids as $id) {
+            if ($this->repository->delete((string) $id)) {
+                $deleted++;
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->bustCatalogCache();
+        }
+
+        return $deleted;
+    }
+
     private function bustCatalogCache(): void
     {
         $version = (int) Cache::get('bookstore_catalog_version', 0);

@@ -6,6 +6,7 @@ use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\BookStoreRequest;
 use App\Http\Requests\Admin\BookUpdateRequest;
+use App\Http\Requests\Admin\BulkDeleteBooksRequest;
 use App\Infrastructure\Services\BookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -275,5 +276,36 @@ class BookController extends BaseApiController
         }
 
         return $this->successResponse(null, 'Book deleted');
+    }
+
+    public function bulkDestroy(BulkDeleteBooksRequest $request): JsonResponse
+    {
+        $ids = array_values(array_unique(array_filter(array_map('strval', $request->validated('ids')))));
+        $employee = auth('employee')->user();
+        $toDelete = [];
+        $forbidden = 0;
+        $missing = 0;
+
+        foreach ($ids as $id) {
+            $existing = $this->bookService->getById($id, []);
+            if (! $existing) {
+                $missing++;
+                continue;
+            }
+            if ($employee && UserRole::isPublisherScoped($employee->role)
+                && ! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
+                $forbidden++;
+                continue;
+            }
+            $toDelete[] = $id;
+        }
+
+        $deleted = $this->bookService->deleteMany($toDelete);
+
+        return $this->successResponse([
+            'deleted' => $deleted,
+            'forbidden' => $forbidden,
+            'missing' => $missing,
+        ], 'Books deleted');
     }
 }

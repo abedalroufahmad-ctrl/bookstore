@@ -76,13 +76,29 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
 
   String _money(num value) => '\$${value.toDouble().toStringAsFixed(2)}';
 
-  String _warehouseName(Map<String, dynamic> inv) {
+  Map<String, dynamic>? _warehouseMap(Map<String, dynamic> inv) {
     final nested = inv['warehouse'];
-    if (nested is Map && nested['name'] != null) return nested['name'].toString();
+    if (nested is Map) return Map<String, dynamic>.from(nested);
     final id = inv['warehouse_id']?.toString();
     final match = _warehouses.cast<dynamic>().where((w) => w is Map && w['_id']?.toString() == id);
-    if (match.isNotEmpty) return (match.first['name'] ?? id ?? '').toString();
-    return id ?? '-';
+    if (match.isNotEmpty) return Map<String, dynamic>.from(match.first as Map);
+    return null;
+  }
+
+  String _warehouseName(Map<String, dynamic> inv) {
+    return _warehouseMap(inv)?['name']?.toString() ?? inv['warehouse_id']?.toString() ?? '-';
+  }
+
+  String? _publisherName(Map<String, dynamic> inv) {
+    final warehouse = _warehouseMap(inv);
+    if (warehouse == null) return null;
+    final publisher = warehouse['publisher'];
+    if (publisher is Map) {
+      final name = publisher['name']?.toString();
+      if (name != null && name.isNotEmpty) return name;
+    }
+    if (publisher is String && publisher.isNotEmpty) return publisher;
+    return null;
   }
 
   @override
@@ -150,6 +166,10 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
         Text('${t.adminDate}: ${_formatDate(created)}'),
         const SizedBox(height: 4),
         Text('${t.adminWarehouse}: ${_warehouseName(inv)}'),
+        if (_publisherName(inv) case final publisherName?) ...[
+          const SizedBox(height: 4),
+          Text('${t.adminPublisher}: $publisherName'),
+        ],
         const SizedBox(height: 4),
         Text('${t.customerLabel}: $name'),
         const Divider(height: 32),
@@ -182,26 +202,6 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
             Text(_money(total), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
           ],
         ),
-        if (inv['publisher_payout_amount'] != null) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(t.adminPublisherPayoutAmount, style: theme.textTheme.bodySmall),
-              Text(_money(_asMoney(inv['publisher_payout_amount'])), style: theme.textTheme.bodySmall),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${t.adminPlatformCommissionAmount}${inv['platform_commission_percent'] != null ? ' (${inv['platform_commission_percent']}%)' : ''}',
-                style: theme.textTheme.bodySmall,
-              ),
-              Text(_money(_asMoney(inv['platform_commission_amount'])), style: theme.textTheme.bodySmall),
-            ],
-          ),
-        ],
         const SizedBox(height: 24),
         Row(
           children: [

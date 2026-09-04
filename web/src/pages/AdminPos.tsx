@@ -156,6 +156,13 @@ export function AdminPos() {
     const invoiceItems = Array.isArray(createdInvoice.items) ? createdInvoice.items : []
     const invoiceTotal = Number(createdInvoice.total ?? 0)
     const createdAt = formatDateTime(createdInvoice.created_at)
+    const createdWarehouse =
+      createdInvoice.warehouse
+      ?? warehouses.find((w: any) => String(w._id) === String(createdInvoice.warehouse_id))
+    const createdPublisherName =
+      (typeof createdWarehouse?.publisher === 'object' && createdWarehouse?.publisher?.name)
+        ? createdWarehouse.publisher.name
+        : (typeof createdWarehouse?.publisher === 'string' ? createdWarehouse.publisher : null)
     return (
       <div className="space-y-4">
       <div className="flex flex-wrap gap-2 print:hidden">
@@ -164,7 +171,7 @@ export function AdminPos() {
           {t('admin.posReports')}
         </Link>
       </div>
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200">
+      <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold mb-2">{t('admin.invoiceCreated', 'Invoice Created')}</h1>
           <p className="text-stone-600">#{createdInvoice._id}</p>
@@ -172,7 +179,10 @@ export function AdminPos() {
         
         <div className="mb-6 space-y-2 text-sm border-b border-stone-200 pb-6">
           <p><strong>{t('admin.date')}:</strong> {createdAt}</p>
-          <p><strong>{t('admin.warehouse')}:</strong> {warehouses.find((w: any) => String(w._id) === String(createdInvoice.warehouse_id))?.name ?? createdInvoice.warehouse_id}</p>
+          <p><strong>{t('admin.warehouse')}:</strong> {createdWarehouse?.name ?? createdInvoice.warehouse_id}</p>
+          {createdPublisherName && (
+            <p><strong>{t('admin.publisher')}:</strong> {createdPublisherName}</p>
+          )}
           {createdInvoice.customer_name && (
             <p><strong>{t('admin.customer')}:</strong> {createdInvoice.customer_name}</p>
           )}

@@ -62,14 +62,18 @@ export function AdminPosInvoice() {
     )
   }
 
-  const warehouseName =
-    data.warehouse?.name
-    ?? warehouses.find((w: { _id: string }) => String(w._id) === String(data.warehouse_id))?.name
-    ?? data.warehouse_id
+  const warehouse =
+    data.warehouse
+    ?? warehouses.find((w: { _id: string }) => String(w._id) === String(data.warehouse_id))
+  const warehouseName = warehouse?.name ?? data.warehouse_id
+  const publisherName =
+    (typeof warehouse?.publisher === 'object' && warehouse?.publisher?.name)
+      ? warehouse.publisher.name
+      : (typeof warehouse?.publisher === 'string' ? warehouse.publisher : null)
   const items = Array.isArray(data.items) ? data.items : []
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200">
+    <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold mb-2">{t('admin.invoiceId')}</h1>
         <p className="text-stone-600 font-mono text-sm">#{data._id}</p>
@@ -78,6 +82,9 @@ export function AdminPosInvoice() {
       <div className="mb-6 space-y-2 text-sm border-b border-stone-200 pb-6">
         <p><strong>{t('admin.date')}:</strong> {formatDateTime(data.created_at)}</p>
         <p><strong>{t('admin.warehouse')}:</strong> {warehouseName || '-'}</p>
+        {publisherName && (
+          <p><strong>{t('admin.publisher')}:</strong> {publisherName}</p>
+        )}
         <p>
           <strong>{t('admin.customer')}:</strong>{' '}
           {data.customer_name || t('admin.walkInCustomer')}
@@ -106,21 +113,6 @@ export function AdminPosInvoice() {
             <th className="text-start py-4 text-lg">{t('orders.total')}</th>
             <th className="text-end py-4 text-lg">${Number(data.total ?? 0).toFixed(2)}</th>
           </tr>
-          {data.publisher_payout_amount != null && (
-            <>
-              <tr>
-                <td className="text-start py-1 text-sm text-stone-600">{t('admin.publisherPayoutAmount')}</td>
-                <td className="text-end py-1 text-sm text-stone-600">${Number(data.publisher_payout_amount).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td className="text-start py-1 text-sm text-stone-600">
-                  {t('admin.platformCommissionAmount')}
-                  {data.platform_commission_percent != null ? ` (${Number(data.platform_commission_percent)}%)` : ''}
-                </td>
-                <td className="text-end py-1 text-sm text-stone-600">${Number(data.platform_commission_amount ?? 0).toFixed(2)}</td>
-              </tr>
-            </>
-          )}
         </tfoot>
       </table>
 

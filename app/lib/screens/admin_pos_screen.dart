@@ -139,6 +139,26 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     return id ?? '-';
   }
 
+  String? _publisherNameForInvoice(Map<String, dynamic> inv) {
+    final nested = inv['warehouse'];
+    Map<String, dynamic>? warehouse;
+    if (nested is Map) {
+      warehouse = Map<String, dynamic>.from(nested);
+    } else {
+      final id = inv['warehouse_id']?.toString();
+      final match = _warehouses.where((w) => w is Map && w['_id']?.toString() == id);
+      if (match.isNotEmpty) warehouse = Map<String, dynamic>.from(match.first as Map);
+    }
+    if (warehouse == null) return null;
+    final publisher = warehouse['publisher'];
+    if (publisher is Map) {
+      final name = publisher['name']?.toString();
+      if (name != null && name.isNotEmpty) return name;
+    }
+    if (publisher is String && publisher.isNotEmpty) return publisher;
+    return null;
+  }
+
   double _unitPrice(Book book) {
     final discount = book.discountPercent ?? 0;
     return book.price - (book.price * discount / 100);
@@ -236,6 +256,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     final total = _asMoney(_createdInvoice!['total']);
     final created = _createdInvoice!['created_at']?.toString();
     final warehouseId = _createdInvoice!['warehouse_id']?.toString();
+    final publisherName = _publisherNameForInvoice(_createdInvoice!);
     return Scaffold(
       appBar: AppBar(
         title: Text(t.adminPosTerminal),
@@ -262,6 +283,10 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                 Text('${t.adminDate}: ${_formatDate(created)}'),
                 const SizedBox(height: 4),
                 Text('${t.adminWarehouse}: ${_warehouseNameById(warehouseId)}'),
+                if (publisherName != null) ...[
+                  const SizedBox(height: 4),
+                  Text('${t.adminPublisher}: $publisherName'),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   '${t.customerLabel}: ${(_createdInvoice!['customer_name']?.toString().isNotEmpty == true) ? _createdInvoice!['customer_name'] : t.adminPosWalkIn}',

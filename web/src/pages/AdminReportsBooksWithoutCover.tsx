@@ -52,7 +52,8 @@ export function AdminReportsBooksWithoutCover() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => admin.books.delete(id)))
+      const res = await admin.books.bulkDelete(ids)
+      return res.data
     },
     onSuccess: (_, ids) => {
       queryClient.invalidateQueries({ queryKey: ['admin-books-without-cover'] })
@@ -62,6 +63,9 @@ export function AdminReportsBooksWithoutCover() {
         ids.forEach((id) => next.delete(id))
         return next
       })
+    },
+    onError: (err: { response?: { data?: { message?: string } }; message?: string }) => {
+      window.alert(err?.response?.data?.message ?? err?.message ?? t('common.error'))
     },
   })
 

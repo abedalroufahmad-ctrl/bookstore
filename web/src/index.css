@@ -315,6 +315,27 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
   color: white;
 }
 
+/* Print: invoice only (hide chrome; browser URL/date headers are a print-dialog option) */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .pos-invoice-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
 /* Home page - three column layout (Elegant style) */
 .home-three-column {
   display: grid;

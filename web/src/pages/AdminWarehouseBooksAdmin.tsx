@@ -55,7 +55,8 @@ export function AdminWarehouseBooksAdmin() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((bookId) => admin.books.delete(bookId)))
+      const res = await admin.books.bulkDelete(ids)
+      return res.data
     },
     onSuccess: (_, ids) => {
       queryClient.invalidateQueries({ queryKey: ['admin-books-warehouse'] })
@@ -65,6 +66,9 @@ export function AdminWarehouseBooksAdmin() {
         ids.forEach((x) => next.delete(x))
         return next
       })
+    },
+    onError: (err: { response?: { data?: { message?: string } }; message?: string }) => {
+      window.alert(err?.response?.data?.message ?? err?.message ?? t('common.error'))
     },
   })
 
