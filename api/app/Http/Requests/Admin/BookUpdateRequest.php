@@ -43,6 +43,8 @@ class BookUpdateRequest extends BaseFormRequest
             'binding_type' => ['nullable', 'string', 'max:50'],
             'paper_type' => ['nullable', 'string', 'max:50'],
             'publisher_id' => ['nullable', 'string'],
+            'publisher_ids' => ['nullable', 'array'],
+            'publisher_ids.*' => ['required', 'string'],
             'warehouse_id' => ['sometimes', 'string'],
             'warehouse_ids' => ['sometimes', 'array', 'min:1'],
             'warehouse_ids.*' => ['required', 'string'],

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { books as booksApi, warehousesPublic as warehousesApi, publishersPublic as publishersApi } from '../lib/api'
-import { resolveCoverUrl, getPublisherLabel, getPublisherId, hasCover } from '../lib/utils'
+import { resolveCoverUrl, getPublisherEntries, hasCover } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/SettingsContext'
 import type { Book, Warehouse, Publisher } from '../lib/api'
@@ -322,20 +322,26 @@ export function HomePage() {
                                 >
                                     {book.title}
                                 </Link>
-                                {getPublisherLabel(book) && (
-                                    getPublisherId(book) ? (
-                                        <Link
-                                            to={`/publishers/${getPublisherId(book)}`}
-                                            className="text-xs mt-0.5 truncate block hover:underline"
-                                            style={{ color: 'var(--color-primary)' }}
-                                        >
-                                            🏢 {getPublisherLabel(book)}
-                                        </Link>
-                                    ) : (
-                                        <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
-                                            🏢 {getPublisherLabel(book)}
-                                        </div>
-                                    )
+                                {getPublisherEntries(book).length > 0 && (
+                                    <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                                        {getPublisherEntries(book).map((p, i) => (
+                                            <span key={p.id ?? p.name}>
+                                                {i > 0 && '، '}
+                                                {i === 0 ? '🏢 ' : ''}
+                                                {p.id ? (
+                                                    <Link
+                                                        to={`/publishers/${p.id}`}
+                                                        className="hover:underline"
+                                                        style={{ color: 'var(--color-primary)' }}
+                                                    >
+                                                        {p.name}
+                                                    </Link>
+                                                ) : (
+                                                    p.name
+                                                )}
+                                            </span>
+                                        ))}
+                                    </div>
                                 )}
                                 <div className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>
                                     ${book.price?.toFixed(2) ?? '—'}

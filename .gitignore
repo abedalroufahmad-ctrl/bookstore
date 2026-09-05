@@ -4,6 +4,8 @@
 !/api/storage/framework/sessions/.gitkeep
 /api/storage/framework/views/*.php
 /api/storage/logs/*.log
+/api/storage/app/tessdata/
+/api/storage/app/ocr-venv/
 /api/.env
 /api/vendor/
 .phpunit.result.cache

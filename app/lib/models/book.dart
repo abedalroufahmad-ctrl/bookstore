@@ -14,6 +14,8 @@ class Book {
     this.pages,
     this.publishYear,
     this.publisher,
+    this.publishers,
+    this.publisherIds,
     this.size,
     this.weight,
     this.coverImage,
@@ -33,6 +35,8 @@ class Book {
   final Category? category;
   final List<Author>? authors;
   final Publisher? publisher;
+  final List<Publisher>? publishers;
+  final List<String>? publisherIds;
   final Warehouse? warehouse;
   final String? description;
   final int? pages;
@@ -72,6 +76,24 @@ class Book {
   bool get hasCover =>
       _isRealCoverUrl(coverImageThumb?.trim()) ||
       _isRealCoverUrl(coverImage?.trim());
+
+  /// Publishers for display (multi + legacy single).
+  List<Publisher> get displayPublishers {
+    final multi = publishers
+            ?.where((p) => (p.name ?? '').trim().isNotEmpty)
+            .toList() ??
+        const <Publisher>[];
+    if (multi.isNotEmpty) return multi;
+    if (publisher != null && (publisher!.name ?? '').trim().isNotEmpty) {
+      return [publisher!];
+    }
+    return const [];
+  }
+
+  /// Authors for display.
+  List<Author> get displayAuthors =>
+      authors?.where((a) => (a.name ?? '').trim().isNotEmpty).toList() ??
+      const <Author>[];
 
   static String? _fixUrl(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -123,6 +145,27 @@ class Book {
           : (json['publisher_id'] != null
               ? Publisher(id: '${json['publisher_id']}', name: null)
               : null),
+      publishers: () {
+        if (json['publishers'] is List) {
+          return (json['publishers'] as List)
+              .whereType<Map>()
+              .map((e) => Publisher.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+        return null;
+      }(),
+      publisherIds: () {
+        if (json['publisher_ids'] is List) {
+          return (json['publisher_ids'] as List)
+              .map((e) => e.toString())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        if (json['publisher_id'] != null) {
+          return ['${json['publisher_id']}'];
+        }
+        return null;
+      }(),
       size: json['size']?.toString(),
       weight: (json['weight'] as num?)?.toDouble(),
       coverImage: _fixUrl(json['cover_image']?.toString()),

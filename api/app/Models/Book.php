@@ -32,6 +32,7 @@ class Book extends Model
         'binding_type',
         'paper_type',
         'publisher_id',
+        'publisher_ids',
         'warehouse_id',
         'stock_quantity',
         'discount_percent',
@@ -79,7 +80,43 @@ class Book extends Model
             if ($book->condition === 'used' && (bool) $book->is_sold) {
                 $book->stock_quantity = 0;
             }
+
+            // Keep publisher_ids + publisher_id in sync (first id = primary for legacy filters).
+            $pubIds = array_values(array_unique(array_filter(array_map(
+                'strval',
+                (array) ($book->publisher_ids ?? [])
+            ))));
+            if ($pubIds === [] && ! empty($book->publisher_id)) {
+                $pubIds = [(string) $book->publisher_id];
+            }
+            $book->publisher_ids = $pubIds;
+            $book->publisher_id = $pubIds[0] ?? null;
         });
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function publisherIdList(): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(
+            'strval',
+            (array) ($this->publisher_ids ?? [])
+        ))));
+        if ($ids === [] && ! empty($this->publisher_id)) {
+            return [(string) $this->publisher_id];
+        }
+
+        return $ids;
+    }
+
+    public function hasPublisher(?string $publisherId): bool
+    {
+        if ($publisherId === null || $publisherId === '') {
+            return false;
+        }
+
+        return in_array((string) $publisherId, $this->publisherIdList(), true);
     }
 
     /**
@@ -141,5 +178,10 @@ class Book extends Model
     public function publisher(): BelongsTo
     {
         return $this->belongsTo(Publisher::class);
+    }
+
+    public function publishers(): BelongsToMany
+    {
+        return $this->belongsToMany(Publisher::class, null, 'publisher_ids');
     }
 }

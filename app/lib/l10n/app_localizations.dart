@@ -320,6 +320,24 @@ class AppLocalizations {
   String get adminPayoutPaypalEmail => _s('تحصيل PayPal', 'PayPal payout');
   String get adminAddBook => _s('إضافة كتاب', 'Add book');
   String get adminEditBook => _s('تعديل كتاب', 'Edit book');
+  String get adminCoverImage => _s('صورة الغلاف', 'Cover image');
+  String get adminCoverImageHint => _s(
+        'التقط صورة واضحة للغلاف (ويفضّل ظهر الغلاف مع الرقم الدولي ISBN). نحفظ الصورة ونحاول ملء البيانات تلقائياً.',
+        'Take a clear cover photo (back cover with ISBN barcode works best). We save it and try to fill book details automatically.',
+      );
+  String get adminTakeCoverPhoto => _s('التقاط صورة', 'Take photo');
+  String get adminUploadCoverFile => _s('اختيار صورة', 'Choose image');
+  String get adminRemoveCover => _s('إزالة الغلاف', 'Remove cover');
+  String get adminReadingCover => _s('جاري قراءة الغلاف...', 'Reading cover...');
+  String get adminFailedAnalyzeCover => _s('فشل قراءة صورة الغلاف', 'Failed to read cover image');
+  String get adminCoverFilled => _s(
+        'تم حفظ الغلاف وملء الحقول المتاحة — راجعها قبل الحفظ.',
+        'Cover saved and available fields filled — review before saving.',
+      );
+  String get adminCoverSavedOnly => _s(
+        'تم حفظ الغلاف. لم تُقرأ تفاصيل كافية — عبّئ الحقول يدوياً.',
+        'Cover saved. Not enough details read — fill fields manually.',
+      );
   String get adminSave => _s('حفظ', 'Save');
   String get adminDeleteConfirm => _s('هل أنت متأكد من الحذف؟', 'Are you sure you want to delete?');
   String get adminCondition => _s('الحالة', 'Condition');

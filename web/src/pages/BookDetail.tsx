@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { books, cart } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings, formatWeight } from '../contexts/SettingsContext'
-import { calculateDiscountedPrice, resolveCoverUrl, getPublisherLabel, getPublisherId, getWarehouseId } from '../lib/utils'
+import { calculateDiscountedPrice, resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
 
 const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
   const show = alwaysShow || (value != null && value !== '')
@@ -66,9 +66,8 @@ export function BookDetail() {
   const authors = Array.isArray(book.authors) ? book.authors : []
   const category = book.category
   const warehouse = book.warehouse
-  const publisherId = getPublisherId(book)
+  const publisherEntries = getPublisherEntries(book)
   const warehouseId = getWarehouseId(book)
-  const publisherLabel = getPublisherLabel(book)
   const warehouseLabel =
     warehouse != null
       ? [warehouse.name, [warehouse.city, warehouse.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')
@@ -204,15 +203,22 @@ export function BookDetail() {
               label={t('bookDetail.publisher')}
               alwaysShow
               value={
-                publisherLabel
-                  ? publisherId
-                    ? (
-                      <Link to={`/publishers/${publisherId}`} style={{ color: 'var(--color-primary)' }} className="hover:underline">
-                        {publisherLabel}
-                      </Link>
-                      )
-                    : publisherLabel
-                  : '—'
+                publisherEntries.length > 0 ? (
+                  <>
+                    {publisherEntries.map((p, i) => (
+                      <span key={p.id ?? p.name}>
+                        {i > 0 && '، '}
+                        {p.id ? (
+                          <Link to={`/publishers/${p.id}`} style={{ color: 'var(--color-primary)' }} className="hover:underline">
+                            {p.name}
+                          </Link>
+                        ) : (
+                          <span>{p.name}</span>
+                        )}
+                      </span>
+                    ))}
+                  </>
+                ) : '—'
               }
             />
             <InfoRow label={t('bookDetail.year')} value={book.publish_year} />

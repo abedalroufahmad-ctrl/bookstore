@@ -161,23 +161,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ],
               ],
             ),
-            _buildAuthorsRow(t.bookAuthors, b.authors, t.notSet),
+            _buildAuthorsRow(t.bookAuthors, b.displayAuthors, t.notSet),
             if (b.category != null)
               _buildCategoryRow(t.bookCategory, b.category!),
             if (b.isbn != null && b.isbn!.isNotEmpty)
               _buildInfoRow(t.bookIsbn, b.isbn!),
-            if (b.publisher != null && b.publisher!.name != null && b.publisher!.name!.isNotEmpty)
-              b.publisher!.id.isNotEmpty
-                  ? _buildLinkRow(
-                      t.bookPublisher,
-                      b.publisher!.name!,
-                      () => Navigator.pushNamed(
-                        context,
-                        '/publisher/${b.publisher!.id}',
-                        arguments: {'name': b.publisher!.name},
-                      ),
-                    )
-                  : _buildInfoRow(t.bookPublisher, b.publisher!.name!),
+            _buildPublishersRow(t.bookPublisher, b.displayPublishers, t.notSet),
             if (b.warehouse != null && b.warehouse!.name != null)
               b.warehouse!.id.isNotEmpty
                   ? _buildLinkRow(
@@ -409,7 +398,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       for (int i = 0; i < authors.length; i++) ...[
-                        if (i > 0) Text(', ', style: TextStyle(color: Colors.grey.shade700)),
+                        if (i > 0) Text('، ', style: TextStyle(color: Colors.grey.shade700)),
                         InkWell(
                           onTap: () => Navigator.pushNamed(
                             context,
@@ -428,6 +417,59 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             ),
                           ),
                         ),
+                      ],
+                    ],
+                  )
+                : Text(emptyValue),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPublishersRow(String label, List<Publisher> publishers, String emptyValue) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: publishers.isNotEmpty
+                ? Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (int i = 0; i < publishers.length; i++) ...[
+                        if (i > 0) Text('، ', style: TextStyle(color: Colors.grey.shade700)),
+                        publishers[i].id.isNotEmpty
+                            ? InkWell(
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/publisher/${publishers[i].id}',
+                                  arguments: {'name': publishers[i].name},
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                  child: Text(
+                                    publishers[i].name ?? '',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Text(publishers[i].name ?? ''),
                       ],
                     ],
                   )

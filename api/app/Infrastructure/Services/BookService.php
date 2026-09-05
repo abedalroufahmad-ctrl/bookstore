@@ -15,7 +15,7 @@ class BookService
 
     public function getAll(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $filters['with'] = $filters['with'] ?? ['category', 'warehouse', 'authors', 'publisher'];
+        $filters['with'] = $filters['with'] ?? ['category', 'warehouse', 'authors', 'publisher', 'publishers'];
 
         return $this->repository->getPaginated($filters, $perPage);
     }
@@ -25,7 +25,7 @@ class BookService
         return $this->repository->encodeCursor($book);
     }
 
-    public function getById(string $id, array $with = ['category', 'warehouse', 'authors', 'publisher']): ?Book
+    public function getById(string $id, array $with = ['category', 'warehouse', 'authors', 'publisher', 'publishers']): ?Book
     {
         return $this->repository->findById($id, $with);
     }
@@ -55,7 +55,7 @@ class BookService
 
         $this->bustCatalogCache();
 
-        return $this->repository->findById($id, ['category', 'warehouse', 'authors', 'publisher']);
+        return $this->repository->findById($id, ['category', 'warehouse', 'authors', 'publisher', 'publishers']);
     }
 
     public function delete(string $id): bool

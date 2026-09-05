@@ -75,6 +75,7 @@ class BookController extends BaseApiController
     public function store(BookStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $data = $this->normalizePublisherPayload($data);
 
         // Publisher managers can only create books under their own publisher.
         $employee = auth('employee')->user();
@@ -84,6 +85,7 @@ class BookController extends BaseApiController
                 return $this->errorResponse('Forbidden. You are not assigned to a publisher.', 403);
             }
             $data['publisher_id'] = $publisherId;
+            $data['publisher_ids'] = [$publisherId];
         }
 
         $warehouseIds = array_values(array_unique(array_filter(array_map(
@@ -163,11 +165,11 @@ class BookController extends BaseApiController
 
         $employee = auth('employee')->user();
         if ($employee && UserRole::isPublisherScoped($employee->role)
-            && ! $employee->managesPublisher((string) ($book->publisher_id ?? ''))) {
+            && ! $book->hasPublisher($employee->getManagedPublisherId())) {
             return $this->errorResponse('Forbidden. You can only access your publisher\'s books.', 403);
         }
 
-        $book->loadMissing(['authors', 'publisher']);
+        $book->loadMissing(['authors', 'publisher', 'publishers']);
 
         return $this->successResponse($book);
     }
@@ -175,6 +177,9 @@ class BookController extends BaseApiController
     public function update(BookUpdateRequest $request, string $id): JsonResponse
     {
         $data = $request->validated();
+        if (array_key_exists('publisher_ids', $data) || array_key_exists('publisher_id', $data)) {
+            $data = $this->normalizePublisherPayload($data);
+        }
 
         $employee = auth('employee')->user();
         $existing = $this->bookService->getById($id);
@@ -183,11 +188,17 @@ class BookController extends BaseApiController
         }
 
         if ($employee && UserRole::isPublisherScoped($employee->role)) {
-            if (! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
+            if (! $existing->hasPublisher($employee->getManagedPublisherId())) {
                 return $this->errorResponse('Forbidden. You can only update your publisher\'s books.', 403);
             }
-            // Keep the book under this publisher.
-            $data['publisher_id'] = $employee->getManagedPublisherId();
+            // Keep the book under this publisher (may keep co-publishers already on the book).
+            $managed = $employee->getManagedPublisherId();
+            $ids = $existing->publisherIdList();
+            if ($managed && ! in_array($managed, $ids, true)) {
+                $ids[] = $managed;
+            }
+            $data['publisher_ids'] = $ids !== [] ? $ids : ($managed ? [$managed] : []);
+            $data['publisher_id'] = $managed;
         }
 
         $warehouseIds = null;
@@ -230,6 +241,7 @@ class BookController extends BaseApiController
                 'binding_type' => $book->binding_type,
                 'paper_type' => $book->paper_type,
                 'publisher_id' => $book->publisher_id,
+                'publisher_ids' => $book->publisherIdList(),
                 'stock_quantity' => $book->stock_quantity,
                 'discount_percent' => $book->discount_percent,
                 'condition' => $book->condition ?? 'new',
@@ -266,7 +278,7 @@ class BookController extends BaseApiController
             if (! $existing) {
                 return $this->errorResponse('Book not found', 404);
             }
-            if (! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
+            if (! $existing->hasPublisher($employee->getManagedPublisherId())) {
                 return $this->errorResponse('Forbidden. You can only delete your publisher\'s books.', 403);
             }
         }
@@ -293,7 +305,7 @@ class BookController extends BaseApiController
                 continue;
             }
             if ($employee && UserRole::isPublisherScoped($employee->role)
-                && ! $employee->managesPublisher((string) ($existing->publisher_id ?? ''))) {
+                && ! $existing->hasPublisher($employee->getManagedPublisherId())) {
                 $forbidden++;
                 continue;
             }
@@ -307,5 +319,23 @@ class BookController extends BaseApiController
             'forbidden' => $forbidden,
             'missing' => $missing,
         ], 'Books deleted');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function normalizePublisherPayload(array $data): array
+    {
+        $ids = [];
+        if (! empty($data['publisher_ids']) && is_array($data['publisher_ids'])) {
+            $ids = array_values(array_unique(array_filter(array_map('strval', $data['publisher_ids']))));
+        } elseif (! empty($data['publisher_id'])) {
+            $ids = [(string) $data['publisher_id']];
+        }
+        $data['publisher_ids'] = $ids;
+        $data['publisher_id'] = $ids[0] ?? null;
+
+        return $data;
     }
 }

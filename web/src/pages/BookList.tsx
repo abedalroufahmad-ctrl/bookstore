@@ -15,7 +15,7 @@ import { BookConditionFilter, type BookConditionFilterValue } from '../component
 import { Pagination } from '../components/Pagination'
 import { useSettings } from '../contexts/SettingsContext'
 import { useAddToCart } from '../hooks/useAddToCart'
-import { getPublisherLabel, getPublisherId, getWarehouseId } from '../lib/utils'
+import { getPublisherEntries, getWarehouseId } from '../lib/utils'
 
 function parseCondition(raw: string | null): BookConditionFilterValue {
   if (raw === 'new' || raw === 'used') return raw
@@ -247,8 +247,7 @@ export function BookList() {
             coverImageThumb={book.cover_image_thumb}
             authorName={book.authors?.map((a: any) => a.name).join('، ') || ''}
             authors={book.authors}
-            publisher={getPublisherLabel(book)}
-            publisherId={getPublisherId(book)}
+            publishers={getPublisherEntries(book)}
             warehouseName={book.warehouse?.name}
             warehouseId={getWarehouseId(book)}
             discountPercent={book.discount_percent}

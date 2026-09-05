@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\EmployeeController;
 use App\Http\Controllers\Api\Admin\PosController;
 use App\Http\Controllers\Api\Admin\PublisherController;
 use App\Http\Controllers\Api\Admin\SettingController;
+use App\Http\Controllers\Api\Admin\AnalyzeCoverController;
 use App\Http\Controllers\Api\Admin\UploadAuthorPhotoController;
 use App\Http\Controllers\Api\Admin\UploadCoverController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
@@ -52,6 +53,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         // Catalog: managers + publisher managers (scoped by restrict middleware)
         Route::middleware('role:manager,publisher_manager')->group(function () {
             Route::post('upload-cover', UploadCoverController::class);
+            Route::post('analyze-cover', AnalyzeCoverController::class);
             Route::post('upload-author-photo', UploadAuthorPhotoController::class);
 
             Route::get('books', [BookController::class, 'index']);

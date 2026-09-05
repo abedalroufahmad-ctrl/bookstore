@@ -21,6 +21,7 @@ const emptyForm: BookFormData = {
   pages: undefined,
   publish_year: undefined,
   publisher_id: '',
+  publisher_ids: [],
   size: '',
   weight: undefined,
   cover_image: '',
@@ -94,6 +95,7 @@ export function AdminBookForm() {
   const [addingAuthor, setAddingAuthor] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [coverSuccess, setCoverSuccess] = useState('')
 
   const { data: bookData } = useQuery({
     queryKey: ['admin-book', id],
@@ -263,20 +265,33 @@ export function AdminBookForm() {
 
   const publisherList = extractList<{ _id: string; name: string }>(publishersData)
   const searchPublisherList = extractList<{ _id: string; name: string }>(publishersSearchData)
+  const rawBookPublishers = ((rawBook as any)?.publishers as Array<{ _id?: string; id?: string; name?: string }> | undefined) ?? []
+  const bookPublishers: { _id: string; name: string }[] = rawBookPublishers.map((p) => ({
+    _id: normalizeId(p._id ?? p.id) ?? '',
+    name: p.name ?? '',
+  })).filter((p) => p._id)
   const rawBookPublisher = (rawBook as any)?.publisher as { _id?: string; id?: string; name?: string } | undefined
-  const selectedPublisherLabel =
-    (form.publisher_id && (() => {
-      const fromList = publisherList.find((c) => c._id === form.publisher_id)
-      if (fromList) return fromList.name
-      const fromSearch = searchPublisherList.find((c) => c._id === form.publisher_id)
-      if (fromSearch) return fromSearch.name
-      if (rawBookPublisher && normalizeId(rawBookPublisher._id ?? rawBookPublisher.id) === form.publisher_id) {
-        return rawBookPublisher.name ?? ''
-      }
-      return null
-    })()) ?? null
+  if (rawBookPublisher) {
+    const id = normalizeId(rawBookPublisher._id ?? rawBookPublisher.id)
+    if (id && !bookPublishers.some((p) => p._id === id)) {
+      bookPublishers.push({ _id: id, name: rawBookPublisher.name ?? '' })
+    }
+  }
+
+  const selectedPublishers = (form.publisher_ids ?? [])
+    .map((publisherId) => {
+      const fromList = publisherList.find((p) => p._id === publisherId)
+      if (fromList) return fromList
+      const fromSearch = searchPublisherList.find((p) => p._id === publisherId)
+      if (fromSearch) return fromSearch
+      const fromBook = bookPublishers.find((p) => p._id === publisherId)
+      if (fromBook) return fromBook
+      return { _id: publisherId, name: '' }
+    })
+    .filter((p): p is { _id: string; name: string } => Boolean(p._id))
+
   const filteredPublishers = searchPublisherList.filter(
-    (c) => c._id !== form.publisher_id
+    (c) => !(form.publisher_ids ?? []).includes(c._id)
   )
 
   useEffect(() => {
@@ -298,6 +313,14 @@ export function AdminBookForm() {
         pages: b.pages,
         publish_year: b.publish_year,
         publisher_id: normalizeId(b.publisher_id) ?? (b.publisher as { _id?: string } | undefined)?._id ?? '',
+        publisher_ids: (() => {
+          const fromIds = Array.isArray((b as any).publisher_ids)
+            ? ((b as any).publisher_ids as unknown[]).map((id) => normalizeId(id)).filter((id): id is string => id != null)
+            : []
+          if (fromIds.length) return fromIds
+          const single = normalizeId(b.publisher_id) ?? (b.publisher as { _id?: string } | undefined)?._id
+          return single ? [single] : []
+        })(),
         size: b.size ?? '',
         weight: b.weight,
         cover_image: b.cover_image ?? '',
@@ -342,7 +365,13 @@ export function AdminBookForm() {
 
   useEffect(() => {
     if (!isEdit && isPublisherManager && managedPublisherId) {
-      setForm((prev) => ({ ...prev, publisher_id: managedPublisherId }))
+      setForm((prev) => ({
+        ...prev,
+        publisher_id: managedPublisherId,
+        publisher_ids: (prev.publisher_ids ?? []).includes(managedPublisherId)
+          ? (prev.publisher_ids ?? [])
+          : [managedPublisherId, ...(prev.publisher_ids ?? [])],
+      }))
     }
   }, [isEdit, isPublisherManager, managedPublisherId])
 
@@ -414,6 +443,10 @@ export function AdminBookForm() {
           : form.warehouse_id || warehouseIds[0])
       : warehouseIds[0]
 
+    const publisherIds = isPublisherManager && managedPublisherId
+      ? Array.from(new Set([managedPublisherId, ...(form.publisher_ids ?? [])]))
+      : (form.publisher_ids ?? [])
+
     const payload: BookFormData = {
       ...form,
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
@@ -422,9 +455,8 @@ export function AdminBookForm() {
         ? [primaryWarehouseId, ...warehouseIds.filter((wid) => wid !== primaryWarehouseId)]
         : warehouseIds,
       warehouse_id: primaryWarehouseId,
-      publisher_id: isPublisherManager && managedPublisherId
-        ? managedPublisherId
-        : (form.publisher_id || undefined),
+      publisher_ids: publisherIds,
+      publisher_id: publisherIds[0] || undefined,
     }
     if (isEdit) {
       updateMutation.mutate(payload)
@@ -514,6 +546,125 @@ export function AdminBookForm() {
     },
   })
 
+  const resolveAuthorIds = async (names: string[]): Promise<string[]> => {
+    const ids: string[] = []
+    for (const raw of names) {
+      const name = raw.trim()
+      if (!name) continue
+      const existing = authorList.find((a) => a.name.trim().toLowerCase() === name.toLowerCase())
+      if (existing?._id) {
+        ids.push(existing._id)
+        continue
+      }
+      try {
+        const created = await admin.authors.create({ name })
+        const id = (created.data?.data as { _id?: string } | undefined)?._id
+        if (id) ids.push(id)
+      } catch {
+        // keep going — cover still saved
+      }
+    }
+    if (ids.length) {
+      queryClient.invalidateQueries({ queryKey: ['admin-authors'] })
+    }
+    return ids
+  }
+
+  const resolvePublisherIds = async (names: string[]): Promise<string[]> => {
+    const ids: string[] = []
+    for (const raw of names) {
+      const id = await resolvePublisherId(raw)
+      if (id && !ids.includes(id)) ids.push(id)
+    }
+    return ids
+  }
+
+  const resolvePublisherId = async (rawName: string): Promise<string | undefined> => {
+    const name = rawName.trim()
+    if (!name) return undefined
+    const existing = publisherList.find((p) => {
+      const a = p.name.trim().toLowerCase()
+      const b = name.toLowerCase()
+      return a === b || a.includes(b) || b.includes(a)
+    })
+    if (existing?._id) return existing._id
+    try {
+      const created = await admin.publishers.create({ name })
+      const id = (created.data?.data as { _id?: string } | undefined)?._id
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['admin-publishers'] })
+        return id
+      }
+    } catch {
+      // cover still saved
+    }
+    return undefined
+  }
+
+  const handleCoverFile = async (file: File | null, input?: HTMLInputElement | null) => {
+    if (!file) return
+    setCoverUploading(true)
+    setError('')
+    setCoverSuccess('')
+    try {
+      const res = await admin.analyzeCover(file)
+      const data = res.data?.data
+      if (!data?.cover_image) {
+        setError(
+          (res.data as { message?: string } | undefined)?.message
+            || t('admin.failedAnalyzeCover')
+        )
+        return
+      }
+      const suggested = data.suggested ?? {}
+      const publisherNames = Array.isArray(suggested.publishers) && suggested.publishers.length
+        ? suggested.publishers.map(String)
+        : (suggested.publisher ? [String(suggested.publisher)] : [])
+      const publisherIds = publisherNames.length
+        ? await resolvePublisherIds(publisherNames)
+        : []
+      const authorIds = suggested.authors?.length
+        ? await resolveAuthorIds(suggested.authors)
+        : []
+
+      setForm((p) => ({
+        ...p,
+        cover_image: data.cover_image,
+        cover_image_thumb: data.cover_image_thumb || data.cover_image,
+        title: suggested.title?.trim() || p.title,
+        isbn: suggested.isbn?.trim() || p.isbn,
+        description: suggested.description?.trim() || p.description,
+        pages: suggested.pages ?? p.pages,
+        publish_year: suggested.publish_year ?? p.publish_year,
+        publisher_ids: publisherIds.length ? publisherIds : p.publisher_ids,
+        publisher_id: publisherIds[0] || p.publisher_id,
+        author_ids: authorIds.length ? authorIds : p.author_ids,
+      }))
+
+      const filledCount = [
+        suggested.title,
+        suggested.isbn,
+        authorIds.length ? 'authors' : '',
+        publisherIds.length ? 'publisher' : '',
+        suggested.pages,
+        suggested.publish_year,
+        suggested.description,
+      ].filter(Boolean).length
+
+      setCoverSuccess(
+        filledCount > 0
+          ? t('admin.coverAnalyzed')
+          : t('admin.coverSavedOnly', 'Cover saved. No text details found — fill the fields manually.')
+      )
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } }
+      setError(axiosErr.response?.data?.message || t('admin.failedAnalyzeCover'))
+    } finally {
+      setCoverUploading(false)
+      if (input) input.value = ''
+    }
+  }
+
   const selectCategory = (categoryId: string) => {
     setForm((prev) => ({ ...prev, category_id: categoryId }))
     setCategorySearch('')
@@ -541,14 +692,33 @@ export function AdminBookForm() {
     },
   })
 
-  const selectPublisher = (publisherId: string) => {
-    setForm((prev) => ({ ...prev, publisher_id: publisherId }))
+  const addPublisherToBook = (publisherId: string) => {
+    if ((form.publisher_ids ?? []).includes(publisherId)) return
+    setForm((prev) => {
+      const next = [...(prev.publisher_ids ?? []), publisherId]
+      return {
+        ...prev,
+        publisher_ids: next,
+        publisher_id: next[0] ?? '',
+      }
+    })
     setPublisherSearch('')
     setPublisherDropdownOpen(false)
   }
 
-  const clearPublisher = () => {
-    setForm((prev) => ({ ...prev, publisher_id: '' }))
+  const removePublisherFromBook = (publisherId: string) => {
+    setForm((prev) => {
+      const next = (prev.publisher_ids ?? []).filter((id) => id !== publisherId)
+      return {
+        ...prev,
+        publisher_ids: next,
+        publisher_id: next[0] ?? '',
+      }
+    })
+  }
+
+  const selectPublisher = (publisherId: string) => {
+    addPublisherToBook(publisherId)
   }
 
   const loading = createMutation.isPending || updateMutation.isPending
@@ -1073,35 +1243,34 @@ export function AdminBookForm() {
           <p className="text-xs text-stone-500 mb-2">
             {t('admin.coverImageHint')}
           </p>
-          <input
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              setCoverUploading(true)
-              try {
-                const res = await admin.uploadCover(file)
-                const data = res.data?.data
-                if (data?.cover_image && data?.cover_image_thumb) {
-                  setForm((p) => ({
-                    ...p,
-                    cover_image: data.cover_image,
-                    cover_image_thumb: data.cover_image_thumb,
-                  }))
-                }
-              } catch {
-                setError(t('admin.failedUpload'))
-              } finally {
-                setCoverUploading(false)
-                e.target.value = ''
-              }
-            }}
-            disabled={coverUploading}
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-100 file:text-amber-900 file:font-medium hover:file:bg-amber-200"
-          />
+          <div className="flex flex-wrap gap-2 mb-2">
+            <label className="inline-flex items-center px-4 py-2 rounded-lg border border-stone-300 bg-white text-sm font-medium cursor-pointer hover:bg-stone-50 disabled:opacity-50">
+              {t('admin.takeCoverPhoto')}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                disabled={coverUploading}
+                onChange={(e) => void handleCoverFile(e.target.files?.[0] ?? null, e.target)}
+              />
+            </label>
+            <label className="inline-flex items-center px-4 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm font-medium cursor-pointer hover:bg-amber-100">
+              {t('admin.uploadCoverFile')}
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                className="sr-only"
+                disabled={coverUploading}
+                onChange={(e) => void handleCoverFile(e.target.files?.[0] ?? null, e.target)}
+              />
+            </label>
+          </div>
           {coverUploading && (
             <p className="mt-1 text-sm text-amber-700">{t('admin.uploading')}</p>
+          )}
+          {coverSuccess && !coverUploading && (
+            <p className="mt-1 text-sm text-green-700">{coverSuccess}</p>
           )}
           {(form.cover_image || form.cover_image_thumb) && (
             <div className="mt-3 flex gap-4 items-start">
@@ -1268,20 +1437,26 @@ export function AdminBookForm() {
             )}
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
-            {selectedPublisherLabel && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm">
-                {selectedPublisherLabel}
+            {selectedPublishers.map((p) => (
+              <span
+                key={p._id}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm"
+              >
+                {p.name || p._id}
                 <button
                   type="button"
-                  onClick={clearPublisher}
+                  onClick={() => removePublisherFromBook(p._id)}
                   className="text-amber-700 hover:text-amber-900 font-medium"
                   aria-label={t('admin.remove') ?? 'Remove'}
                 >
                   ×
                 </button>
               </span>
-            )}
+            ))}
           </div>
+          <p className="text-xs text-stone-500 mt-1">
+            {t('admin.searchPublisherHint') ?? 'Type to search and select one or more publishers.'}
+          </p>
         </div>
         )}
         {error && (

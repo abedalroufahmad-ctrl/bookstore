@@ -171,6 +171,29 @@ export const admin = {
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )
   },
+  analyzeCover: (file: File) => {
+    const formData = new FormData()
+    formData.append('cover_image', file)
+    return api.post<
+      ApiResponse<{
+        cover_image: string
+        cover_image_thumb: string
+        ocr_text?: string | null
+        suggested?: {
+          title?: string
+          isbn?: string
+          authors?: string[]
+          publish_year?: number
+          pages?: number
+          description?: string
+          publisher?: string
+          publishers?: string[]
+        }
+      }>
+    >('/admin/analyze-cover', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
   uploadAuthorPhoto: (file: File) => {
     const formData = new FormData()
     formData.append('photo', file)
@@ -370,7 +393,9 @@ export interface Book {
   pages?: number
   publish_year?: number
   publisher_id?: string
+  publisher_ids?: string[]
   publisher?: Publisher
+  publishers?: Publisher[]
   size?: string
   weight?: number
   cover_image?: string
@@ -446,6 +471,7 @@ export interface BookFormData {
   pages?: number
   publish_year?: number
   publisher_id?: string
+  publisher_ids?: string[]
   cover_image?: string
   cover_image_thumb?: string
   size?: string

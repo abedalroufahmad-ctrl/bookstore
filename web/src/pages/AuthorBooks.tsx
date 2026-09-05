@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { authors as authorsApi, books as booksApi } from '../lib/api'
-import { resolveCoverUrl, getPublisherLabel, getPublisherId, getWarehouseId } from '../lib/utils'
+import { resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
 import { useSettings } from '../contexts/SettingsContext'
 import { useAuth } from '../contexts/AuthContext'
 import { BookCard } from '../components/BookCard'
@@ -230,8 +230,7 @@ export function AuthorBooks() {
                             coverImageThumb={book.cover_image_thumb}
                             authorName={book.authors?.map((a) => a.name).join('، ')}
                             authors={book.authors}
-                            publisher={getPublisherLabel(book)}
-                            publisherId={getPublisherId(book)}
+                            publishers={getPublisherEntries(book)}
                             warehouseName={book.warehouse?.name}
                             warehouseId={getWarehouseId(book)}
                             discountPercent={book.discount_percent ?? 0}

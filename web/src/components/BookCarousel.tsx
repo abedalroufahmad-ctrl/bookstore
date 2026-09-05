@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { BookCard } from './BookCard'
 import type { Book } from '../lib/api'
 import { useAddToCart } from '../hooks/useAddToCart'
-import { getPublisherId, getWarehouseId } from '../lib/utils'
+import { getPublisherEntries, getWarehouseId } from '../lib/utils'
 
 interface BookCarouselProps {
     title: string
@@ -72,8 +72,7 @@ export function BookCarousel({
                             coverImageThumb={book.cover_image_thumb}
                             authorName={book.authors?.map((a) => a.name).join('، ') || ''}
                             authors={book.authors}
-                            publisher={typeof book.publisher === 'string' ? book.publisher : book.publisher?.name}
-                            publisherId={getPublisherId(book)}
+                            publishers={getPublisherEntries(book)}
                             warehouseName={book.warehouse?.name}
                             warehouseId={getWarehouseId(book)}
                             discountPercent={book.discount_percent}

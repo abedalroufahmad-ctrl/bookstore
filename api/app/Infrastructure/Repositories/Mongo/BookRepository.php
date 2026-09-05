@@ -27,6 +27,7 @@ class BookRepository implements BookRepositoryInterface
         'category_id',
         'warehouse_id',
         'publisher_id',
+        'publisher_ids',
         'cover_image',
         'cover_image_thumb',
         'has_cover',
@@ -48,18 +49,42 @@ class BookRepository implements BookRepositoryInterface
     {
         $query = $this->model->newQuery();
 
-        if (! empty($with)) {
-            $query->with($with);
+        $loadAuthorsManually = in_array('authors', $with, true);
+        $loadPublishersManually = in_array('publishers', $with, true);
+        $eloquentWith = array_values(array_filter(
+            $with,
+            static fn ($relation) => $relation !== 'authors' && $relation !== 'publishers'
+        ));
+
+        if (! empty($eloquentWith)) {
+            $query->with($eloquentWith);
         }
 
-        return $query->find($id);
+        $book = $query->find($id);
+        if (! $book) {
+            return null;
+        }
+
+        $items = collect([$book]);
+        if ($loadAuthorsManually) {
+            $this->hydrateAuthors($items);
+        }
+        if ($loadPublishersManually) {
+            $this->hydratePublishers($items);
+        }
+
+        return $book;
     }
 
     public function getPaginated(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $with = $filters['with'] ?? ['category', 'warehouse', 'authors', 'publisher'];
+        $with = $filters['with'] ?? ['category', 'warehouse', 'authors', 'publisher', 'publishers'];
         $loadAuthorsManually = in_array('authors', $with, true);
-        $eloquentWith = array_values(array_filter($with, fn ($relation) => $relation !== 'authors'));
+        $loadPublishersManually = in_array('publishers', $with, true);
+        $eloquentWith = array_values(array_filter(
+            $with,
+            static fn ($relation) => $relation !== 'authors' && $relation !== 'publishers'
+        ));
 
         $query = $this->model->newQuery()->select(self::LIST_COLUMNS);
 
@@ -96,6 +121,9 @@ class BookRepository implements BookRepositoryInterface
 
         if ($loadAuthorsManually) {
             $this->hydrateAuthors($items);
+        }
+        if ($loadPublishersManually) {
+            $this->hydratePublishers($items);
         }
 
         $paginator = new Paginator(
@@ -210,7 +238,8 @@ class BookRepository implements BookRepositoryInterface
                         ->orWhere('isbn', 'like', "%{$search}%");
 
                     if (! empty($publisherIds)) {
-                        $q->orWhereIn('publisher_id', $publisherIds);
+                        $q->orWhereIn('publisher_id', $publisherIds)
+                            ->orWhereIn('publisher_ids', $publisherIds);
                     }
                 });
             }
@@ -228,7 +257,11 @@ class BookRepository implements BookRepositoryInterface
         }
 
         if (! empty($filters['publisher_id'])) {
-            $query->where('publisher_id', $filters['publisher_id']);
+            $pid = (string) $filters['publisher_id'];
+            $query->where(function ($q) use ($pid) {
+                $q->where('publisher_id', $pid)
+                    ->orWhere('publisher_ids', $pid);
+            });
         }
 
         if (! empty($filters['author_id'])) {
@@ -416,6 +449,37 @@ class BookRepository implements BookRepositoryInterface
                 ->filter()
                 ->values();
             $book->setRelation('authors', $related);
+        }
+    }
+
+    private function hydratePublishers(Collection $books): void
+    {
+        $publisherIds = $books
+            ->flatMap(fn (Book $book) => $book->publisherIdList())
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($publisherIds === []) {
+            foreach ($books as $book) {
+                $book->setRelation('publishers', collect());
+            }
+
+            return;
+        }
+
+        $publishersById = Publisher::query()
+            ->whereIn('_id', $publisherIds)
+            ->get(['_id', 'name'])
+            ->keyBy(fn (Publisher $publisher) => (string) $publisher->getKey());
+
+        foreach ($books as $book) {
+            $related = collect($book->publisherIdList())
+                ->map(fn ($id) => $publishersById[(string) $id] ?? null)
+                ->filter()
+                ->values();
+            $book->setRelation('publishers', $related);
         }
     }
 

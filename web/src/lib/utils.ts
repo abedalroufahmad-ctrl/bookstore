@@ -52,16 +52,82 @@ export function resolveCoverUrl(path: string | undefined, apiBase?: string): str
   return baseWithoutApi ? `${baseWithoutApi}${normalizedPath}` : normalizedPath
 }
 
+export type PublisherRef = { _id?: string; id?: string; name?: string }
+
+/** All publishers on a book (multi + legacy single). */
+export function getPublisherEntries(
+  book: {
+    publisher_ids?: string[]
+    publishers?: PublisherRef[] | null
+    publisher_id?: string
+    publisher?: string | PublisherRef | null
+  }
+): { id?: string; name: string }[] {
+  const out: { id?: string; name: string }[] = []
+  const seen = new Set<string>()
+
+  const push = (id?: string, name?: string) => {
+    const n = (name ?? '').trim()
+    if (!n) return
+    const key = id ? `id:${id}` : `name:${n.toLowerCase()}`
+    if (seen.has(key)) return
+    seen.add(key)
+    out.push({ id, name: n })
+  }
+
+  if (Array.isArray(book.publishers) && book.publishers.length > 0) {
+    for (const p of book.publishers) {
+      if (!p) continue
+      push(
+        p._id != null ? String(p._id) : p.id != null ? String(p.id) : undefined,
+        p.name
+      )
+    }
+  }
+
+  // Fall back / merge legacy single publisher when relation is missing or empty.
+  if (book.publisher) {
+    if (typeof book.publisher === 'string') {
+      push(book.publisher_id ? String(book.publisher_id) : undefined, book.publisher)
+    } else {
+      push(
+        book.publisher._id != null
+          ? String(book.publisher._id)
+          : book.publisher.id != null
+            ? String(book.publisher.id)
+            : book.publisher_id
+              ? String(book.publisher_id)
+              : undefined,
+        book.publisher.name
+      )
+    }
+  }
+
+  return out
+}
+
 export function getPublisherLabel(
-  book: { publisher?: string | { name?: string } | null }
+  book: {
+    publishers?: PublisherRef[] | null
+    publisher?: string | { name?: string } | null
+  }
 ): string | undefined {
-  if (!book.publisher) return undefined
-  return typeof book.publisher === 'string' ? book.publisher : book.publisher.name
+  const entries = getPublisherEntries(book)
+  if (entries.length) return entries.map((e) => e.name).join('، ')
+  return undefined
 }
 
 export function getPublisherId(
-  book: { publisher_id?: string; publisher?: string | { _id?: string; id?: string } | null }
+  book: {
+    publisher_ids?: string[]
+    publisher_id?: string
+    publishers?: PublisherRef[] | null
+    publisher?: string | { _id?: string; id?: string } | null
+  }
 ): string | undefined {
+  const entries = getPublisherEntries(book)
+  if (entries[0]?.id) return entries[0].id
+  if (book.publisher_ids?.[0]) return String(book.publisher_ids[0])
   if (book.publisher_id) return String(book.publisher_id)
   if (!book.publisher || typeof book.publisher === 'string') return undefined
   const id = book.publisher._id ?? book.publisher.id

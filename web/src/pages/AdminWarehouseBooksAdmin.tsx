@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { admin } from '../lib/api'
+import { getPublisherEntries } from '../lib/utils'
 import { Pagination } from '../components/Pagination'
 import type { Book, Warehouse } from '../lib/api'
 
@@ -192,7 +193,11 @@ export function AdminWarehouseBooksAdmin() {
                 </td>
                 <td className="px-4 py-2">{book.title}</td>
                 <td className="px-4 py-2">{book.isbn ?? '-'}</td>
-                <td className="px-4 py-2">{typeof book.publisher === 'string' ? book.publisher : (book.publisher?.name ?? '-')}</td>
+                <td className="px-4 py-2">
+                  {getPublisherEntries(book).length
+                    ? getPublisherEntries(book).map((p) => p.name).join('، ')
+                    : '-'}
+                </td>
                 <td className="px-4 py-2">${Number(book.price ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2">{book.stock_quantity ?? 0}</td>
                 <td className="px-4 py-2 text-right">

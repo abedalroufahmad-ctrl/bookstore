@@ -645,6 +645,17 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> adminAnalyzeCover(String filePath, {String? filename}) async {
+    final res = await _client.postMultipart<Map<String, dynamic>>(
+      '/admin/analyze-cover',
+      fieldName: 'cover_image',
+      filePath: filePath,
+      filename: filename,
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return res;
+  }
+
   Future<ApiResponse<dynamic>> adminBooksDelete(String id) async {
     return _client.delete('/admin/books/$id');
   }

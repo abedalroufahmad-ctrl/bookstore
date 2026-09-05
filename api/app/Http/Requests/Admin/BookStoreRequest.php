@@ -35,6 +35,8 @@ class BookStoreRequest extends BaseFormRequest
             'binding_type' => ['nullable', 'string', 'max:50'],
             'paper_type' => ['nullable', 'string', 'max:50'],
             'publisher_id' => ['nullable', 'string'],
+            'publisher_ids' => ['nullable', 'array'],
+            'publisher_ids.*' => ['required', 'string'],
             'warehouse_id' => ['nullable', 'string'],
             'warehouse_ids' => ['required', 'array', 'min:1'],
             'warehouse_ids.*' => ['required', 'string'],

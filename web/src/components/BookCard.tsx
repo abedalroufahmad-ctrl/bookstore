@@ -22,6 +22,8 @@ interface BookCardProps {
   authors?: AuthorRef[]
   publisher?: string
   publisherId?: string
+  /** Prefer this over single publisher/publisherId when present. */
+  publishers?: { id?: string; name: string }[]
   warehouseName?: string
   warehouseId?: string
   discountPercent?: number
@@ -59,6 +61,7 @@ export function BookCard({
   authors,
   publisher,
   publisherId,
+  publishers,
   warehouseName,
   warehouseId,
   discountPercent,
@@ -82,6 +85,13 @@ export function BookCard({
   const coverUrl = useMemo(() => (coverImageThumb || coverImage || '').trim(), [coverImageThumb, coverImage])
   const isNullLike = coverUrl && (coverUrl.toLowerCase() === 'null' || coverUrl.toLowerCase() === 'undefined')
   const showRealCover = coverUrl && !isNullLike && !useFallbackCover
+  const publisherEntries = useMemo(() => {
+    if (publishers && publishers.length > 0) {
+      return publishers.filter((p) => (p.name ?? '').trim())
+    }
+    if (publisher) return [{ id: publisherId, name: publisher }]
+    return [] as { id?: string; name: string }[]
+  }, [publishers, publisher, publisherId])
 
   return (
     <div className="book-card">
@@ -162,21 +172,33 @@ export function BookCard({
 
         <div className="book-title-text">{title}</div>
       </Link>
-      {(publisher || warehouseName) && (
+      {(publisherEntries.length > 0 || warehouseName) && (
         <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {publisher && (
-            publisherId ? (
-              <Link
-                to={`/publishers/${publisherId}`}
-                onClick={(e) => e.stopPropagation()}
-                className="hover:underline"
-                style={{ color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-              >
-                🏢 {publisher}
-              </Link>
-            ) : (
-              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏢 {publisher}</div>
-            )
+          {publisherEntries.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+              {publisherEntries.slice(0, 3).map((p, i) => (
+                <span key={p.id ?? p.name} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%' }}>
+                  {i > 0 && <span style={{ marginInlineEnd: 4 }}>،</span>}
+                  {p.id ? (
+                    <Link
+                      to={`/publishers/${p.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:underline"
+                      style={{ color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    >
+                      {i === 0 ? `🏢 ${p.name}` : p.name}
+                    </Link>
+                  ) : (
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {i === 0 ? `🏢 ${p.name}` : p.name}
+                    </span>
+                  )}
+                </span>
+              ))}
+              {publisherEntries.length > 3 && (
+                <span>+{publisherEntries.length - 3}</span>
+              )}
+            </div>
           )}
           {warehouseName && (
             warehouseId ? (

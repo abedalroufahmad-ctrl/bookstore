@@ -148,39 +148,61 @@ class BookCard extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
-                if (book.publisher != null &&
-                    book.publisher!.name != null &&
-                    book.publisher!.name!.isNotEmpty)
+                if (book.displayPublishers.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: book.publisher!.id.isNotEmpty
-                        ? GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              Navigator.of(context).pushNamed(
-                                '/publisher/${book.publisher!.id}',
-                                arguments: {'name': book.publisher!.name},
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        for (var i = 0; i < book.displayPublishers.length && i < 3; i++) ...[
+                          if (i > 0)
+                            Text(
+                              '، ',
+                              style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                            ),
+                          Builder(
+                            builder: (context) {
+                              final p = book.displayPublishers[i];
+                              final label = i == 0 ? '🏢 ${p.name}' : (p.name ?? '');
+                              if (p.id.isNotEmpty) {
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    Navigator.of(context).pushNamed(
+                                      '/publisher/${p.id}',
+                                      arguments: {'name': p.name},
+                                    );
+                                  },
+                                  child: Text(
+                                    label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 10,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 10,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                ),
                               );
                             },
-                            child: Text(
-                              '🏢 ${book.publisher!.name}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 10,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            '🏢 ${book.publisher!.name}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 10,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
                           ),
+                        ],
+                        if (book.displayPublishers.length > 3)
+                          Text(
+                            ' +${book.displayPublishers.length - 3}',
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                          ),
+                      ],
+                    ),
                   ),
                 if (book.warehouse != null && book.warehouse!.name != null)
                   Padding(
@@ -214,25 +236,45 @@ class BookCard extends StatelessWidget {
                             ),
                           ),
                   ),
-                if (book.authors != null && book.authors!.isNotEmpty)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      final author = book.authors!.first;
-                      Navigator.of(context).pushNamed(
-                        '/author/${author.id}',
-                        arguments: {'name': author.name},
-                      );
-                    },
-                    child: Text(
-                      book.authors!.first.name ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontSize: 11,
-                        decoration: TextDecoration.none,
-                      ),
+                if (book.displayAuthors.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        for (var i = 0; i < book.displayAuthors.length && i < 3; i++) ...[
+                          if (i > 0)
+                            Text(
+                              '، ',
+                              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                            ),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              final author = book.displayAuthors[i];
+                              Navigator.of(context).pushNamed(
+                                '/author/${author.id}',
+                                arguments: {'name': author.name},
+                              );
+                            },
+                            child: Text(
+                              book.displayAuthors[i].name ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontSize: 11,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (book.displayAuthors.length > 3)
+                          Text(
+                            ' +${book.displayAuthors.length - 3}',
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                          ),
+                      ],
                     ),
                   ),
                 const SizedBox(height: 2),

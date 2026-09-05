@@ -17,13 +17,13 @@ class ApiClient {
     return lang.startsWith('ar');
   }
 
-  Future<Map<String, String>> _headers() async {
+  Future<Map<String, String>> _headers({bool json = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     final lang = prefs.getString('app_locale') ?? 'ar';
     final locale = lang.startsWith('ar') ? 'ar' : 'en';
     return {
-      'Content-Type': 'application/json',
+      if (json) 'Content-Type': 'application/json',
       'Accept': 'application/json',
       'Accept-Language': locale,
       'X-Locale': locale,
@@ -127,6 +127,32 @@ class ApiClient {
         Uri.parse('$_baseUrl$path'),
         headers: await _headers(),
       );
+      return await _parseResponse<T>(res, fromJson);
+    } catch (e) {
+      return ApiResponse(success: false, message: await _connectionError(e), data: null);
+    }
+  }
+
+  Future<ApiResponse<T>> postMultipart<T>(
+    String path, {
+    required String fieldName,
+    required String filePath,
+    String? filename,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl$path');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers.addAll(await _headers(json: false));
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fieldName,
+          filePath,
+          filename: filename,
+        ),
+      );
+      final streamed = await request.send();
+      final res = await http.Response.fromStream(streamed);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
