@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
 import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
+import '../utils/weight_format.dart';
 import '../widgets/pos_section_nav.dart';
 
 class AdminPosScreen extends StatefulWidget {
@@ -33,11 +34,14 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   bool _submitting = false;
   Map<String, dynamic>? _createdInvoice;
+  double _invoiceShippingFee = 0;
+  String _weightUnit = 'kg';
 
   @override
   void initState() {
     super.initState();
     _loadLookups();
+    _loadShippingFee();
   }
 
   @override
@@ -94,6 +98,22 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     });
     if (_warehouseId.isNotEmpty) {
       await _loadBooks();
+    }
+  }
+
+  Future<void> _loadShippingFee() async {
+    final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final raw = res.data!['invoice_shipping_fee'];
+      final fee = raw is num ? raw.toDouble() : double.tryParse(raw?.toString() ?? '') ?? 0;
+      final unit = res.data!['weight_unit']?.toString();
+      setState(() {
+        _invoiceShippingFee = fee < 0 ? 0 : fee;
+        if (unit == 'kg' || unit == 'g' || unit == 'lb' || unit == 'oz') {
+          _weightUnit = unit!;
+        }
+      });
     }
   }
 
@@ -190,7 +210,8 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     });
   }
 
-  double get _subtotal => _cart.fold(0, (sum, item) => sum + (_unitPrice(item.book) * item.quantity));
+  double get _booksSubtotal => _cart.fold(0, (sum, item) => sum + (_unitPrice(item.book) * item.quantity));
+  double get _cartTotal => _booksSubtotal + _invoiceShippingFee;
 
   Future<void> _checkout() async {
     if (_cart.isEmpty || _warehouseId.isEmpty || _submitting) return;
@@ -295,7 +316,15 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                 Row(
                   children: [
                     Expanded(child: Text(t.adminItemTitle, style: theme.textTheme.labelLarge)),
-                    Text(t.adminItemPrice, style: theme.textTheme.labelLarge),
+                    SizedBox(
+                      width: 72,
+                      child: Text(t.bookWeight, style: theme.textTheme.labelLarge, textAlign: TextAlign.end),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 72,
+                      child: Text(t.adminItemPrice, style: theme.textTheme.labelLarge, textAlign: TextAlign.end),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -303,13 +332,25 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                   final item = Map<String, dynamic>.from(raw as Map);
                   final qty = item['quantity'] as num? ?? 1;
                   final price = _asMoney(item['price']);
+                  final lineW = lineWeightGrams(item['weight'] as num?, qty);
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(child: Text('${item['book_title'] ?? item['book_id']}  x$qty')),
-                        Text(_money(price * qty)),
+                        SizedBox(
+                          width: 72,
+                          child: Text(
+                            lineW > 0 ? formatWeight(lineW, _weightUnit) : '—',
+                            textAlign: TextAlign.end,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 72,
+                          child: Text(_money(price * qty), textAlign: TextAlign.end),
+                        ),
                       ],
                     ),
                   );
@@ -318,9 +359,49 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Text(t.booksSubtotalLabel),
+                    Text(_money(_createdInvoice!['books_subtotal'] != null
+                        ? _asMoney(_createdInvoice!['books_subtotal'])
+                        : ((_createdInvoice!['items'] as List?) ?? []).fold<double>(0, (s, raw) {
+                            final item = Map<String, dynamic>.from(raw as Map);
+                            return s + _asMoney(item['price']) * (item['quantity'] as num? ?? 1);
+                          }))),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(t.shippingFeeLabel),
+                    Text(_money(_asMoney(_createdInvoice!['shipping_fee']))),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Text(t.ordersTotalLabel, style: theme.textTheme.titleLarge),
                     Text(_money(total), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
                   ],
+                ),
+                Builder(
+                  builder: (context) {
+                    final totalW = ((_createdInvoice!['items'] as List?) ?? []).fold<double>(0, (s, raw) {
+                      final item = Map<String, dynamic>.from(raw as Map);
+                      return s + lineWeightGrams(item['weight'] as num?, item['quantity'] as num?);
+                    });
+                    if (totalW <= 0) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(t.totalWeightLabel),
+                          Text(formatWeight(totalW, _weightUnit)),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -586,6 +667,13 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                                         overflow: TextOverflow.ellipsis,
                                         style: theme.textTheme.bodySmall,
                                       ),
+                                      if (b.weight != null && b.weight! > 0)
+                                        Text(
+                                          formatWeight(b.weight, _weightUnit),
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                          ),
+                                        ),
                                       const SizedBox(height: 2),
                                       Text(
                                         _money(_unitPrice(b)),
@@ -677,7 +765,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                       child: Text(t.adminCurrentSale, style: theme.textTheme.titleSmall),
                     ),
                     Text(
-                      itemCount == 0 ? t.adminPosCartEmpty : '$itemCount · ${_money(_subtotal)}',
+                      itemCount == 0 ? t.adminPosCartEmpty : '$itemCount · ${_money(_cartTotal)}',
                       style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
                     ),
                   ],
@@ -838,9 +926,25 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Text(t.booksSubtotalLabel),
+              Text(_money(_booksSubtotal)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(t.shippingFeeLabel),
+              Text(_money(_invoiceShippingFee)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(t.ordersTotalLabel, style: theme.textTheme.titleMedium),
               Text(
-                _money(_subtotal),
+                _money(_cartTotal),
                 style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary),
               ),
             ],

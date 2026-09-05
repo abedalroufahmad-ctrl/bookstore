@@ -5,6 +5,7 @@ import '../api/api_service.dart';
 import '../config.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
+import '../utils/weight_format.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -34,6 +35,7 @@ class BookDetailScreen extends StatefulWidget {
 class _BookDetailScreenState extends State<BookDetailScreen> {
   Book? _book;
   double _globalDiscount = 0;
+  String _weightUnit = 'kg';
   bool _loading = true;
   int _qty = 1;
   bool _authorsLoadRequested = false;
@@ -73,6 +75,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       _book = res.data;
       if (settingsRes.success && settingsRes.data != null) {
         _globalDiscount = (settingsRes.data!['global_discount'] ?? 0).toDouble();
+        final unit = settingsRes.data!['weight_unit']?.toString();
+        if (unit == 'kg' || unit == 'g' || unit == 'lb' || unit == 'oz') {
+          _weightUnit = unit!;
+        }
       }
     });
   }
@@ -188,7 +194,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             if (b.size != null && b.size!.isNotEmpty)
               _buildInfoRow(t.bookSize, b.size!),
             if (b.weight != null)
-              _buildInfoRow(t.bookWeight, '${b.weight} kg'),
+              _buildInfoRow(t.bookWeight, formatWeight(b.weight, _weightUnit)),
             _buildInfoRow(
               _s(context, 'الحالة', 'Condition'),
               b.isUsed ? _s(context, 'مستعمل', 'Used') : _s(context, 'جديد', 'New'),

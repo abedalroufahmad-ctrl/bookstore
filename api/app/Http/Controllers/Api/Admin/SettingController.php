@@ -29,6 +29,7 @@ class SettingController extends BaseApiController
         $settings = Setting::all()->pluck('value', 'key')->toArray();
 
         $globalDiscount = $settings['global_discount'] ?? 0;
+        $invoiceShippingFee = $settings['invoice_shipping_fee'] ?? 0;
         $weightUnit = $settings['weight_unit'] ?? 'kg';
         $catalogItems = $settings['catalog_items_per_page'] ?? 24;
 
@@ -55,6 +56,7 @@ class SettingController extends BaseApiController
 
         return [
             'global_discount' => is_numeric($globalDiscount) ? (float) $globalDiscount : 0,
+            'invoice_shipping_fee' => is_numeric($invoiceShippingFee) ? max(0, (float) $invoiceShippingFee) : 0,
             'weight_unit' => is_string($weightUnit) ? $weightUnit : 'kg',
             'catalog_items_per_page' => is_numeric($catalogItems) ? (int) $catalogItems : 24,
             'payment_methods' => $paymentMethods,
@@ -70,6 +72,7 @@ class SettingController extends BaseApiController
 
         $validated = $request->validate([
             'global_discount' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'invoice_shipping_fee' => ['sometimes', 'numeric', 'min:0'],
             'weight_unit' => ['sometimes', 'string', 'in:kg,g,lb,oz'],
             'catalog_items_per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'payment_methods' => ['sometimes', 'array'],

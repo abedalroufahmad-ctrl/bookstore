@@ -12,6 +12,7 @@ class AdminSettingsScreen extends StatefulWidget {
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _discountCtrl = TextEditingController();
+  final _shippingCtrl = TextEditingController();
   final _perPageCtrl = TextEditingController();
   bool _loading = true;
   bool _saving = false;
@@ -27,6 +28,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   @override
   void dispose() {
     _discountCtrl.dispose();
+    _shippingCtrl.dispose();
     _perPageCtrl.dispose();
     super.dispose();
   }
@@ -43,6 +45,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       if (res.success && res.data != null) {
         _settings = Map<String, dynamic>.from(res.data!);
         _discountCtrl.text = '${_settings['global_discount'] ?? ''}';
+        _shippingCtrl.text = '${_settings['invoice_shipping_fee'] ?? ''}';
         _perPageCtrl.text = '${_settings['catalog_items_per_page'] ?? ''}';
       } else {
         _error = res.message;
@@ -67,9 +70,19 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       return;
     }
 
+    final shippingRaw = _shippingCtrl.text.trim().replaceAll(',', '.');
+    final shipping = shippingRaw.isEmpty ? 0.0 : double.tryParse(shippingRaw);
+    if (shipping == null || shipping < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.invalidNumber)),
+      );
+      return;
+    }
+
     final body = <String, dynamic>{
       ..._settings,
       'global_discount': discount,
+      'invoice_shipping_fee': shipping,
     };
 
     final perPageRaw = _perPageCtrl.text.trim();
@@ -143,6 +156,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       decoration: InputDecoration(
                         labelText: t.adminGlobalDiscount,
                         helperText: t.adminGlobalDiscountHint,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _shippingCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: t.adminInvoiceShippingFee,
+                        helperText: t.adminInvoiceShippingFeeHint,
                       ),
                     ),
                     const SizedBox(height: 16),

@@ -190,6 +190,7 @@ class AppLocalizations {
   String get paymentMethodHint => _s('مثال: cod أو paypal', 'e.g. cod, paypal');
   String get saveQuote => _s('حفظ العرض', 'Save quote');
   String get booksSubtotalLabel => _s('الكتب', 'Books');
+  String get totalWeightLabel => _s('الوزن الإجمالي', 'Total weight');
   String get paymentStatusLabel => _s('حالة الدفع', 'Payment status');
   String get invalidShippingFee => _s('أدخل رسوم شحن صالحة', 'Enter a valid shipping fee');
   String get ordersItemTitleCol => _s('العنوان', 'Title');
@@ -364,6 +365,12 @@ class AppLocalizations {
   String get adminGlobalDiscountHint => _s(
         'يُطبَّق على كل الكتب التي ليس لها خصم خاص.',
         'Applied to all books that do not have a special discount.',
+      );
+  String get adminInvoiceShippingFee =>
+      _s('رسوم شحن الفاتورة (\$)', 'Invoice shipping fee (\$)');
+  String get adminInvoiceShippingFeeHint => _s(
+        'تُضاف إلى كل فاتورة نقطة بيع وكل طلب إلكتروني جديد.',
+        'Added to every POS invoice and new online order total.',
       );
   String get adminCatalogItemsPerPage =>
       _s('عناصر الكتالوج لكل صفحة', 'Catalog items per page');

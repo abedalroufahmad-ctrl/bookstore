@@ -36,6 +36,7 @@ export function AdminSettings() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [globalDiscount, setGlobalDiscount] = useState<number>(0)
+  const [invoiceShippingFee, setInvoiceShippingFee] = useState<number>(0)
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg')
   const [catalogItemsPerPage, setCatalogItemsPerPage] = useState<number>(25)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>(DEFAULT_PAYMENT_METHODS)
@@ -59,6 +60,8 @@ export function AdminSettings() {
       const d = data.data as Record<string, unknown>
       const val = Number(d.global_discount)
       setGlobalDiscount(Number.isNaN(val) ? 0 : val)
+      const shipping = Number(d.invoice_shipping_fee)
+      setInvoiceShippingFee(Number.isNaN(shipping) ? 0 : Math.max(0, shipping))
       setWeightUnit((d.weight_unit as WeightUnit) || 'kg')
       const perPage = Number(d.catalog_items_per_page)
       setCatalogItemsPerPage(perPage >= 1 && perPage <= 100 ? Math.round(perPage) : 25)
@@ -69,6 +72,7 @@ export function AdminSettings() {
   const updateMutation = useMutation({
     mutationFn: (payload: {
       global_discount?: number
+      invoice_shipping_fee?: number
       weight_unit?: WeightUnit
       catalog_items_per_page?: number
       payment_methods?: PaymentMethodItem[]
@@ -92,6 +96,7 @@ export function AdminSettings() {
     setError('')
     updateMutation.mutate({
       global_discount: globalDiscount,
+      invoice_shipping_fee: invoiceShippingFee,
       weight_unit: weightUnit,
       catalog_items_per_page: catalogItemsPerPage,
       payment_methods: paymentMethods,
@@ -162,6 +167,26 @@ export function AdminSettings() {
           </div>
           <p className="mt-2 text-xs text-stone-500">
             {t('admin.settings.globalDiscountHint') || 'This discount applies to all books that do not have a special discount set.'}
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">
+            {t('admin.settings.invoiceShippingFee') || 'Invoice shipping fee ($)'}
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={invoiceShippingFee}
+              onChange={(e) => setInvoiceShippingFee(Math.max(0, parseFloat(e.target.value) || 0))}
+              className="w-32 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+            <span className="text-stone-500">USD</span>
+          </div>
+          <p className="mt-2 text-xs text-stone-500">
+            {t('admin.settings.invoiceShippingFeeHint') || 'Added to every POS invoice and new online order total.'}
           </p>
         </div>
 

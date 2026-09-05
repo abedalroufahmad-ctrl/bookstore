@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
+import '../utils/weight_format.dart';
 import '../widgets/pos_section_nav.dart';
 
 class AdminPosInvoiceScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
   List<dynamic> _warehouses = [];
   bool _loading = true;
   String? _error;
+  String _weightUnit = 'kg';
 
   @override
   void initState() {
@@ -37,6 +39,7 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
       _error = null;
     });
     final whRes = await ApiService.instance.adminWarehousesList();
+    final settingsRes = await ApiService.instance.getSettings();
     final res = await ApiService.instance.adminPosGetInvoice(widget.invoiceId);
     if (!mounted) return;
     Map<String, dynamic>? invoice = widget.initialInvoice;
@@ -51,6 +54,12 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
       _invoice = invoice;
       if (whRes.success && whRes.data != null) {
         _warehouses = whRes.data!;
+      }
+      if (settingsRes.success && settingsRes.data != null) {
+        final unit = settingsRes.data!['weight_unit']?.toString();
+        if (unit == 'kg' || unit == 'g' || unit == 'lb' || unit == 'oz') {
+          _weightUnit = unit!;
+        }
       }
       if (invoice == null && _error == null) {
         _error = AppLocalizations.of(context).adminInvoiceNotFound;
@@ -176,7 +185,15 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
         Row(
           children: [
             Expanded(child: Text(t.adminItemTitle, style: theme.textTheme.labelLarge)),
-            Text(t.adminItemPrice, style: theme.textTheme.labelLarge),
+            SizedBox(
+              width: 72,
+              child: Text(t.bookWeight, style: theme.textTheme.labelLarge, textAlign: TextAlign.end),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 72,
+              child: Text(t.adminItemPrice, style: theme.textTheme.labelLarge, textAlign: TextAlign.end),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -184,12 +201,25 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
           final item = Map<String, dynamic>.from(raw as Map);
           final qty = item['quantity'] as num? ?? 1;
           final price = _asMoney(item['price']);
+          final lineW = lineWeightGrams(item['weight'] as num?, qty);
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
                 Expanded(child: Text('${item['book_title'] ?? item['book_id']}  x$qty')),
-                Text(_money(price * qty)),
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    lineW > 0 ? formatWeight(lineW, _weightUnit) : '—',
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 72,
+                  child: Text(_money(price * qty), textAlign: TextAlign.end),
+                ),
               ],
             ),
           );
@@ -198,9 +228,49 @@ class _AdminPosInvoiceScreenState extends State<AdminPosInvoiceScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Text(t.booksSubtotalLabel),
+            Text(_money(inv['books_subtotal'] != null
+                ? _asMoney(inv['books_subtotal'])
+                : items.fold<double>(0, (s, raw) {
+                    final item = Map<String, dynamic>.from(raw as Map);
+                    return s + _asMoney(item['price']) * (item['quantity'] as num? ?? 1);
+                  }))),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(t.shippingFeeLabel),
+            Text(_money(_asMoney(inv['shipping_fee']))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             Text(t.ordersTotalLabel, style: theme.textTheme.titleLarge),
             Text(_money(total), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
           ],
+        ),
+        Builder(
+          builder: (context) {
+            final totalW = items.fold<double>(0, (s, raw) {
+              final item = Map<String, dynamic>.from(raw as Map);
+              return s + lineWeightGrams(item['weight'] as num?, item['quantity'] as num?);
+            });
+            if (totalW <= 0) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(t.totalWeightLabel),
+                  Text(formatWeight(totalW, _weightUnit)),
+                ],
+              ),
+            );
+          },
         ),
         const SizedBox(height: 24),
         Row(

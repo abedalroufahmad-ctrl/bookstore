@@ -173,6 +173,9 @@ class CartService extends BaseService implements CartServiceInterface
                 'quantity' => $qty,
                 'price' => $this->calculateDiscountedPrice($book),
                 'book_title' => $book->title,
+                'weight' => $book->weight !== null && is_numeric($book->weight)
+                    ? round((float) $book->weight, 3)
+                    : null,
             ];
         }
 

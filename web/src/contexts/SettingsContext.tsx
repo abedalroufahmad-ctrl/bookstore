@@ -6,6 +6,7 @@ export type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
 
 interface Settings {
     global_discount: number
+    invoice_shipping_fee: number
     weight_unit: WeightUnit
     catalog_items_per_page: number
 }
@@ -68,6 +69,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const raw = data?.data
     const settings: Settings = {
         global_discount: typeof raw?.global_discount === 'number' ? raw.global_discount : 0,
+        invoice_shipping_fee: typeof raw?.invoice_shipping_fee === 'number' ? Math.max(0, raw.invoice_shipping_fee) : 0,
         weight_unit: (raw?.weight_unit as WeightUnit) || 'kg',
         catalog_items_per_page: typeof raw?.catalog_items_per_page === 'number' && raw.catalog_items_per_page >= 1
             ? Math.min(100, Math.round(raw.catalog_items_per_page))

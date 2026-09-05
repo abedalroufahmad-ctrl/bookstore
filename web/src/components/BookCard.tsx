@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { calculateDiscountedPrice, resolveCoverUrl } from '../lib/utils'
+import { formatWeight, useSettings } from '../contexts/SettingsContext'
 
 const FALLBACK_COVER_URL = '/favicon.png'
 
@@ -26,6 +27,10 @@ interface BookCardProps {
   publishers?: { id?: string; name: string }[]
   warehouseName?: string
   warehouseId?: string
+  /** Category / genre label for orange accent line. */
+  categoryName?: string | null
+  /** Stored weight in grams. */
+  weight?: number | null
   discountPercent?: number
   globalDiscount: number
   condition?: 'new' | 'used'
@@ -64,6 +69,8 @@ export function BookCard({
   publishers,
   warehouseName,
   warehouseId,
+  categoryName,
+  weight,
   discountPercent,
   globalDiscount,
   condition,
@@ -73,6 +80,7 @@ export function BookCard({
   isInCart,
 }: BookCardProps) {
   const { t } = useTranslation()
+  const { settings } = useSettings()
   const [useFallbackCover, setUseFallbackCover] = useState(false)
 
   const { finalPrice, discountUsed, isSpecial } = calculateDiscountedPrice(
@@ -80,6 +88,7 @@ export function BookCard({
     discountPercent,
     globalDiscount
   )
+  const weightLabel = formatWeight(weight, settings.weight_unit)
 
   const authorId = (a: AuthorRef) => a._id ?? a.id
   const coverUrl = useMemo(() => (coverImageThumb || coverImage || '').trim(), [coverImageThumb, coverImage])
@@ -95,7 +104,7 @@ export function BookCard({
 
   return (
     <div className="book-card">
-      <Link to={`/books/${id}`} style={{ textDecoration: 'none' }}>
+      <Link to={`/books/${id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
         <div className="book-cover-wrapper">
           {showRealCover ? (
             <img
@@ -118,37 +127,16 @@ export function BookCard({
               style={{
                 position: 'absolute',
                 top: 8,
-                left: 8,
+                insetInlineStart: 8,
                 background: isSold ? '#7f1d1d' : '#92400e',
                 color: '#fff',
                 fontSize: 10,
                 padding: '2px 8px',
-                borderRadius: 3,
+                borderRadius: 6,
                 fontWeight: 700,
               }}
             >
               {isSold ? t('bookDetail.sold') : t('bookDetail.conditionUsed')}
-            </div>
-          )}
-
-          {authorName && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                background: 'rgba(0,0,0,0.55)',
-                color: '#fff',
-                fontSize: 10,
-                padding: '2px 8px',
-                borderRadius: 3,
-                maxWidth: '80%',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {authorName}
             </div>
           )}
 
@@ -161,6 +149,13 @@ export function BookCard({
           )}
         </div>
 
+        <div className="book-title-text">{title}</div>
+        {categoryName && <div className="book-category-text">{categoryName}</div>}
+        {weightLabel && (
+          <div className="book-weight-text">
+            {t('bookDetail.weight')}: {weightLabel}
+          </div>
+        )}
         <div className="book-price-row">
           {discountUsed > 0 && (
             <span className="original-price">${price.toFixed(2)}</span>
@@ -169,35 +164,29 @@ export function BookCard({
             ${finalPrice.toFixed(2)}
           </span>
         </div>
-
-        <div className="book-title-text">{title}</div>
       </Link>
+
       {(publisherEntries.length > 0 || warehouseName) && (
-        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="book-card-meta">
           {publisherEntries.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-              {publisherEntries.slice(0, 3).map((p, i) => (
-                <span key={p.id ?? p.name} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', alignItems: 'center' }}>
+              {publisherEntries.slice(0, 2).map((p, i) => (
+                <span key={p.id ?? p.name}>
                   {i > 0 && <span style={{ marginInlineEnd: 4 }}>،</span>}
                   {p.id ? (
                     <Link
                       to={`/publishers/${p.id}`}
                       onClick={(e) => e.stopPropagation()}
                       className="hover:underline"
-                      style={{ color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      style={{ color: 'var(--color-primary)' }}
                     >
-                      {i === 0 ? `🏢 ${p.name}` : p.name}
+                      {p.name}
                     </Link>
                   ) : (
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {i === 0 ? `🏢 ${p.name}` : p.name}
-                    </span>
+                    <span>{p.name}</span>
                   )}
                 </span>
               ))}
-              {publisherEntries.length > 3 && (
-                <span>+{publisherEntries.length - 3}</span>
-              )}
             </div>
           )}
           {warehouseName && (
@@ -206,55 +195,49 @@ export function BookCard({
                 to={`/warehouses/${warehouseId}`}
                 onClick={(e) => e.stopPropagation()}
                 className="hover:underline"
-                style={{ color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                style={{ color: 'var(--color-primary)' }}
               >
-                🏭 {warehouseName}
+                {warehouseName}
               </Link>
             ) : (
-              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏭 {warehouseName}</div>
+              <span>{warehouseName}</span>
             )
           )}
         </div>
       )}
+
       {onAddToCart && (
-        <div className="mt-3" style={{ position: 'relative', zIndex: 1 }}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onAddToCart(id)
-            }}
-            disabled={isAddingToCart}
-            className="w-full py-2 px-3 rounded-lg text-sm font-medium transition"
-            style={{
-              background: isInCart ? '#16a34a' : 'var(--color-primary)',
-              color: '#fff',
-              border: 'none',
-              cursor: isAddingToCart ? 'wait' : 'pointer',
-              pointerEvents: 'auto',
-            }}
-          >
-            {isAddingToCart ? t('common.loading') : t('bookDetail.addToCart')}
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`book-card-cart-btn${isInCart ? ' is-in-cart' : ''}`}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onAddToCart(id)
+          }}
+          disabled={isAddingToCart}
+          style={{ cursor: isAddingToCart ? 'wait' : 'pointer' }}
+        >
+          {isAddingToCart ? t('common.loading') : t('bookDetail.addToCart')}
+        </button>
       )}
+
       {(authors?.length || authorName) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+        <div className="book-card-authors">
           {authors && authors.length > 0
             ? authors.slice(0, 3).map((a) => {
-                const id = authorId(a)
+                const aid = authorId(a)
                 const name = a.name ?? t('common.unknown')
                 return (
-                  <div key={id ?? name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ position: 'relative', width: 24, height: 24, flexShrink: 0 }}>
+                  <div key={aid ?? name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ position: 'relative', width: 22, height: 22, flexShrink: 0 }}>
                       {a.photo && (
                         <img
                           src={resolveCoverUrl(a.photo)}
                           alt={name}
                           style={{
-                            width: 24,
-                            height: 24,
+                            width: 22,
+                            height: 22,
                             borderRadius: '50%',
                             objectFit: 'cover',
                             position: 'absolute',
@@ -269,12 +252,12 @@ export function BookCard({
                       )}
                       <div
                         style={{
-                          width: 24,
-                          height: 24,
+                          width: 22,
+                          height: 22,
                           borderRadius: '50%',
                           background: getAuthorColor(name),
                           color: '#fff',
-                          fontSize: 10,
+                          fontSize: 9,
                           display: a.photo ? 'none' : 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -284,9 +267,9 @@ export function BookCard({
                         {getInitials(name)}
                       </div>
                     </div>
-                    {id ? (
+                    {aid ? (
                       <Link
-                        to={`/authors/${id}`}
+                        to={`/authors/${aid}`}
                         style={{ fontSize: 12, color: 'var(--color-primary)' }}
                         className="hover:underline"
                         onClick={(e) => e.stopPropagation()}

@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin } from '../lib/api'
+import { formatWeight, useSettings } from '../contexts/SettingsContext'
 
 function unwrapInvoice(payload: unknown): any {
   if (!payload || typeof payload !== 'object') return null
@@ -20,9 +21,24 @@ function formatDateTime(raw: unknown): string {
   return Number.isNaN(d.getTime()) ? String(raw) : d.toLocaleString()
 }
 
+type InvoiceItem = {
+  book_title?: string
+  book_id?: string
+  quantity?: number
+  price?: number
+  weight?: number | null
+}
+
+function lineWeightG(item: InvoiceItem): number {
+  const unit = Number(item.weight)
+  if (!Number.isFinite(unit) || unit <= 0) return 0
+  return unit * Number(item.quantity ?? 0)
+}
+
 export function AdminPosInvoice() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
+  const { settings } = useSettings()
 
   const { data: warehousesData } = useQuery({
     queryKey: ['admin-warehouses'],
@@ -70,7 +86,9 @@ export function AdminPosInvoice() {
     (typeof warehouse?.publisher === 'object' && warehouse?.publisher?.name)
       ? warehouse.publisher.name
       : (typeof warehouse?.publisher === 'string' ? warehouse.publisher : null)
-  const items = Array.isArray(data.items) ? data.items : []
+  const items: InvoiceItem[] = Array.isArray(data.items) ? data.items : []
+  const totalWeightG = items.reduce((s, item) => s + lineWeightG(item), 0)
+  const totalWeightLabel = totalWeightG > 0 ? formatWeight(totalWeightG, settings.weight_unit) : null
 
   return (
     <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
@@ -95,24 +113,47 @@ export function AdminPosInvoice() {
         <thead>
           <tr className="border-b border-stone-200">
             <th className="text-start py-2">{t('orders.itemTitleCol')}</th>
+            <th className="text-end py-2">{t('orders.itemWeightCol')}</th>
             <th className="text-end py-2">{t('orders.itemPriceCol')}</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item: { book_title?: string; book_id?: string; quantity?: number; price?: number }, i: number) => (
-            <tr key={i} className="border-b border-stone-100">
-              <td className="py-2">
-                {item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span>
-              </td>
-              <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
-            </tr>
-          ))}
+          {items.map((item, i) => {
+            const lineW = lineWeightG(item)
+            return (
+              <tr key={i} className="border-b border-stone-100">
+                <td className="py-2">
+                  {item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span>
+                </td>
+                <td className="py-2 text-end text-stone-600">
+                  {lineW > 0 ? formatWeight(lineW, settings.weight_unit) : '—'}
+                </td>
+                <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
+              </tr>
+            )
+          })}
         </tbody>
         <tfoot>
+          <tr className="text-stone-600">
+            <td className="text-start py-2" colSpan={2}>{t('orders.booksSubtotal', 'Books subtotal')}</td>
+            <td className="text-end py-2">
+              ${(Number(data.books_subtotal ?? items.reduce((s, i) => s + Number(i.price) * Number(i.quantity ?? 0), 0))).toFixed(2)}
+            </td>
+          </tr>
+          <tr className="text-stone-600">
+            <td className="text-start py-2" colSpan={2}>{t('orders.shippingFee', 'Shipping fee')}</td>
+            <td className="text-end py-2">${Number(data.shipping_fee ?? 0).toFixed(2)}</td>
+          </tr>
           <tr>
-            <th className="text-start py-4 text-lg">{t('orders.total')}</th>
+            <th className="text-start py-4 text-lg" colSpan={2}>{t('orders.total')}</th>
             <th className="text-end py-4 text-lg">${Number(data.total ?? 0).toFixed(2)}</th>
           </tr>
+          {totalWeightLabel && (
+            <tr className="text-stone-600">
+              <td className="text-start py-2" colSpan={2}>{t('orders.totalWeight')}</td>
+              <td className="text-end py-2 font-medium">{totalWeightLabel}</td>
+            </tr>
+          )}
         </tfoot>
       </table>
 

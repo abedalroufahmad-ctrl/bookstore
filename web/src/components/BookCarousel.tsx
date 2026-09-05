@@ -75,6 +75,8 @@ export function BookCarousel({
                             publishers={getPublisherEntries(book)}
                             warehouseName={book.warehouse?.name}
                             warehouseId={getWarehouseId(book)}
+                            weight={book.weight}
+                            categoryName={(book.category && (book.category.subject_title_en || book.category.subject_title_ar || book.category.dewey_code)) || undefined}
                             discountPercent={book.discount_percent}
                             globalDiscount={globalDiscount}
                             onAddToCart={handleAddToCart}

@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Publisher> _publishers = [];
   List<Author> _authors = [];
   double _globalDiscount = 0;
+  String _weightUnit = 'kg';
   bool _isLoading = true;
   String? _error;
 
@@ -81,6 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (settingsRes.success && settingsRes.data != null) {
           _globalDiscount = (settingsRes.data!['global_discount'] ?? 0).toDouble();
+          final unit = settingsRes.data!['weight_unit']?.toString();
+          if (unit == 'kg' || unit == 'g' || unit == 'lb' || unit == 'oz') {
+            _weightUnit = unit!;
+          }
         }
 
         _isLoading = false;
@@ -202,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               return BookCard(
                                 book: book,
                                 globalDiscount: _globalDiscount,
+                                weightUnit: _weightUnit,
                                 onTap: () => Navigator.pushNamed(context, '/book/${book.id}', arguments: book),
                               );
                             }).toList(),
@@ -434,6 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: BookCard(
                                     book: newestBooks[i],
                                     globalDiscount: _globalDiscount,
+                                weightUnit: _weightUnit,
                                     onTap: () => Navigator.pushNamed(
                                       context,
                                       '/book/${newestBooks[i].id}',

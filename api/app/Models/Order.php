@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MongoDB\Laravel\Eloquent\Model;
 
 /**
- * Order items (stored): [{book_id, quantity, price}].
- * API responses may include book_title on each row when the order is loaded via OrderService::getOrderById().
+ * Order items (stored): [{book_id, quantity, price, book_title?, weight?}].
+ * weight is the unit book weight in grams at sale time.
+ * API responses may enrich book_title / weight when the order is loaded via OrderService.
  */
 class Order extends Model
 {

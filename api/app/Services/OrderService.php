@@ -12,6 +12,7 @@ use App\Models\Book;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Setting;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -55,6 +56,8 @@ class OrderService extends BaseService implements OrderServiceInterface
 
             $this->stockService->validateAndDeduct($repricedItems);
             $booksSubtotal = $this->calculateItemsTotal($repricedItems);
+            $shippingFee = $this->invoiceShippingFee();
+            $total = round($booksSubtotal + $shippingFee, 2);
             $payout = $this->publisherPayoutService->snapshotForWarehouse($warehouseId, $booksSubtotal);
 
             $order = null;
@@ -67,9 +70,9 @@ class OrderService extends BaseService implements OrderServiceInterface
                     'items' => $repricedItems,
                     'status' => OrderStatus::Completed->value,
                     'books_subtotal' => $booksSubtotal,
-                    'shipping_fee' => 0,
+                    'shipping_fee' => $shippingFee,
                     'shipping_method' => 'pos',
-                    'total' => $booksSubtotal,
+                    'total' => $total,
                     'shipping_address' => [],
                     'payment_info' => [],
                     'payment_method' => 'cash',
@@ -79,7 +82,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                 $this->paymentRepository->create([
                     'order_id' => $order->getKey(),
                     'user_id' => $employeeId,
-                    'amount' => $booksSubtotal,
+                    'amount' => $total,
                     'currency' => 'USD',
                     'method' => 'cash',
                     'status' => Payment::statusPaid(),
@@ -133,6 +136,8 @@ class OrderService extends BaseService implements OrderServiceInterface
             foreach ($groupedByWarehouse as $warehouseId => $items) {
                 $this->stockService->validateAvailability($items);
                 $booksSubtotal = $this->calculateItemsTotal($items);
+                $shippingFee = $this->invoiceShippingFee();
+                $total = round($booksSubtotal + $shippingFee, 2);
                 $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal);
 
                 $order = $this->orderRepository->create(array_merge([
@@ -141,9 +146,9 @@ class OrderService extends BaseService implements OrderServiceInterface
                     'items' => $items,
                     'status' => OrderStatus::PendingWarehouseReview->value,
                     'books_subtotal' => $booksSubtotal,
-                    'shipping_fee' => 0,
+                    'shipping_fee' => $shippingFee,
                     'shipping_method' => null,
-                    'total' => $booksSubtotal,
+                    'total' => $total,
                     'shipping_address' => $shippingAddress,
                     'payment_info' => $paymentInfo ?? [],
                     'payment_method' => $paymentMethod,
@@ -362,6 +367,15 @@ class OrderService extends BaseService implements OrderServiceInterface
         return round($total, 2);
     }
 
+    /** Global shipping charge applied to every new POS invoice / online order. */
+    private function invoiceShippingFee(): float
+    {
+        $raw = Setting::get('invoice_shipping_fee', 0);
+        $fee = is_numeric($raw) ? (float) $raw : 0.0;
+
+        return max(0.0, round($fee, 2));
+    }
+
     public function assignOrder(Order $order, string $employeeId, ?string $warehouseId = null): Order
     {
         $data = ['employee_id' => $employeeId];
@@ -396,7 +410,8 @@ class OrderService extends BaseService implements OrderServiceInterface
     }
 
     /**
-     * Add book_title to each line item for API consumers (does not persist).
+     * Add book_title / weight to each line item for API consumers.
+     * Persisted weight is kept; missing weight is filled from the current book record.
      */
     private function enrichOrderItemsWithBookTitles(Order $order): void
     {
@@ -421,10 +436,7 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $byId = [];
         foreach ($books as $book) {
-            $title = $this->normalizeBookTitleForOrderItem($book->title ?? null);
-            if ($title !== '') {
-                $byId[(string) $book->getKey()] = $title;
-            }
+            $byId[(string) $book->getKey()] = $book;
         }
 
         foreach ($items as $i => $row) {
@@ -433,8 +445,19 @@ class OrderService extends BaseService implements OrderServiceInterface
             }
 
             $bid = isset($row['book_id']) ? (string) $row['book_id'] : '';
-            if ($bid !== '' && isset($byId[$bid])) {
-                $items[$i]['book_title'] = $byId[$bid];
+            if ($bid === '' || ! isset($byId[$bid])) {
+                continue;
+            }
+
+            $book = $byId[$bid];
+            $title = $this->normalizeBookTitleForOrderItem($book->title ?? null);
+            if ($title !== '') {
+                $items[$i]['book_title'] = $title;
+            }
+            if (! array_key_exists('weight', $row) || $row['weight'] === null || $row['weight'] === '') {
+                $items[$i]['weight'] = $book->weight !== null && is_numeric($book->weight)
+                    ? round((float) $book->weight, 3)
+                    : null;
             }
         }
 

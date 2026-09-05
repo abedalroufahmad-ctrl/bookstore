@@ -108,12 +108,12 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
 
   if (variant === 'home') {
     return (
-      <form onSubmit={handleSubmit} className={`flex gap-2 ${className}`}>
+      <form onSubmit={handleSubmit} className={`search-pill ${className}`}>
         <select
           value={searchType}
           onChange={(e) => setSearchType(e.target.value as SearchType)}
-          className="search-input px-3 py-2.5 bg-white min-w-[120px]"
-          style={{ borderColor: 'var(--color-border)' }}
+          className="search-input px-3 py-2.5 min-w-[110px]"
+          aria-label={t('nav.categories')}
         >
           <option value="books">{t('nav.books')}</option>
           <option value="authors">{t('nav.authors')}</option>
@@ -126,14 +126,14 @@ export function SearchBox({ variant = 'nav', className = '', homePlaceholder }: 
           onKeyDown={handleSearchKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder={variant === 'home' && homePlaceholder ? homePlaceholder : t('search.placeholder')}
-          className="search-input flex-1 min-w-[200px] px-4 py-2.5 bg-white"
-          style={{ borderColor: 'var(--color-border)' }}
+          placeholder={homePlaceholder || t('search.placeholder')}
+          className="search-input flex-1 min-w-0 px-4 py-2.5"
         />
         <button
           type="submit"
-          className="px-6 py-2.5 rounded-lg font-medium text-white transition-colors hover:opacity-90"
+          className="font-medium text-white transition-colors hover:opacity-90 text-sm px-4"
           style={{ background: 'var(--color-primary)' }}
+          aria-label={t('search.search')}
         >
           {t('search.search')}
         </button>

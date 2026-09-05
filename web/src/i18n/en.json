@@ -66,7 +66,7 @@
     "viewAllPublishers": "All publishers"
   },
   "books": {
-    "title": "Browse Books",
+    "title": "Books",
     "viewDetails": "View details →",
     "noBooks": "No books found. Add some in the admin panel.",
     "outOfStock": "Out of stock",
@@ -74,7 +74,12 @@
     "failedToLoad": "Failed to load books",
     "conditionFilter": "Show",
     "filterAll": "All",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "filterOptions": "Filter options",
+    "shopByCategory": "Shop by category",
+    "choosePublisher": "Choose publisher",
+    "refineSearch": "Refine search",
+    "resetFilter": "Reset filter"
   },
   "bookDetail": {
     "authors": "Authors",
@@ -164,6 +169,8 @@
     "booksSubtotal": "Books subtotal",
     "shippingFee": "Shipping fee",
     "shippingMethod": "Shipping method",
+    "itemWeightCol": "Weight",
+    "totalWeight": "Total weight",
     "awaitingConfirmationHint": "The warehouse finalized this quote. Confirm to send it back for fulfillment, or pay with PayPal if that is your method.",
     "confirmWithWarehouse": "Confirm & resubmit to warehouse",
     "payWithPayPal": "Pay with PayPal",
@@ -509,6 +516,8 @@
       "title": "Admin Settings",
       "globalDiscount": "Global Discount (%)",
       "globalDiscountHint": "This discount applies to all books that do not have a special discount set.",
+      "invoiceShippingFee": "Invoice shipping fee ($)",
+      "invoiceShippingFeeHint": "Added to every POS invoice and new online order total.",
       "weightUnit": "Weight unit",
       "weightKg": "Kilograms (kg)",
       "weightG": "Grams (g)",

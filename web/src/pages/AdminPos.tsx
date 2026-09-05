@@ -6,6 +6,7 @@ import { admin, publishersPublic, type Book } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Pagination } from '../components/Pagination'
 import { useSearchCommit } from '../hooks/useSearchCommit'
+import { useSettings, formatWeight } from '../contexts/SettingsContext'
 import { hasCover, resolveCoverUrl } from '../lib/utils'
 
 function discountedPrice(book: Book): number {
@@ -22,6 +23,7 @@ function formatDateTime(raw: unknown): string {
 export function AdminPos() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const { settings } = useSettings()
   const queryClient = useQueryClient()
 
   const defaultWarehouseId =
@@ -150,11 +152,29 @@ export function AdminPos() {
     setCart(prev => prev.map(i => i.book._id === bookId ? { ...i, quantity: q } : i))
   }
 
-  const subtotal = cart.reduce((acc, item) => acc + discountedPrice(item.book) * item.quantity, 0)
+  const booksSubtotal = cart.reduce((acc, item) => acc + discountedPrice(item.book) * item.quantity, 0)
+  const shippingFee = settings.invoice_shipping_fee
+  const cartTotal = booksSubtotal + shippingFee
 
   if (createdInvoice) {
     const invoiceItems = Array.isArray(createdInvoice.items) ? createdInvoice.items : []
+    const invoiceBooksSubtotal = Number(
+      createdInvoice.books_subtotal
+      ?? invoiceItems.reduce(
+        (s: number, i: { price?: number; quantity?: number }) => s + Number(i.price) * Number(i.quantity ?? 0),
+        0,
+      ),
+    )
+    const invoiceShippingFee = Number(createdInvoice.shipping_fee ?? 0)
     const invoiceTotal = Number(createdInvoice.total ?? 0)
+    const invoiceTotalWeightG = invoiceItems.reduce((s: number, item: { weight?: number; quantity?: number }) => {
+      const unit = Number(item.weight)
+      if (!Number.isFinite(unit) || unit <= 0) return s
+      return s + unit * Number(item.quantity ?? 0)
+    }, 0)
+    const invoiceTotalWeightLabel = invoiceTotalWeightG > 0
+      ? formatWeight(invoiceTotalWeightG, settings.weight_unit)
+      : null
     const createdAt = formatDateTime(createdInvoice.created_at)
     const createdWarehouse =
       createdInvoice.warehouse
@@ -195,22 +215,43 @@ export function AdminPos() {
           <thead>
             <tr className="border-b border-stone-200">
               <th className="text-start py-2">{t('orders.itemTitleCol')}</th>
+              <th className="text-end py-2">{t('orders.itemWeightCol')}</th>
               <th className="text-end py-2">{t('orders.itemPriceCol')}</th>
             </tr>
           </thead>
           <tbody>
-            {invoiceItems.map((item: { book_title?: string; book_id?: string; quantity?: number; price?: number }, i: number) => (
-              <tr key={i} className="border-b border-stone-100">
-                <td className="py-2">{item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span></td>
-                <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
-              </tr>
-            ))}
+            {invoiceItems.map((item: { book_title?: string; book_id?: string; quantity?: number; price?: number; weight?: number }, i: number) => {
+              const lineW = Number(item.weight) > 0 ? Number(item.weight) * Number(item.quantity ?? 0) : 0
+              return (
+                <tr key={i} className="border-b border-stone-100">
+                  <td className="py-2">{item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span></td>
+                  <td className="py-2 text-end text-stone-600">
+                    {lineW > 0 ? formatWeight(lineW, settings.weight_unit) : '—'}
+                  </td>
+                  <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
+                </tr>
+              )
+            })}
           </tbody>
           <tfoot>
+            <tr className="text-stone-600">
+              <td className="text-start py-2" colSpan={2}>{t('orders.booksSubtotal', 'Books subtotal')}</td>
+              <td className="text-end py-2">${invoiceBooksSubtotal.toFixed(2)}</td>
+            </tr>
+            <tr className="text-stone-600">
+              <td className="text-start py-2" colSpan={2}>{t('orders.shippingFee', 'Shipping fee')}</td>
+              <td className="text-end py-2">${invoiceShippingFee.toFixed(2)}</td>
+            </tr>
             <tr>
-              <th className="text-start py-4 text-lg">{t('orders.total')}</th>
+              <th className="text-start py-4 text-lg" colSpan={2}>{t('orders.total')}</th>
               <th className="text-end py-4 text-lg">${invoiceTotal.toFixed(2)}</th>
             </tr>
+            {invoiceTotalWeightLabel && (
+              <tr className="text-stone-600">
+                <td className="text-start py-2" colSpan={2}>{t('orders.totalWeight')}</td>
+                <td className="text-end py-2 font-medium">{invoiceTotalWeightLabel}</td>
+              </tr>
+            )}
           </tfoot>
         </table>
 
@@ -314,6 +355,11 @@ export function AdminPos() {
                     )}
                   </div>
                   <h3 className="text-sm font-medium line-clamp-2 leading-tight">{book.title}</h3>
+                  {book.weight != null && Number(book.weight) > 0 && (
+                    <p className="text-xs text-stone-500 mt-1">
+                      {t('bookDetail.weight')}: {formatWeight(book.weight, settings.weight_unit)}
+                    </p>
+                  )}
                   <div className="mt-2 flex justify-between items-center">
                     <span className="font-semibold text-amber-900">${discountedPrice(book).toFixed(2)}</span>
                     <span className="text-xs text-stone-500">Qty: {book.stock_quantity}</span>
@@ -388,9 +434,19 @@ export function AdminPos() {
             />
           </div>
           
-          <div className="flex justify-between items-center text-lg font-bold">
-            <span>{t('orders.total')}</span>
-            <span className="text-amber-900">${subtotal.toFixed(2)}</span>
+          <div className="space-y-1 text-sm text-stone-600">
+            <div className="flex justify-between">
+              <span>{t('orders.booksSubtotal', 'Books subtotal')}</span>
+              <span>${booksSubtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>{t('orders.shippingFee', 'Shipping fee')}</span>
+              <span>${shippingFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-lg font-bold text-stone-900 pt-1">
+              <span>{t('orders.total')}</span>
+              <span className="text-amber-900">${cartTotal.toFixed(2)}</span>
+            </div>
           </div>
 
           <button

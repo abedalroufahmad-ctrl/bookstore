@@ -66,7 +66,7 @@
     "viewAllPublishers": "جميع الناشرين"
   },
   "books": {
-    "title": "تصفح الكتب",
+    "title": "الكتب",
     "viewDetails": "عرض التفاصيل ←",
     "noBooks": "لا توجد كتب. أضف بعض الكتب من لوحة الإدارة.",
     "outOfStock": "غير متوفر",
@@ -74,7 +74,12 @@
     "failedToLoad": "فشل تحميل الكتب",
     "conditionFilter": "عرض",
     "filterAll": "الكل",
-    "clearFilters": "مسح الفلاتر"
+    "clearFilters": "مسح الفلاتر",
+    "filterOptions": "خيارات التصفية",
+    "shopByCategory": "تسوق حسب التصنيف",
+    "choosePublisher": "اختر الناشر",
+    "refineSearch": "تطبيق البحث",
+    "resetFilter": "إعادة تعيين الفلتر"
   },
   "bookDetail": {
     "authors": "المؤلفون",
@@ -164,6 +169,8 @@
     "booksSubtotal": "مجموع الكتب",
     "shippingFee": "رسوم الشحن",
     "shippingMethod": "طريقة الشحن",
+    "itemWeightCol": "الوزن",
+    "totalWeight": "الوزن الإجمالي",
     "awaitingConfirmationHint": "أكّد المستودع هذا العرض. يمكنك إعادة إرساله للاستكمال أو الدفع عبر باي بال إن كانت طريقتك.",
     "confirmWithWarehouse": "تأكيد وإعادة الإرسال للمستودع",
     "payWithPayPal": "الدفع عبر باي بال",
@@ -509,6 +516,8 @@
       "title": "إعدادات الإدارة",
       "globalDiscount": "الخصم العام (%)",
       "globalDiscountHint": "يُطبق هذا الخصم على جميع الكتب التي لا تحتوي على خصم خاص.",
+      "invoiceShippingFee": "رسوم شحن الفاتورة ($)",
+      "invoiceShippingFeeHint": "تُضاف إلى كل فاتورة نقطة بيع وكل طلب إلكتروني جديد.",
       "weightUnit": "وحدة الوزن",
       "weightKg": "كيلوغرام (كجم)",
       "weightG": "غرام (غ)",

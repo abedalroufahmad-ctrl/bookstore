@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config.dart';
 import '../models/book.dart';
+import '../utils/weight_format.dart';
 import 'neumorphic.dart';
 
 String _resolveCoverUrl(String path) {
@@ -13,12 +14,14 @@ String _resolveCoverUrl(String path) {
 class BookCard extends StatelessWidget {
   final Book book;
   final double? globalDiscount;
+  final String weightUnit;
   final VoidCallback? onTap;
 
   const BookCard({
     super.key,
     required this.book,
     this.globalDiscount,
+    this.weightUnit = 'kg',
     this.onTap,
   });
 
@@ -307,6 +310,17 @@ class BookCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                if (book.weight != null && book.weight! > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      formatWeight(book.weight, weightUnit),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
               ],
             );
           },
