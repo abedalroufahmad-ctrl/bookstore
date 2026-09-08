@@ -22,8 +22,8 @@ class PosController extends BaseApiController
 
     /**
      * Sellable catalog for the POS terminal.
-     * Direct-sales staff default to their warehouse in the client, but may
-     * request any warehouse / publisher. Other roles stay scoped.
+     * Direct-sales staff are limited to their assigned warehouse(s).
+     * Warehouse / publisher managers stay scoped to their managed records.
      */
     public function books(Request $request): JsonResponse
     {
@@ -43,7 +43,10 @@ class PosController extends BaseApiController
             $filters['publisher_id'] = $request->get('publisher_id');
         }
 
-        if ($employee && UserRole::isWarehouseScoped($employee->role)) {
+        if ($employee && (
+            UserRole::isWarehouseScoped($employee->role)
+            || $employee->role === UserRole::DirectSales->value
+        )) {
             $managedIds = $employee->getManagedWarehouseIds();
             $filters['warehouse_ids'] = empty($managedIds) ? ['__none__'] : $managedIds;
         } elseif ($employee && UserRole::isPublisherScoped($employee->role)) {
@@ -172,15 +175,8 @@ class PosController extends BaseApiController
         }
 
         if ($employee->role === UserRole::DirectSales->value) {
-            $managedIds = $employee->getManagedWarehouseIds();
-            $query->where(function ($q) use ($employee, $managedIds) {
-                $q->where('employee_id', (string) $employee->getKey());
-                if (! empty($managedIds)) {
-                    $q->orWhereIn('warehouse_id', $managedIds);
-                }
-            });
-
-            return $query;
+            // Own POS invoices only — never online orders, never other staff's POS.
+            return $query->where('employee_id', (string) $employee->getKey());
         }
 
         if (UserRole::isWarehouseScoped($employee->role)) {
@@ -216,8 +212,13 @@ class PosController extends BaseApiController
 
         $warehouseId = (string) $warehouse->getKey();
 
-        if ($employee->role === UserRole::Manager->value || $employee->role === UserRole::DirectSales->value) {
+        if ($employee->role === UserRole::Manager->value) {
             return null;
+        }
+
+        if ($employee->role === UserRole::DirectSales->value
+            && ! $employee->managesWarehouse($warehouseId)) {
+            return $this->errorResponse('Forbidden. You can only create invoices for your assigned warehouses.', 403);
         }
 
         if (UserRole::isWarehouseScoped($employee->role) && ! $employee->managesWarehouse($warehouseId)) {

@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/weight_format.dart';
+import '../widgets/entity_typeahead.dart';
 
 class AdminBookFormScreen extends StatefulWidget {
   const AdminBookFormScreen({super.key});
@@ -21,6 +23,11 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
   final _pagesCtrl = TextEditingController();
   final _yearCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _sizeCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+  final _editionCtrl = TextEditingController();
+  final _discountCtrl = TextEditingController();
+  final _coverUrlCtrl = TextEditingController();
   final _picker = ImagePicker();
 
   String? _bookId;
@@ -31,9 +38,13 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
   String? _publisherId;
   String? _coverImage;
   String? _coverImageThumb;
+  String _weightUnit = 'kg';
   final Set<String> _publisherIds = {};
   final Set<String> _warehouseIds = {};
   final Set<String> _authorIds = {};
+  final Map<String, String> _authorLabels = {};
+  final Map<String, String> _publisherLabels = {};
+  String? _categoryLabel;
 
   List<Category> _categories = [];
   List<Author> _authors = [];
@@ -66,11 +77,25 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
     _pagesCtrl.dispose();
     _yearCtrl.dispose();
     _descCtrl.dispose();
+    _sizeCtrl.dispose();
+    _weightCtrl.dispose();
+    _editionCtrl.dispose();
+    _discountCtrl.dispose();
+    _coverUrlCtrl.dispose();
     super.dispose();
   }
 
   String _mapId(Map<String, dynamic> m) =>
       (m['_id'] ?? m['id'] ?? '').toString();
+
+  String _categoryLabelOf(Category c) {
+    final title = (c.subjectTitleEn ?? c.subjectTitleAr ?? '').trim();
+    final code = (c.deweyCode ?? '').trim();
+    if (title.isNotEmpty && code.isNotEmpty) return '$title ($code)';
+    if (title.isNotEmpty) return title;
+    if (code.isNotEmpty) return code;
+    return c.id;
+  }
 
   Future<void> _bootstrap() async {
     setState(() {
@@ -82,6 +107,7 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
     final authorsF = ApiService.instance.adminAuthorsList();
     final warehousesF = ApiService.instance.adminWarehousesList();
     final publishersF = ApiService.instance.adminPublishersList();
+    final settingsF = ApiService.instance.getSettings();
     final bookF =
         _bookId != null ? ApiService.instance.adminBooksGet(_bookId!) : null;
 
@@ -89,6 +115,7 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
     final authors = await authorsF;
     final warehouses = await warehousesF;
     final publishers = await publishersF;
+    final settings = await settingsF;
     final bookRes = bookF != null ? await bookF : null;
 
     if (!mounted) return;
@@ -105,6 +132,10 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
     if (publishers.success && publishers.data != null) {
       _publishers = publishers.data!;
     }
+    if (settings.success && settings.data != null) {
+      final unit = settings.data!['weight_unit']?.toString();
+      if (unit != null && unit.isNotEmpty) _weightUnit = unit;
+    }
 
     if (bookRes != null) {
       if (bookRes.success && bookRes.data != null) {
@@ -116,13 +147,20 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
         _pagesCtrl.text = book.pages?.toString() ?? '';
         _yearCtrl.text = book.publishYear?.toString() ?? '';
         _descCtrl.text = book.description ?? '';
+        _sizeCtrl.text = book.size ?? '';
+        _weightCtrl.text = gramsToDisplayInput(book.weight, _weightUnit);
+        _editionCtrl.text = book.editionNumber?.toString() ?? '';
+        _discountCtrl.text = book.discountPercent?.toString() ?? '';
         _condition = book.condition == 'used' ? 'used' : 'new';
         _isVisible = book.isVisible;
         _isSold = book.isSold;
         _categoryId = book.category?.id;
+        _categoryLabel =
+            book.category != null ? _categoryLabelOf(book.category!) : null;
         _publisherId = book.publisher?.id;
         _coverImage = book.coverImage;
         _coverImageThumb = book.coverImageThumb;
+        _coverUrlCtrl.text = book.coverImage ?? '';
         _publisherIds
           ..clear()
           ..addAll(book.publisherIds ?? const <String>[]);
@@ -130,25 +168,43 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
           _publisherIds.add(_publisherId!);
         }
         for (final p in book.publishers ?? const <Publisher>[]) {
-          if (p.id.isNotEmpty) _publisherIds.add(p.id);
+          if (p.id.isNotEmpty) {
+            _publisherIds.add(p.id);
+            _publisherLabels[p.id] = (p.name ?? '').trim();
+          }
+        }
+        if (_publisherId != null &&
+            book.publisher?.name != null &&
+            book.publisher!.name!.trim().isNotEmpty) {
+          _publisherLabels[_publisherId!] = book.publisher!.name!.trim();
         }
         if (_publisherIds.isNotEmpty) {
           _publisherId = _publisherIds.first;
         }
         if (_categoryId != null &&
-            !_categories.any((c) => c.id == _categoryId)) {
-          _categoryId = null;
+            !_categories.any((c) => c.id == _categoryId) &&
+            book.category != null) {
+          _categories = [..._categories, book.category!];
         }
-        _publisherIds.removeWhere(
-          (id) => !_publishers.any((p) => _mapId(p) == id),
-        );
-        _publisherId = _publisherIds.isEmpty ? null : _publisherIds.first;
+        for (final id in _publisherIds) {
+          if (_publisherLabels[id]?.isNotEmpty == true) continue;
+          final match = _publishers.where((p) => _mapId(p) == id);
+          if (match.isNotEmpty) {
+            _publisherLabels[id] = match.first['name']?.toString() ?? id;
+          }
+        }
         if (book.warehouse?.id != null && book.warehouse!.id.isNotEmpty) {
           _warehouseIds.add(book.warehouse!.id);
         }
+        _authorIds.clear();
+        _authorLabels.clear();
         for (final a in book.authors ?? const <Author>[]) {
-          if (a.id.isNotEmpty) _authorIds.add(a.id);
+          if (a.id.isNotEmpty) {
+            _authorIds.add(a.id);
+            _authorLabels[a.id] = (a.name ?? '').trim();
+          }
         }
+        await _preloadWarehousesForIsbn(book.isbn);
       } else {
         _error = bookRes.message;
       }
@@ -157,16 +213,51 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
     setState(() => _loading = false);
   }
 
+  Future<void> _preloadWarehousesForIsbn(String? isbn) async {
+    final needle = isbn?.trim() ?? '';
+    if (needle.isEmpty) return;
+    final res = await ApiService.instance.adminBooksList(params: {
+      'search': needle,
+      'per_page': '100',
+    });
+    if (!res.success || res.data == null) return;
+    final d = res.data;
+    List items = const [];
+    if (d is Map && d['data'] is List) {
+      items = d['data'] as List;
+    } else if (d is Map && d['data'] is Map && (d['data'] as Map)['data'] is List) {
+      items = (d['data'] as Map)['data'] as List;
+    } else if (d is List) {
+      items = d;
+    }
+    for (final raw in items) {
+      if (raw is! Map) continue;
+      final m = Map<String, dynamic>.from(raw);
+      if ((m['isbn']?.toString() ?? '').trim() != needle) continue;
+      final wid = (m['warehouse_id'] ??
+              (m['warehouse'] is Map
+                  ? (m['warehouse']['_id'] ?? m['warehouse']['id'])
+                  : null))
+          ?.toString();
+      if (wid != null && wid.isNotEmpty) _warehouseIds.add(wid);
+    }
+  }
+
   Future<void> _pickCover(ImageSource source) async {
     final t = AppLocalizations.of(context);
+    // Show progress immediately — camera/gallery encode can take several seconds.
+    setState(() => _coverBusy = true);
     try {
       final picked = await _picker.pickImage(
         source: source,
-        imageQuality: 95,
-        maxWidth: 3000,
+        imageQuality: 85,
+        maxWidth: 2000,
+        requestFullMetadata: false,
       );
-      if (picked == null) return;
-      setState(() => _coverBusy = true);
+      if (picked == null) {
+        if (mounted) setState(() => _coverBusy = false);
+        return;
+      }
       final res = await ApiService.instance.adminAnalyzeCover(
         picked.path,
         filename: picked.name,
@@ -253,6 +344,9 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
       _coverImage = data['cover_image']?.toString() ?? _coverImage;
       _coverImageThumb =
           data['cover_image_thumb']?.toString() ?? _coverImageThumb;
+      if (_coverImage != null && _coverImage!.isNotEmpty) {
+        _coverUrlCtrl.text = _coverImage!;
+      }
 
       if (title != null && title.isNotEmpty) _titleCtrl.text = title;
       if (isbn != null && isbn.isNotEmpty) _isbnCtrl.text = isbn;
@@ -268,11 +362,23 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
           ..clear()
           ..addAll(matchedPublisherIds);
         _publisherId = matchedPublisherIds.first;
+        for (final id in matchedPublisherIds) {
+          final match = _publishers.where((p) => _mapId(p) == id);
+          if (match.isNotEmpty) {
+            _publisherLabels[id] = match.first['name']?.toString() ?? id;
+          }
+        }
       }
       if (authorIds.isNotEmpty) {
         _authorIds
           ..clear()
           ..addAll(authorIds);
+        for (final id in authorIds) {
+          final match = _authors.where((a) => a.id == id);
+          if (match.isNotEmpty) {
+            _authorLabels[id] = match.first.name ?? id;
+          }
+        }
       }
     });
 
@@ -330,15 +436,159 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
       );
       if (existing.isNotEmpty) {
         ids.add(existing.first.id);
+        _authorLabels[existing.first.id] = existing.first.name ?? name;
         continue;
       }
       final created = await ApiService.instance.adminAuthorsCreate(name);
       if (created.success && created.data != null) {
         _authors = [..._authors, created.data!];
         ids.add(created.data!.id);
+        _authorLabels[created.data!.id] = created.data!.name ?? name;
       }
     }
     return ids;
+  }
+
+  Future<List<({String id, String label})>> _searchAuthors(String query) async {
+    final res = await ApiService.instance.adminAuthorsList(
+      search: query.isEmpty ? null : query,
+      perPage: query.isEmpty ? 40 : 50,
+    );
+    if (!res.success || res.data == null) return const [];
+    for (final a in res.data!) {
+      if (!_authors.any((x) => x.id == a.id)) {
+        _authors = [..._authors, a];
+      }
+    }
+    return res.data!
+        .map((a) => (id: a.id, label: (a.name ?? a.id).trim()))
+        .toList();
+  }
+
+  Future<List<({String id, String label})>> _searchPublishers(String query) async {
+    final res = await ApiService.instance.adminPublishersList(
+      search: query.isEmpty ? null : query,
+      perPage: query.isEmpty ? 40 : 50,
+    );
+    if (!res.success || res.data == null) return const [];
+    for (final p in res.data!) {
+      final id = _mapId(p);
+      if (id.isEmpty) continue;
+      if (!_publishers.any((x) => _mapId(x) == id)) {
+        _publishers = [..._publishers, p];
+      }
+    }
+    return res.data!
+        .map((p) {
+          final id = _mapId(p);
+          return (id: id, label: (p['name']?.toString() ?? id).trim());
+        })
+        .where((e) => e.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<List<({String id, String label})>> _searchCategories(String query) async {
+    final res = await ApiService.instance.adminCategoriesList(
+      search: query.isEmpty ? null : query,
+      perPage: query.isEmpty ? 40 : 50,
+    );
+    if (!res.success || res.data == null) return const [];
+    for (final c in res.data!) {
+      if (!_categories.any((x) => x.id == c.id)) {
+        _categories = [..._categories, c];
+      }
+    }
+    return res.data!
+        .map((c) => (id: c.id, label: _categoryLabelOf(c)))
+        .toList();
+  }
+
+  Future<void> _createAuthor(String name) async {
+    final created = await ApiService.instance.adminAuthorsCreate(name);
+    if (!mounted) return;
+    if (!created.success || created.data == null) {
+      final t = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            created.message.isNotEmpty ? created.message : t.adminFailedSave,
+          ),
+        ),
+      );
+      return;
+    }
+    final a = created.data!;
+    setState(() {
+      _authors = [..._authors, a];
+      _authorIds.add(a.id);
+      _authorLabels[a.id] = (a.name ?? name).trim();
+    });
+  }
+
+  Future<void> _createCategoryNamed(String name) async {
+    final t = AppLocalizations.of(context);
+    final deweyCtrl = TextEditingController();
+    final titleCtrl = TextEditingController(text: name);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.adminAddCategory),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: InputDecoration(labelText: t.adminSubjectTitle),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: deweyCtrl,
+              decoration: InputDecoration(labelText: t.adminDeweyCode),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t.adminSave),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final title = titleCtrl.text.trim();
+    final dewey = deweyCtrl.text.trim();
+    if (title.isEmpty || dewey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.fieldRequired)),
+      );
+      return;
+    }
+    final created = await ApiService.instance.adminCategoriesCreate(
+      deweyCode: dewey,
+      subjectTitleEn: title,
+    );
+    if (!mounted) return;
+    if (!created.success || created.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            created.message.isNotEmpty ? created.message : t.adminFailedSave,
+          ),
+        ),
+      );
+      return;
+    }
+    final c = created.data!;
+    setState(() {
+      _categories = [..._categories, c];
+      _categoryId = c.id;
+      _categoryLabel = _categoryLabelOf(c);
+    });
   }
 
   Future<void> _save() async {
@@ -369,6 +619,12 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
     final yearText = _yearCtrl.text.trim();
     final pages = pagesText.isEmpty ? null : int.tryParse(pagesText);
     final year = yearText.isEmpty ? null : int.tryParse(yearText);
+    final editionText = _editionCtrl.text.trim();
+    final discountText = _discountCtrl.text.trim();
+    final edition = editionText.isEmpty ? null : int.tryParse(editionText);
+    final discount =
+        discountText.isEmpty ? null : int.tryParse(discountText.split('.').first);
+    final weightGrams = displayToGrams(_weightCtrl.text, _weightUnit);
     if (price == null || stock == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t.invalidNumber)),
@@ -387,6 +643,30 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
       );
       return;
     }
+    if (editionText.isNotEmpty && edition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.invalidNumber)),
+      );
+      return;
+    }
+    if (discountText.isNotEmpty &&
+        (discount == null || discount < 0 || discount > 100)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.mustBeBetween0And100)),
+      );
+      return;
+    }
+    if (_weightCtrl.text.trim().isNotEmpty && weightGrams == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.invalidNumber)),
+      );
+      return;
+    }
+
+    final coverUrl = _coverUrlCtrl.text.trim();
+    if (coverUrl.isNotEmpty) {
+      _coverImage = coverUrl;
+    }
 
     final body = <String, dynamic>{
       'title': _titleCtrl.text.trim(),
@@ -396,12 +676,16 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
       'description': _descCtrl.text.trim(),
       'condition': _condition,
       'is_visible': _isVisible,
-      'is_sold': _isSold,
+      'is_sold': _condition == 'used' ? _isSold : false,
       'warehouse_ids': _warehouseIds.toList(),
       'category_id': _categoryId,
       'author_ids': _authorIds.toList(),
       'pages': ?pages,
       'publish_year': ?year,
+      'size': _sizeCtrl.text.trim(),
+      'weight': ?weightGrams,
+      'edition_number': ?edition,
+      'discount_percent': ?discount,
       if (_publisherIds.isNotEmpty) 'publisher_ids': _publisherIds.toList(),
       if (_publisherIds.isNotEmpty)
         'publisher_id': _publisherIds.first
@@ -521,10 +805,23 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                           onPressed: () => setState(() {
                             _coverImage = null;
                             _coverImageThumb = null;
+                            _coverUrlCtrl.clear();
                           }),
                           child: Text(t.adminRemoveCover),
                         ),
                       ],
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _coverUrlCtrl,
+                        decoration: InputDecoration(labelText: t.adminCoverUrl),
+                        onChanged: (v) {
+                          final url = v.trim();
+                          setState(() {
+                            _coverImage = url.isEmpty ? null : url;
+                            if (url.isEmpty) _coverImageThumb = null;
+                          });
+                        },
+                      ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _titleCtrl,
@@ -553,6 +850,25 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
+                        controller: _sizeCtrl,
+                        decoration: InputDecoration(labelText: t.bookSize),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _weightCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: t.weightWithUnit(_weightUnit),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _editionCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: t.adminEditionNumber),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
                         controller: _priceCtrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: InputDecoration(
@@ -570,6 +886,15 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                         ),
                         validator: (v) =>
                             (v == null || v.trim().isEmpty) ? t.fieldRequired : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _discountCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: t.adminSpecialDiscount,
+                          helperText: t.adminGlobalDiscountHint,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -592,7 +917,12 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                           ),
                         ],
                         onChanged: (v) {
-                          if (v != null) setState(() => _condition = v);
+                          if (v != null) {
+                            setState(() {
+                              _condition = v;
+                              if (v != 'used') _isSold = false;
+                            });
+                          }
                         },
                       ),
                       SwitchListTile(
@@ -600,11 +930,12 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                         value: _isVisible,
                         onChanged: (v) => setState(() => _isVisible = v),
                       ),
-                      SwitchListTile(
-                        title: Text(t.adminSold),
-                        value: _isSold,
-                        onChanged: (v) => setState(() => _isSold = v),
-                      ),
+                      if (_condition == 'used')
+                        SwitchListTile(
+                          title: Text(t.adminSold),
+                          value: _isSold,
+                          onChanged: (v) => setState(() => _isSold = v),
+                        ),
                       const SizedBox(height: 8),
                       Text(t.adminSelectWarehouse,
                           style: Theme.of(context).textTheme.titleSmall),
@@ -626,72 +957,106 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
                           },
                         );
                       }),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String?>(
-                        key: ValueKey('category_${_categoryId ?? 'none'}'),
-                        initialValue: _categoryId,
-                        decoration: InputDecoration(labelText: t.adminSelectCategory),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text(t.adminSelectCategory),
-                          ),
-                          ..._categories.map(
-                            (c) => DropdownMenuItem(
-                              value: c.id,
-                              child: Text(
-                                c.subjectTitleEn ??
-                                    c.subjectTitleAr ??
-                                    c.deweyCode ??
-                                    c.id,
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _categoryId = v),
+                      const SizedBox(height: 12),
+                      EntityTypeahead(
+                        label: '${t.adminSelectCategory} *',
+                        hint: t.adminSearchCategoryHint,
+                        selected: _categoryId == null
+                            ? const []
+                            : [
+                                (
+                                  id: _categoryId!,
+                                  label: _categoryLabel ??
+                                      _categories
+                                          .where((c) => c.id == _categoryId)
+                                          .map(_categoryLabelOf)
+                                          .firstOrNull ??
+                                      _categoryId!,
+                                ),
+                              ],
+                        onSearch: _searchCategories,
+                        onSelect: (id, label) {
+                          setState(() {
+                            _categoryId = id;
+                            _categoryLabel = label;
+                          });
+                        },
+                        onRemove: (_) {
+                          setState(() {
+                            _categoryId = null;
+                            _categoryLabel = null;
+                          });
+                        },
+                        onCreate: _createCategoryNamed,
+                        createLabelBuilder: t.createNewCategoryNamed,
                       ),
                       const SizedBox(height: 12),
-                      Text(t.adminSelectPublisher,
-                          style: Theme.of(context).textTheme.titleSmall),
-                      ..._publishers.map((p) {
-                        final id = _mapId(p);
-                        final name = p['name']?.toString() ?? id;
-                        return CheckboxListTile(
-                          value: _publisherIds.contains(id),
-                          title: Text(name),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked == true) {
-                                _publisherIds.add(id);
-                              } else {
-                                _publisherIds.remove(id);
-                              }
-                              _publisherId =
-                                  _publisherIds.isEmpty ? null : _publisherIds.first;
-                            });
-                          },
-                        );
-                      }),
+                      EntityTypeahead(
+                        label: t.adminSelectPublisher,
+                        hint: t.adminSearchPublisherHint,
+                        selected: _publisherIds
+                            .map(
+                              (id) => (
+                                id: id,
+                                label: _publisherLabels[id] ??
+                                    _publishers
+                                        .where((p) => _mapId(p) == id)
+                                        .map((p) => p['name']?.toString() ?? id)
+                                        .firstOrNull ??
+                                    id,
+                              ),
+                            )
+                            .toList(),
+                        onSearch: _searchPublishers,
+                        onSelect: (id, label) {
+                          setState(() {
+                            _publisherIds.add(id);
+                            _publisherLabels[id] = label;
+                            _publisherId = _publisherIds.first;
+                          });
+                        },
+                        onRemove: (id) {
+                          setState(() {
+                            _publisherIds.remove(id);
+                            _publisherLabels.remove(id);
+                            _publisherId =
+                                _publisherIds.isEmpty ? null : _publisherIds.first;
+                          });
+                        },
+                      ),
                       const SizedBox(height: 12),
-                      Text(t.bookAuthors,
-                          style: Theme.of(context).textTheme.titleSmall),
-                      ..._authors.map((a) {
-                        return CheckboxListTile(
-                          value: _authorIds.contains(a.id),
-                          title: Text(a.name ?? a.id),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked == true) {
-                                _authorIds.add(a.id);
-                              } else {
-                                _authorIds.remove(a.id);
-                              }
-                            });
-                          },
-                        );
-                      }),
+                      EntityTypeahead(
+                        label: '${t.bookAuthors} *',
+                        hint: t.adminSearchAuthorHint,
+                        selected: _authorIds
+                            .map(
+                              (id) => (
+                                id: id,
+                                label: _authorLabels[id] ??
+                                    _authors
+                                        .where((a) => a.id == id)
+                                        .map((a) => a.name ?? id)
+                                        .firstOrNull ??
+                                    id,
+                              ),
+                            )
+                            .toList(),
+                        onSearch: _searchAuthors,
+                        onSelect: (id, label) {
+                          setState(() {
+                            _authorIds.add(id);
+                            _authorLabels[id] = label;
+                          });
+                        },
+                        onRemove: (id) {
+                          setState(() {
+                            _authorIds.remove(id);
+                            _authorLabels.remove(id);
+                          });
+                        },
+                        onCreate: _createAuthor,
+                        createLabelBuilder: t.createNewAuthorNamed,
+                      ),
                       const SizedBox(height: 20),
                       FilledButton(
                         onPressed: _saving ? null : _save,

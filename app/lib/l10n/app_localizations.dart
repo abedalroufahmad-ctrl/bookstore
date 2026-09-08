@@ -349,6 +349,22 @@ class AppLocalizations {
   String get adminSelectWarehouse => _s('اختر المستودع', 'Select warehouse');
   String get adminSelectPublisher => _s('اختر الناشر', 'Select publisher');
   String get adminSelectCategory => _s('اختر التصنيف', 'Select category');
+  String get adminSearchAuthorHint =>
+      _s('ابحث أو أضف مؤلفاً…', 'Search or add author…');
+  String get adminSearchPublisherHint =>
+      _s('ابحث عن ناشر…', 'Search publisher…');
+  String get adminSearchCategoryHint =>
+      _s('ابحث أو أضف تصنيفاً…', 'Search or add category…');
+  String createNewAuthorNamed(String name) =>
+      isAr ? 'إضافة مؤلف جديد «$name»' : 'Add new author "$name"';
+  String createNewCategoryNamed(String name) =>
+      isAr ? 'إضافة تصنيف جديد «$name»' : 'Add new category "$name"';
+  String get adminSpecialDiscount =>
+      _s('خصم خاص (%)', 'Special discount (%)');
+  String get adminEditionNumber => _s('رقم الطبعة', 'Edition number');
+  String get adminCoverUrl => _s('رابط الغلاف', 'Cover image URL');
+  String weightWithUnit(String unit) =>
+      isAr ? 'الوزن ($unit)' : 'Weight ($unit)';
   String get adminRole => _s('الدور', 'Role');
   String get adminPublisher => _s('الناشر', 'Publisher');
   String get adminFailedSave => _s('فشل الحفظ', 'Failed to save');

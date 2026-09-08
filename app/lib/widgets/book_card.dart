@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config.dart';
 import '../models/book.dart';
+import '../theme.dart';
 import '../utils/weight_format.dart';
 import 'neumorphic.dart';
 
@@ -46,33 +47,45 @@ class BookCard extends StatelessWidget {
 
   static Widget _buildLogoPlaceholder(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? FlamingoColors.darkBgCard
+          : FlamingoColors.accentSoft,
       alignment: Alignment.center,
-      child: Icon(Icons.menu_book_rounded, size: 48, color: Theme.of(context).colorScheme.outline),
+      child: Icon(
+        Icons.menu_book_rounded,
+        size: 48,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final price = book.price;
     final bookDiscount = (book.discountPercent ?? 0).toDouble();
     final finalDiscount = bookDiscount > 0 ? bookDiscount : (globalDiscount ?? 0);
     final discountedPrice = finalDiscount > 0 ? price * (1 - finalDiscount / 100) : price;
+    final categoryLabel = book.category == null
+        ? null
+        : (locale == 'ar' && (book.category!.subjectTitleAr?.isNotEmpty ?? false)
+            ? book.category!.subjectTitleAr
+            : (book.category!.subjectTitleEn ?? book.category!.deweyCode));
 
     return GestureDetector(
       onTap: onTap,
       child: NeumorphicContainer(
         margin: const EdgeInsets.only(left: 2, right: 2, bottom: 4, top: 2),
-        padding: const EdgeInsets.all(8),
-        borderRadius: 18,
+        padding: const EdgeInsets.all(12),
+        borderRadius: 24,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.maxHeight < double.infinity;
             final cover = AspectRatio(
               aspectRatio: 3 / 4,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(18),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -93,8 +106,8 @@ class BookCard extends StatelessWidget {
                           ),
                           child: Text(
                             book.isSold
-                                ? (Localizations.localeOf(context).languageCode == 'ar' ? 'مباع' : 'Sold')
-                                : (Localizations.localeOf(context).languageCode == 'ar' ? 'مستعمل' : 'Used'),
+                                ? (locale == 'ar' ? 'مباع' : 'Sold')
+                                : (locale == 'ar' ? 'مستعمل' : 'Used'),
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: Colors.white,
                               fontSize: 11,
@@ -110,22 +123,15 @@ class BookCard extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
+                            color: FlamingoColors.discount,
                             borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.35),
-                                blurRadius: 4,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
                           ),
                           child: Text(
                             bookDiscount > 0
                                 ? '${finalDiscount.toInt()}%'
                                 : '−${finalDiscount.toInt()}%',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onPrimary,
+                              color: Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -138,26 +144,89 @@ class BookCard extends StatelessWidget {
             );
             return Column(
               mainAxisSize: hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (hasBoundedHeight) Flexible(child: cover) else cover,
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
                   book.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurface,
                   ),
+                ),
+                if (categoryLabel != null && categoryLabel.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      categoryLabel.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                        color: FlamingoColors.accentHover,
+                      ),
+                    ),
+                  ),
+                if (book.weight != null && book.weight! > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      formatWeight(book.weight, weightUnit),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '\$${discountedPrice.toStringAsFixed(2)}',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (finalDiscount > 0) ...[
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          '\$${price.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                            decoration: TextDecoration.lineThrough,
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (book.displayPublishers.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: 6),
                     child: Wrap(
+                      alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        for (var i = 0; i < book.displayPublishers.length && i < 3; i++) ...[
+                        for (var i = 0; i < book.displayPublishers.length && i < 2; i++) ...[
                           if (i > 0)
                             Text(
                               '، ',
@@ -166,7 +235,7 @@ class BookCard extends StatelessWidget {
                           Builder(
                             builder: (context) {
                               final p = book.displayPublishers[i];
-                              final label = i == 0 ? '🏢 ${p.name}' : (p.name ?? '');
+                              final label = p.name ?? '';
                               if (p.id.isNotEmpty) {
                                 return GestureDetector(
                                   behavior: HitTestBehavior.opaque,
@@ -182,7 +251,7 @@ class BookCard extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       fontSize: 10,
-                                      color: theme.colorScheme.primary,
+                                      color: theme.colorScheme.onSurface,
                                     ),
                                   ),
                                 );
@@ -191,61 +260,22 @@ class BookCard extends StatelessWidget {
                                 label,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 10,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
+                                style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                               );
                             },
                           ),
                         ],
-                        if (book.displayPublishers.length > 3)
-                          Text(
-                            ' +${book.displayPublishers.length - 3}',
-                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
-                          ),
                       ],
                     ),
                   ),
-                if (book.warehouse != null && book.warehouse!.name != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: book.warehouse!.id.isNotEmpty
-                        ? GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              Navigator.of(context).pushNamed(
-                                '/warehouse/${book.warehouse!.id}',
-                                arguments: {'name': book.warehouse!.name},
-                              );
-                            },
-                            child: Text(
-                              '🏭 ${book.warehouse!.name}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 10,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            '🏭 ${book.warehouse!.name}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 10,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
-                          ),
-                  ),
                 if (book.displayAuthors.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: 4),
                     child: Wrap(
+                      alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        for (var i = 0; i < book.displayAuthors.length && i < 3; i++) ...[
+                        for (var i = 0; i < book.displayAuthors.length && i < 2; i++) ...[
                           if (i > 0)
                             Text(
                               '، ',
@@ -265,60 +295,13 @@ class BookCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.primary,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                 fontSize: 11,
-                                decoration: TextDecoration.none,
                               ),
                             ),
                           ),
                         ],
-                        if (book.displayAuthors.length > 3)
-                          Text(
-                            ' +${book.displayAuthors.length - 3}',
-                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-                          ),
                       ],
-                    ),
-                  ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        '\$${discountedPrice.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (finalDiscount > 0) ...[
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          '\$${price.toStringAsFixed(2)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                            decoration: TextDecoration.lineThrough,
-                            fontSize: 11,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                if (book.weight != null && book.weight! > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      formatWeight(book.weight, weightUnit),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
                     ),
                   ),
               ],

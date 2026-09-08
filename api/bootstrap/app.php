@@ -2,6 +2,7 @@
 
 use App\Exceptions\Handler;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\RestrictDirectSalesToScopedRoutes;
 use App\Http\Middleware\RestrictPublisherManagerToScopedRoutes;
 use App\Http\Middleware\RestrictWarehouseManagerToScopedRoutes;
 use App\Http\Middleware\RoleMiddleware;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'restrict.warehouse_manager' => RestrictWarehouseManagerToScopedRoutes::class,
             'restrict.publisher_manager' => RestrictPublisherManagerToScopedRoutes::class,
+            'restrict.direct_sales' => RestrictDirectSalesToScopedRoutes::class,
             'force.json' => ForceJsonResponse::class,
             'jwt.auth' => Authenticate::class,
             'jwt.refresh' => RefreshToken::class,

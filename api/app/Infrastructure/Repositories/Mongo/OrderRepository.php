@@ -82,6 +82,15 @@ class OrderRepository implements OrderRepositoryInterface
             $query->whereIn('warehouse_id', $filters['warehouse_ids']);
         }
 
+        if (array_key_exists('is_direct_sale', $filters) && $filters['is_direct_sale'] !== null) {
+            if ($filters['is_direct_sale'] === true) {
+                $query->where('is_direct_sale', true);
+            } else {
+                // Online / non-POS: false, null, or missing field ($ne matches missing in Mongo).
+                $query->where('is_direct_sale', '!=', true);
+            }
+        }
+
         return $query->orderByDesc('created_at')->paginate($perPage);
     }
 

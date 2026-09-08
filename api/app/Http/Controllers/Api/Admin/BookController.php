@@ -98,6 +98,10 @@ class BookController extends BaseApiController
             return $this->errorResponse('At least one warehouse is required.', 422);
         }
 
+        if ($denied = $this->denyUnmanagedWarehouses($employee, $warehouseIds)) {
+            return $denied;
+        }
+
         $created = [];
         foreach ($warehouseIds as $warehouseId) {
             $payload = $data;
@@ -134,6 +138,11 @@ class BookController extends BaseApiController
             }
         }
 
+        $warehouseId = (string) $request->input('warehouse_id');
+        if ($denied = $this->denyUnmanagedWarehouses($employee, [$warehouseId])) {
+            return $denied;
+        }
+
         $file = $request->file('file');
         $path = $file->getRealPath();
         if (! $path) {
@@ -168,6 +177,9 @@ class BookController extends BaseApiController
             && ! $book->hasPublisher($employee->getManagedPublisherId())) {
             return $this->errorResponse('Forbidden. You can only access your publisher\'s books.', 403);
         }
+        if ($denied = $this->denyUnmanagedBookWarehouse($employee, $book)) {
+            return $denied;
+        }
 
         $book->loadMissing(['authors', 'publisher', 'publishers']);
 
@@ -200,11 +212,18 @@ class BookController extends BaseApiController
             $data['publisher_ids'] = $ids !== [] ? $ids : ($managed ? [$managed] : []);
             $data['publisher_id'] = $managed;
         }
+        if ($denied = $this->denyUnmanagedBookWarehouse($employee, $existing)) {
+            return $denied;
+        }
 
         $warehouseIds = null;
         if (array_key_exists('warehouse_ids', $data)) {
             $warehouseIds = array_values(array_unique(array_filter(array_map('strval', (array) $data['warehouse_ids']))));
             unset($data['warehouse_ids']);
+
+            if ($denied = $this->denyUnmanagedWarehouses($employee, $warehouseIds)) {
+                return $denied;
+            }
 
             $currentWarehouseId = (string) ($existing->warehouse_id ?? '');
             if ($warehouseIds !== [] && ! in_array($currentWarehouseId, $warehouseIds, true)) {
@@ -273,14 +292,17 @@ class BookController extends BaseApiController
     public function destroy(string $id): JsonResponse
     {
         $employee = auth('employee')->user();
+        $existing = $this->bookService->getById($id);
+        if (! $existing) {
+            return $this->errorResponse('Book not found', 404);
+        }
         if ($employee && UserRole::isPublisherScoped($employee->role)) {
-            $existing = $this->bookService->getById($id);
-            if (! $existing) {
-                return $this->errorResponse('Book not found', 404);
-            }
             if (! $existing->hasPublisher($employee->getManagedPublisherId())) {
                 return $this->errorResponse('Forbidden. You can only delete your publisher\'s books.', 403);
             }
+        }
+        if ($denied = $this->denyUnmanagedBookWarehouse($employee, $existing)) {
+            return $denied;
         }
 
         if (! $this->bookService->delete($id)) {
@@ -308,6 +330,14 @@ class BookController extends BaseApiController
                 && ! $existing->hasPublisher($employee->getManagedPublisherId())) {
                 $forbidden++;
                 continue;
+            }
+            if ($employee && UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+                $managed = $employee->getManagedWarehouseIds();
+                $bookWh = (string) ($existing->warehouse_id ?? '');
+                if ($bookWh === '' || ! in_array($bookWh, $managed, true)) {
+                    $forbidden++;
+                    continue;
+                }
             }
             $toDelete[] = $id;
         }
@@ -337,5 +367,37 @@ class BookController extends BaseApiController
         $data['publisher_id'] = $ids[0] ?? null;
 
         return $data;
+    }
+
+    /**
+     * @param  list<string>  $warehouseIds
+     */
+    private function denyUnmanagedWarehouses(?object $employee, array $warehouseIds): ?JsonResponse
+    {
+        if (! $employee || ! UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+            return null;
+        }
+        $managed = $employee->getManagedWarehouseIds();
+        foreach ($warehouseIds as $warehouseId) {
+            if ($warehouseId === '' || ! in_array((string) $warehouseId, $managed, true)) {
+                return $this->errorResponse('Forbidden. You can only access your assigned warehouses.', 403);
+            }
+        }
+
+        return null;
+    }
+
+    private function denyUnmanagedBookWarehouse(?object $employee, object $book): ?JsonResponse
+    {
+        if (! $employee || ! UserRole::isLimitedToAssignedWarehouses($employee->role)) {
+            return null;
+        }
+        $managed = $employee->getManagedWarehouseIds();
+        $bookWh = (string) ($book->warehouse_id ?? '');
+        if ($bookWh === '' || ! in_array($bookWh, $managed, true)) {
+            return $this->errorResponse('Forbidden. You can only access your assigned warehouses.', 403);
+        }
+
+        return null;
     }
 }

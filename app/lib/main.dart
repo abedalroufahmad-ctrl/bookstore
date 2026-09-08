@@ -63,8 +63,8 @@ class BookStoreApp extends StatelessWidget {
           return MaterialApp(
             title: 'Book Store',
             debugShowCheckedModeBanner: false,
-            theme: buildTokyoNightLightTheme(),
-            darkTheme: buildTokyoNightDarkTheme(),
+            theme: buildFlamingoLightTheme(),
+            darkTheme: buildFlamingoDarkTheme(),
             themeMode: themeProvider.themeMode,
             localizationsDelegates: const [
               AppLocalizations.delegate,

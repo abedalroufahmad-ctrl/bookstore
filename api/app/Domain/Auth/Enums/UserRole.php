@@ -92,6 +92,7 @@ enum UserRole: string
             self::WarehouseManager->value,
             self::Shipping->value,
             self::Accounting->value,
+            self::DirectSales->value,
         ], true);
     }
 

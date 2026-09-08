@@ -51,27 +51,57 @@ class BookCoverService
             return $stored;
         }
 
-        $ocrPath = $this->preprocessForOcr($diskPath) ?? $diskPath;
-        $localOcr = $this->runOcr($ocrPath);
-        if ($ocrPath !== $diskPath && is_file($ocrPath)) {
-            @unlink($ocrPath);
+        // Compact working image for OCR.space (~1MB free-tier limit) while keeping text sharp.
+        $ocrPath = $this->makeOcrWorkingImage($diskPath, 1800, 88) ?? $diskPath;
+
+        try {
+            $isbn = $this->readBarcodeIsbn($ocrPath) ?? $this->readBarcodeIsbn($diskPath);
+
+            // Full-cover cloud OCR (best for Arabic calligraphy with Engine 2).
+            $cloudOcr = $this->ocrViaOcrSpace($ocrPath);
+
+            // Publisher / bottom band (white-on-dark names) — always useful.
+            $bandOcr = $this->ocrCoverPublisherBand($ocrPath);
+
+            // Extra title crop only when the full-page pass looks weak.
+            $titleOcr = '';
+            $cloudProbe = trim($cloudOcr."\n".$bandOcr);
+            if ($cloudProbe === ''
+                || $this->ocrUsefulnessScore($cloudProbe) < 8
+                || ! $this->guessTitleFromOcr($cloudProbe)) {
+                $titleCrop = $this->cropCoverRegion($ocrPath, 'north', '100%x55%+0+0');
+                $titleOcr = $titleCrop ? $this->ocrViaOcrSpace($titleCrop) : '';
+                if ($titleCrop && is_file($titleCrop)) {
+                    @unlink($titleCrop);
+                }
+            }
+
+            // Local Arabic Tesseract as a third signal (always; cloud demo keys are noisy).
+            $prepPath = $this->preprocessForOcr($ocrPath) ?? $ocrPath;
+            $localOcr = $this->runOcrLocal($prepPath);
+            if ($prepPath !== $ocrPath && is_file($prepPath)) {
+                @unlink($prepPath);
+            }
+
+            $ocrText = $this->mergeOcrTexts([$cloudOcr, $titleOcr, $bandOcr, $localOcr]);
+
+            $isbn = $isbn
+                ?? $this->extractIsbn($ocrText)
+                ?? $this->ocrIsbnDigits($ocrPath)
+                ?? $this->ocrIsbnDigits($diskPath);
+        } finally {
+            if ($ocrPath !== $diskPath && is_file($ocrPath)) {
+                @unlink($ocrPath);
+            }
         }
 
-        // Cloud OCR (OCR.space) handles Arabic cover calligraphy far better than Tesseract.
-        $cloudOcr = $this->ocrViaOcrSpace($diskPath);
-        $bandOcr = $this->ocrCoverPublisherBand($diskPath);
-        if ($bandOcr !== '') {
-            $cloudOcr = trim($cloudOcr."\n".$bandOcr);
-        }
-        $ocrText = $this->pickBestOcrText($localOcr, $cloudOcr);
-
-        $isbn = $this->extractIsbn($ocrText)
-            ?? $this->ocrIsbnDigits($diskPath)
-            ?? $this->readBarcodeIsbn($diskPath);
         $catalog = $isbn ? $this->lookupCatalog($isbn) : [];
 
         $parsed = $this->parseArabicCoverFields($ocrText);
-        $ocrTitle = $parsed['title'] ?? $this->guessTitleFromOcr($ocrText);
+        $ocrTitle = $parsed['title'] ?? null;
+        if (! $this->isStrongTitleCandidate($ocrTitle)) {
+            $ocrTitle = $this->guessTitleFromOcr($ocrText);
+        }
 
         // Prefer catalog data from ISBN; otherwise use structured OCR parse.
         $suggestedTitle = $catalog['title']
@@ -169,6 +199,111 @@ class BookCoverService
         }
     }
 
+    /**
+     * Downscale for OCR/upload: keeps text readable but cuts transfer + decode time.
+     */
+    private function makeOcrWorkingImage(string $absolutePath, int $maxEdge = 1600, int $quality = 82): ?string
+    {
+        if (! is_file($absolutePath)) {
+            return null;
+        }
+
+        $out = sys_get_temp_dir().'/bookstore_ocr_work_'.uniqid('', true).'.jpg';
+        $which = new Process(['which', 'convert']);
+        $which->run();
+        if ($which->isSuccessful()) {
+            $process = new Process([
+                'convert',
+                $absolutePath,
+                '-auto-orient',
+                '-resize', $maxEdge.'x'.$maxEdge.'>',
+                '-quality', (string) $quality,
+                $out,
+            ]);
+            $process->setTimeout(30);
+            try {
+                $process->run();
+            } catch (\Throwable) {
+                // fall through to GD
+            }
+            if ($process->isSuccessful() && is_file($out) && filesize($out) > 0) {
+                return $out;
+            }
+        }
+
+        if (! extension_loaded('gd')) {
+            return null;
+        }
+
+        $info = @getimagesize($absolutePath);
+        if (! is_array($info)) {
+            return null;
+        }
+        $mime = (string) ($info['mime'] ?? '');
+        $loader = match (true) {
+            str_contains($mime, 'jpeg') || str_contains($mime, 'jpg') => 'imagecreatefromjpeg',
+            str_contains($mime, 'png') => 'imagecreatefrompng',
+            str_contains($mime, 'gif') => 'imagecreatefromgif',
+            str_contains($mime, 'webp') => 'imagecreatefromwebp',
+            default => null,
+        };
+        if ($loader === null || ! function_exists($loader)) {
+            return null;
+        }
+        $source = @$loader($absolutePath);
+        if (! $source) {
+            return null;
+        }
+        $srcW = imagesx($source);
+        $srcH = imagesy($source);
+        if ($srcW <= 0 || $srcH <= 0) {
+            imagedestroy($source);
+
+            return null;
+        }
+        $scale = min(1.0, $maxEdge / max($srcW, $srcH));
+        $dstW = max(1, (int) round($srcW * $scale));
+        $dstH = max(1, (int) round($srcH * $scale));
+        $dst = imagecreatetruecolor($dstW, $dstH);
+        if (! $dst) {
+            imagedestroy($source);
+
+            return null;
+        }
+        imagecopyresampled($dst, $source, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
+        imagedestroy($source);
+        $ok = imagejpeg($dst, $out, max(40, min(95, $quality)));
+        imagedestroy($dst);
+
+        return ($ok && is_file($out)) ? $out : null;
+    }
+
+    /** Single-pass Tesseract fallback when cloud OCR is unavailable. */
+    private function runOcrQuick(string $absolutePath): string
+    {
+        return $this->runOcrLocal($absolutePath);
+    }
+
+    /** Local ara+eng OCR — two PSMs, merged by usefulness. */
+    private function runOcrLocal(string $absolutePath): string
+    {
+        if (! is_file($absolutePath) || ! $this->tesseractAvailable()) {
+            return '';
+        }
+
+        $langs = $this->availableOcrLanguages();
+        $best = '';
+        foreach (['6', '4'] as $psm) {
+            $text = $this->tesseract($absolutePath, $langs, $psm);
+            if ($this->ocrUsefulnessScore($text) > $this->ocrUsefulnessScore($best)
+                || (mb_strlen($text) > mb_strlen($best) && $this->arabicLetterCount($text) >= $this->arabicLetterCount($best))) {
+                $best = $text;
+            }
+        }
+
+        return trim($best);
+    }
+
     private function preprocessForOcr(string $absolutePath): ?string
     {
         $which = new Process(['which', 'convert']);
@@ -177,17 +312,16 @@ class BookCoverService
             return null;
         }
 
-        $out = sys_get_temp_dir().'/bookstore_ocr_'.uniqid('', true).'.png';
+        $out = sys_get_temp_dir().'/bookstore_ocr_prep_'.uniqid('', true).'.png';
         $process = new Process([
             'convert',
             $absolutePath,
             '-colorspace', 'Gray',
-            '-resize', '200%',
             '-contrast-stretch', '2%x2%',
             '-sharpen', '0x1',
             $out,
         ]);
-        $process->setTimeout(60);
+        $process->setTimeout(30);
         try {
             $process->run();
         } catch (\Throwable) {
@@ -197,22 +331,128 @@ class BookCoverService
         return ($process->isSuccessful() && is_file($out)) ? $out : null;
     }
 
-    private function runOcr(string $absolutePath): string
+    private function cropCoverRegion(string $absolutePath, string $gravity, string $crop): ?string
     {
-        if (! is_file($absolutePath) || ! $this->tesseractAvailable()) {
+        $which = new Process(['which', 'convert']);
+        $which->run();
+        if (! $which->isSuccessful() || ! is_file($absolutePath)) {
+            return null;
+        }
+
+        $out = sys_get_temp_dir().'/bookstore_ocr_crop_'.uniqid('', true).'.jpg';
+        $process = new Process([
+            'convert',
+            $absolutePath,
+            '-gravity', ucfirst(strtolower($gravity)),
+            '-crop', $crop,
+            '+repage',
+            '-quality', '88',
+            $out,
+        ]);
+        $process->setTimeout(20);
+        try {
+            $process->run();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return ($process->isSuccessful() && is_file($out) && filesize($out) > 0) ? $out : null;
+    }
+
+    /**
+     * Merge OCR outputs: keep the best full block, then append unique useful lines.
+     *
+     * @param  list<string>  $chunks
+     */
+    private function mergeOcrTexts(array $chunks): string
+    {
+        $chunks = array_values(array_filter(array_map(
+            static fn ($t) => trim((string) $t),
+            $chunks
+        ), static fn ($t) => $t !== ''));
+        if ($chunks === []) {
             return '';
         }
 
-        $langs = $this->availableOcrLanguages();
-        $best = '';
-        foreach ([6, 4, 3, 11] as $psm) {
-            $text = $this->tesseract($absolutePath, $langs, (string) $psm);
-            if (mb_strlen($text) > mb_strlen($best)) {
-                $best = $text;
+        usort($chunks, function (string $a, string $b): int {
+            $sa = $this->ocrUsefulnessScore($a);
+            $sb = $this->ocrUsefulnessScore($b);
+            if ($sa !== $sb) {
+                return $sb <=> $sa;
+            }
+
+            return $this->arabicLetterCount($b) <=> $this->arabicLetterCount($a);
+        });
+
+        $primary = $chunks[0];
+        $seen = [];
+        foreach (preg_split('/\R+/', $primary) ?: [] as $line) {
+            $norm = mb_strtolower($this->stripArabicDiacritics(trim($line)));
+            if ($norm !== '') {
+                $seen[$norm] = true;
             }
         }
 
-        return trim($best);
+        $extra = [];
+        foreach (array_slice($chunks, 1) as $chunk) {
+            foreach (preg_split('/\R+/', $chunk) ?: [] as $line) {
+                $line = trim(preg_replace('/\s+/u', ' ', $line) ?? '');
+                if ($line === '' || mb_strlen($line) < 3) {
+                    continue;
+                }
+                if (! $this->isUsefulOcrLine($line)) {
+                    continue;
+                }
+                $norm = mb_strtolower($this->stripArabicDiacritics($line));
+                if (isset($seen[$norm])) {
+                    continue;
+                }
+                // Skip fragments already contained in the primary block.
+                if (str_contains(mb_strtolower($this->stripArabicDiacritics($primary)), $norm)) {
+                    continue;
+                }
+                $seen[$norm] = true;
+                $extra[] = $line;
+            }
+        }
+
+        return trim($primary.($extra !== [] ? "\n".implode("\n", $extra) : ''));
+    }
+
+    private function isUsefulOcrLine(string $line): bool
+    {
+        if ($this->isCoverNoiseLine($line)) {
+            return false;
+        }
+        if ($this->arabicLetterCount($line) >= 4) {
+            return true;
+        }
+        if (preg_match('/ISBN|97[89]\d{10}|\b\d{9}[\dXx]\b/i', $line)) {
+            return true;
+        }
+
+        return (bool) preg_match('/[A-Za-z]{4,}/', $line);
+    }
+
+    private function isCoverNoiseLine(string $line): bool
+    {
+        $line = trim($line);
+        if ($line === '') {
+            return true;
+        }
+        $norm = mb_strtolower($this->stripArabicDiacritics($line));
+        if (preg_match('/^(الوزن|الوزن\s|السعر|الثمن|عدد\s*الصفحات|الطبعة|سلسلة|www\.|http)/u', $norm)) {
+            return true;
+        }
+        if (preg_match('/^\d+([.,]\d+)?\s*(غ|جم|كغ|kg|g|\$|€|ل\.?ل)?$/iu', $norm)) {
+            return true;
+        }
+        // Tiny OCR fragments / symbol soup.
+        if (mb_strlen($line) <= 2) {
+            return true;
+        }
+
+        return (bool) preg_match('/^[^\p{Arabic}A-Za-z0-9]+$/u', $line);
     }
 
     private function ocrIsbnDigits(string $absolutePath): ?string
@@ -442,6 +682,10 @@ class BookCoverService
             // Match significant token after "دار" (e.g. الشامية, القلم).
             if (preg_match('/دار\s*(?:ال)?(\p{Arabic}{3,})/u', $nameNorm, $m)) {
                 $token = $m[1];
+                if (preg_match('/ب'.preg_quote($token, '/').'/u', $hay)
+                    && ! preg_match('/دار\s*(?:ال)?'.preg_quote($token, '/').'/u', $hay)) {
+                    return;
+                }
                 if (str_contains($hay, $token) && mb_strlen($token) > $bestLen) {
                     $best = $name;
                     $bestLen = mb_strlen($token);
@@ -663,20 +907,21 @@ class BookCoverService
             return '';
         }
 
-        $out = sys_get_temp_dir().'/bookstore_pub_band_'.uniqid('', true).'.png';
+        $out = sys_get_temp_dir().'/bookstore_pub_band_'.uniqid('', true).'.jpg';
         $process = new Process([
             'convert',
             $absolutePath,
             '-gravity', 'South',
-            '-crop', '100%x22%+0+0',
+            '-crop', '100%x24%+0+0',
             '+repage',
             '-colorspace', 'Gray',
             '-negate',
-            '-resize', '300%',
+            '-resize', '180%',
             '-normalize',
+            '-quality', '85',
             $out,
         ]);
-        $process->setTimeout(60);
+        $process->setTimeout(30);
         try {
             $process->run();
         } catch (\Throwable) {
@@ -761,10 +1006,29 @@ class BookCoverService
         }
 
         $apiKey = (string) (env('OCR_SPACE_API_KEY') ?: 'helloworld');
+        $bytes = @file_get_contents($absolutePath);
+        if ($bytes === false || $bytes === '') {
+            return '';
+        }
+        $tempToDelete = null;
+        // Free OCR.space keys reject ~1MB+ uploads; shrink further if needed.
+        if (strlen($bytes) > 900000) {
+            $shrunk = $this->makeOcrWorkingImage($absolutePath, 1200, 70);
+            if ($shrunk && is_file($shrunk)) {
+                $smaller = @file_get_contents($shrunk);
+                if (is_string($smaller) && $smaller !== '' && strlen($smaller) < strlen($bytes)) {
+                    $bytes = $smaller;
+                    $absolutePath = $shrunk;
+                    $tempToDelete = $shrunk;
+                } else {
+                    @unlink($shrunk);
+                }
+            }
+        }
         try {
-            $response = Http::timeout(45)
+            $response = Http::timeout(25)
                 ->withHeaders(['apikey' => $apiKey])
-                ->attach('file', (string) file_get_contents($absolutePath), basename($absolutePath))
+                ->attach('file', $bytes, basename($absolutePath))
                 ->post('https://api.ocr.space/parse/image', [
                     'language' => 'auto',
                     'isOverlayRequired' => 'false',
@@ -773,10 +1037,21 @@ class BookCoverService
                     'detectOrientation' => 'true',
                 ]);
         } catch (\Throwable) {
+            if ($tempToDelete) {
+                @unlink($tempToDelete);
+            }
+
             return '';
+        }
+        if ($tempToDelete) {
+            @unlink($tempToDelete);
         }
 
         if (! $response->successful()) {
+            return '';
+        }
+
+        if ($response->json('IsErroredOnProcessing')) {
             return '';
         }
 
@@ -785,7 +1060,7 @@ class BookCoverService
             return '';
         }
 
-        return trim($parsed);
+        return trim(str_replace("\r", '', $parsed));
     }
 
     /**
@@ -803,17 +1078,17 @@ class BookCoverService
         // Common OCR misreads on Arabic covers.
         $normalized = str_replace(
             [
-                'بقدم', 'الكتور', 'فصوصك', 'فصوصل', 'فصوك', 'سكبار', 'بفلم',
+                'بقدم', 'الكتور', 'فصوصك', 'فصوصل', 'فصوك', 'سكبار', 'بفلم', 'يعتماز', 'اعتماز',
                 'واررالقاع', 'وار القلم', 'وار القاح', 'وارالقاح', 'دارالقاع', 'دار القاع', 'دار القاح',
             ],
             [
-                'بقلم', 'الدكتور', 'فصول', 'فصول', 'فصول', 'بكار', 'بقلم',
+                'بقلم', 'الدكتور', 'فصول', 'فصول', 'فصول', 'بكار', 'بقلم', 'بقلم', 'بقلم',
                 'دار القلم', 'دار القلم', 'دار القلم', 'دار القلم', 'دار القلم', 'دار القلم', 'دار القلم',
             ],
             $normalized
         );
-        // Garbled white-on-dark OCR for دار القلم (و↔د, ح↔م).
-        if (preg_match('/(?:^|\n|\s)(?:دار|وار)\s*(?:ال)?ق[اأ]?[محع]/u', $normalized)
+        // Only inject دار القلم for clear OCR garble of that name (و↔د), not every "دار …".
+        if (preg_match('/(?:^|\n|\s)(?:وار)\s*(?:ال)?ق[اأ]?[محع]/u', $normalized)
             && ! preg_match('/دار\s*القلم/u', $normalized)) {
             $normalized .= "\nدار القلم";
         }
@@ -844,7 +1119,12 @@ class BookCoverService
         $publishers = [];
 
         if ($authorIdx !== null) {
-            $titleParts = array_slice($lines, 0, $authorIdx);
+            $titleParts = [];
+            foreach (array_slice($lines, 0, $authorIdx) as $line) {
+                if (! $this->isCoverNoiseLine($line) && $this->arabicLetterCount($line) >= 3) {
+                    $titleParts[] = $line;
+                }
+            }
             $authorLine = $lines[$authorIdx];
             $authorLine = preg_replace('/^(بقلم|تأليف|تاليف|إعداد|اعداد)\s*/u', '', $authorLine) ?? '';
             $authorLine = trim($authorLine);
@@ -864,6 +1144,7 @@ class BookCoverService
                 }
             }
         } else {
+            $titleParts = [];
             foreach ($lines as $line) {
                 $pubs = $this->extractPublisherNamesFromLine($line);
                 if ($pubs !== []) {
@@ -872,11 +1153,35 @@ class BookCoverService
                     }
                     continue;
                 }
+                if ($this->isCoverNoiseLine($line)) {
+                    continue;
+                }
                 if ($this->arabicLetterCount($line) >= 4) {
                     $titleParts[] = $line;
                 }
             }
-            $titleParts = array_slice($titleParts, 0, 3);
+            // Prefer the strongest single title line over concatenating noise.
+            if (count($titleParts) > 1) {
+                $bestLine = null;
+                $bestScore = -1;
+                foreach ($titleParts as $line) {
+                    $score = $this->titleLineScore($line);
+                    if ($score > $bestScore) {
+                        $bestScore = $score;
+                        $bestLine = $line;
+                    }
+                }
+                $titleParts = $bestLine !== null ? [$bestLine] : array_slice($titleParts, 0, 1);
+            }
+        }
+
+        $title = trim(implode(' ', $titleParts));
+        $title = $title !== '' ? mb_substr($title, 0, 200) : null;
+        if ($title !== null && ! $this->isStrongTitleCandidate($title)) {
+            $guessed = $this->guessTitleFromOcr($normalized);
+            if ($guessed) {
+                $title = $guessed;
+            }
         }
 
         // Scan all lines for any publisher names we missed.
@@ -885,9 +1190,6 @@ class BookCoverService
                 $publishers[] = $pub;
             }
         }
-
-        $title = trim(implode(' ', $titleParts));
-        $title = $title !== '' ? mb_substr($title, 0, 200) : null;
 
         foreach ($this->matchAllPublishersFromOcr($normalized) as $matched) {
             $publishers[] = $matched;
@@ -991,7 +1293,13 @@ class BookCoverService
                 return;
             }
             if (preg_match('/دار\s*(?:ال)?(\p{Arabic}{3,})/u', $nameNorm, $m)) {
-                if (str_contains($hay, $m[1])) {
+                $token = $m[1];
+                // Avoid بقلم matching publisher token "قلم".
+                if (preg_match('/ب'.preg_quote($token, '/').'/u', $hay)
+                    && ! preg_match('/دار\s*(?:ال)?'.preg_quote($token, '/').'/u', $hay)) {
+                    return;
+                }
+                if (str_contains($hay, $token) && mb_strlen($token) >= 4) {
                     $matched[] = $name;
                 }
             }
@@ -1017,6 +1325,9 @@ class BookCoverService
             '$1 ',
             $name
         ) ?? $name;
+        // "عمروبن" → "عمرو بن"
+        $name = preg_replace('/(\p{Arabic}{2,})بن(?=\s|$)/u', '$1 بن', $name) ?? $name;
+        $name = preg_replace('/\bبن(\p{Arabic}{2,})/u', 'بن $1', $name) ?? $name;
         $name = trim(preg_replace('/\s+/u', ' ', $name) ?? $name);
 
         return mb_substr($name, 0, 120);
@@ -1041,15 +1352,13 @@ class BookCoverService
         $candidates = [];
         foreach ($lines as $line) {
             $line = trim(preg_replace('/\s+/u', ' ', $line) ?? '');
-            if (! $this->isPlausibleTitle($line)) {
+            if ($this->isCoverNoiseLine($line) || ! $this->isPlausibleTitle($line)) {
                 continue;
             }
-            if (preg_match('/isbn|price|\$|€|£|www\.|http|دار النشر|الطبعة/iu', $line)) {
+            if (preg_match('/isbn|price|\$|€|£|www\.|http|دار النشر|الطبعة|بقلم|تأليف|تاليف|^دار\b/iu', $line)) {
                 continue;
             }
-            // Prefer lines with Arabic letters or longer Latin titles.
-            $hasArabic = (bool) preg_match('/\p{Arabic}/u', $line);
-            $score = mb_strlen($line) + ($hasArabic ? 20 : 0);
+            $score = $this->titleLineScore($line);
             $candidates[] = ['line' => $line, 'score' => $score];
         }
         if ($candidates === []) {
@@ -1058,6 +1367,53 @@ class BookCoverService
         usort($candidates, static fn ($a, $b) => $b['score'] <=> $a['score']);
 
         return mb_substr($candidates[0]['line'], 0, 200);
+    }
+
+    private function titleLineScore(string $line): int
+    {
+        $line = trim($line);
+        $norm = mb_strtolower($this->stripArabicDiacritics($line));
+        $score = 0;
+        $arabic = $this->arabicLetterCount($line);
+        $len = mb_strlen($line);
+        $words = preg_split('/\s+/u', $line) ?: [];
+        $wordCount = count(array_values(array_filter($words, static fn ($w) => $w !== '')));
+
+        $score += min(24, $arabic);
+
+        // Short punchy titles ("البخلاء") beat long attribution lines.
+        if ($wordCount === 1 && $arabic >= 5 && $arabic <= 16) {
+            $score += 28;
+        } elseif ($wordCount >= 2 && $wordCount <= 4 && $len <= 36) {
+            $score += 12;
+        } elseif ($wordCount >= 5 || $len > 45) {
+            $score -= 18;
+        }
+
+        if ($len >= 4 && $len <= 24) {
+            $score += 10;
+        }
+
+        if ($this->isCoverNoiseLine($line)) {
+            $score -= 50;
+        }
+        if (preg_match('/^دار\b/u', $norm)) {
+            $score -= 45;
+        }
+        if (preg_match('/\b(?:بن|ابن)\b/u', $norm)) {
+            $score -= 28;
+        }
+        if (preg_match('/^(بقلم|تأليف|تاليف|إعداد|اعداد|يعتماز|اعتماز)/u', $norm)) {
+            $score -= 35;
+        }
+
+        preg_match_all('/[A-Za-z]/', $line, $lat);
+        $latin = count($lat[0] ?? []);
+        if ($arabic > 0 && $latin > $arabic) {
+            $score -= 20;
+        }
+
+        return $score;
     }
 
     private function isPlausibleTitle(?string $line): bool

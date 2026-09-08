@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, warehousesPublic, type Book, type BookFormData } from '../lib/api'
+import { compressImageForUpload } from '../lib/compressImage'
 import { resolveCoverUrl } from '../lib/utils'
 import { useSettings, gramsToDisplay, displayToGrams } from '../contexts/SettingsContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -607,7 +608,8 @@ export function AdminBookForm() {
     setError('')
     setCoverSuccess('')
     try {
-      const res = await admin.analyzeCover(file)
+      const compressed = await compressImageForUpload(file)
+      const res = await admin.analyzeCover(compressed)
       const data = res.data?.data
       if (!data?.cover_image) {
         setError(

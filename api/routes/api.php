@@ -49,9 +49,9 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     Route::get('settings', [SettingController::class, 'publicIndex']);
 
     // Admin Management — role-split (never grant full admin to shipping/review/accounting alone)
-    Route::prefix('admin')->middleware(['auth:employee', 'restrict.warehouse_manager', 'restrict.publisher_manager'])->group(function () {
-        // Catalog: managers + publisher managers (scoped by restrict middleware)
-        Route::middleware('role:manager,publisher_manager')->group(function () {
+    Route::prefix('admin')->middleware(['auth:employee', 'restrict.warehouse_manager', 'restrict.publisher_manager', 'restrict.direct_sales'])->group(function () {
+        // Catalog: managers + publisher managers + warehouse managers (scoped by restrict middleware)
+        Route::middleware('role:manager,publisher_manager,warehouse_manager')->group(function () {
             Route::post('upload-cover', UploadCoverController::class);
             Route::post('analyze-cover', AnalyzeCoverController::class);
             Route::post('upload-author-photo', UploadAuthorPhotoController::class);
@@ -131,7 +131,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::delete('employees/{id}', [EmployeeController::class, 'destroy']);
         });
 
-        // POS: walk-in invoices (optional customer name). Direct sales may browse any warehouse.
+        // POS: walk-in invoices (optional customer name). Direct sales is limited to assigned warehouses.
         Route::middleware('role:manager,publisher_manager,warehouse_manager,direct_sales')->group(function () {
             Route::get('pos/books', [PosController::class, 'books']);
             Route::post('pos/invoices', [PosController::class, 'createInvoice']);

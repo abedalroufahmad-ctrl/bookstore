@@ -47,6 +47,9 @@ export function AdminOrders() {
   const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('')
+  const [warehouseFilter, setWarehouseFilter] = useState<string>('')
+  const [publisherFilter, setPublisherFilter] = useState<string>('')
+  const [directSalesFilter, setDirectSalesFilter] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [error, setError] = useState('')
@@ -54,14 +57,27 @@ export function AdminOrders() {
 
   useEffect(() => {
     setPage(1)
-  }, [committedSearch, statusFilter, paymentStatusFilter])
+  }, [committedSearch, statusFilter, paymentStatusFilter, warehouseFilter, publisherFilter, directSalesFilter])
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['admin-orders', statusFilter, paymentStatusFilter, page, committedSearch],
+    queryKey: [
+      'admin-orders',
+      statusFilter,
+      paymentStatusFilter,
+      warehouseFilter,
+      publisherFilter,
+      directSalesFilter,
+      page,
+      committedSearch,
+    ],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page, per_page: 25 }
+      const params: Record<string, string | number | boolean> = { page, per_page: 25 }
       if (statusFilter) params.status = statusFilter
       if (paymentStatusFilter) params.payment_status = paymentStatusFilter
+      if (warehouseFilter) params.warehouse_id = warehouseFilter
+      if (publisherFilter) params.publisher_id = publisherFilter
+      if (directSalesFilter === '1') params.is_direct_sale = true
+      if (directSalesFilter === '0') params.is_direct_sale = false
       if (committedSearch) params.search = committedSearch
       const res = await admin.orders.list(params)
       return res.data
@@ -82,6 +98,15 @@ export function AdminOrders() {
       const res = await admin.warehouses.list({ per_page: 100 })
       return res.data
     },
+  })
+
+  const { data: publishersData } = useQuery({
+    queryKey: ['admin-publishers-orders-filter'],
+    queryFn: async () => {
+      const res = await admin.publishers.list({ per_page: 200 })
+      return res.data
+    },
+    retry: false,
   })
 
   const updateStatusMutation = useMutation({
@@ -135,7 +160,43 @@ export function AdminOrders() {
   const orders = ordersPaginated?.data ?? extractList<Order>(data)
   const ordersMeta = ordersPaginated && 'current_page' in ordersPaginated ? ordersPaginated : null
   const employees = extractList<Employee>(employeesData)
-  const warehouses = extractList<any>(warehousesData)
+  const warehouses = extractList<{
+    _id: string
+    name?: string
+    publisher_id?: string
+    publisher?: { _id?: string; id?: string; name?: string }
+  }>(warehousesData)
+  const publishersFromApi = extractList<{ _id: string; name?: string }>(publishersData)
+  const publishers =
+    publishersFromApi.length > 0
+      ? publishersFromApi
+      : (() => {
+          const map = new Map<string, string>()
+          for (const w of warehouses) {
+            const id = (w.publisher_id || w.publisher?._id || w.publisher?.id || '').toString()
+            if (!id) continue
+            const name = (w.publisher?.name || id).toString()
+            if (!map.has(id)) map.set(id, name)
+          }
+          return Array.from(map.entries()).map(([id, name]) => ({ _id: id, name }))
+        })()
+
+  const warehousesForFilter = publisherFilter
+    ? warehouses.filter((w) => {
+        const pid = (w.publisher_id || w.publisher?._id || w.publisher?.id || '').toString()
+        return pid === publisherFilter
+      })
+    : warehouses
+
+  useEffect(() => {
+    if (!warehouseFilter || !publisherFilter) return
+    const stillValid = warehouses.some((w) => {
+      if (w._id !== warehouseFilter) return false
+      const pid = (w.publisher_id || w.publisher?._id || w.publisher?.id || '').toString()
+      return pid === publisherFilter
+    })
+    if (!stillValid) setWarehouseFilter('')
+  }, [publisherFilter, warehouseFilter, warehouses])
 
   const pageIds = orders.map((o) => o._id)
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id))
@@ -227,6 +288,48 @@ export function AdminOrders() {
             <option value="pending">{t('admin.paymentPending')}</option>
             <option value="paid">{t('admin.paymentPaid')}</option>
             <option value="failed">{t('admin.paymentFailed')}</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-stone-700">{t('admin.filterByPublisher')}</label>
+          <select
+            value={publisherFilter}
+            onChange={(e) => setPublisherFilter(e.target.value)}
+            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+          >
+            <option value="">{t('admin.allPublishers')}</option>
+            {publishers.map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.name || p._id}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-stone-700">{t('admin.filterByWarehouse')}</label>
+          <select
+            value={warehouseFilter}
+            onChange={(e) => setWarehouseFilter(e.target.value)}
+            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+          >
+            <option value="">{t('admin.allWarehouses')}</option>
+            {warehousesForFilter.map((w) => (
+              <option key={w._id} value={w._id}>
+                {w.name || w._id}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-stone-700">{t('admin.filterByDirectSales')}</label>
+          <select
+            value={directSalesFilter}
+            onChange={(e) => setDirectSalesFilter(e.target.value)}
+            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="">{t('admin.all')}</option>
+            <option value="1">{t('admin.directSalesOnly')}</option>
+            <option value="0">{t('admin.onlineOrdersOnly')}</option>
           </select>
         </div>
         <button

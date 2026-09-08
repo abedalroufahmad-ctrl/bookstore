@@ -12,8 +12,9 @@ use Symfony\Component\HttpFoundation\Response;
 class RestrictWarehouseManagerToScopedRoutes
 {
     /**
-     * Warehouse managers may only access: warehouses, employees, orders, and GET settings.
-     * They must not access: books, authors, categories, customers, uploads, or PUT settings.
+     * Warehouse managers may manage their warehouses, staff, orders, POS,
+     * and books for their assigned warehouses (including cover analyze/upload).
+     * They may read categories/publishers/settings for forms, but not change global settings.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -23,7 +24,18 @@ class RestrictWarehouseManagerToScopedRoutes
         }
 
         $path = $request->path();
-        $allowedPrefixes = ['warehouses', 'employees', 'orders', 'settings', 'pos'];
+        $allowedPrefixes = [
+            'warehouses',
+            'employees',
+            'orders',
+            'settings',
+            'pos',
+            'books',
+            'authors',
+            'upload-cover',
+            'analyze-cover',
+            'upload-author-photo',
+        ];
         $isAllowed = false;
         foreach ($allowedPrefixes as $prefix) {
             if (str_contains($path, 'admin/'.$prefix)) {
@@ -32,6 +44,16 @@ class RestrictWarehouseManagerToScopedRoutes
                 }
                 $isAllowed = true;
                 break;
+            }
+        }
+
+        if (! $isAllowed) {
+            $readOnlyPrefixes = ['categories', 'publishers'];
+            foreach ($readOnlyPrefixes as $prefix) {
+                if (str_contains($path, 'admin/'.$prefix) && $request->isMethod('GET')) {
+                    $isAllowed = true;
+                    break;
+                }
             }
         }
 

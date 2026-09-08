@@ -660,17 +660,31 @@ class ApiService {
     return _client.delete('/admin/books/$id');
   }
 
-  Future<ApiResponse<List<Author>>> adminAuthorsList() async {
-    final res = await _client.get<dynamic>('/admin/authors');
+  Future<ApiResponse<List<Author>>> adminAuthorsList({
+    String? search,
+    int perPage = 100,
+  }) async {
+    final params = <String, String>{'per_page': '$perPage'};
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final res = await _client.get<dynamic>('/admin/authors', params: params);
     if (res.success && res.data != null) {
       final d = res.data;
       List<Author> list = [];
       if (d is Map && d['data'] != null) {
-        list = (d['data'] as List)
-            .map((e) => Author.fromJson(e as Map<String, dynamic>))
-            .toList();
+        final nested = d['data'];
+        if (nested is Map && nested['data'] is List) {
+          list = (nested['data'] as List)
+              .map((e) => Author.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        } else if (nested is List) {
+          list = nested
+              .map((e) => Author.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
       } else if (d is List) {
-        list = d.map((e) => Author.fromJson(e as Map<String, dynamic>)).toList();
+        list = d.map((e) => Author.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       }
       return ApiResponse(success: true, message: res.message, data: list);
     }
@@ -696,17 +710,31 @@ class ApiService {
     return _client.delete('/admin/authors/$id');
   }
 
-  Future<ApiResponse<List<Category>>> adminCategoriesList() async {
-    final res = await _client.get<dynamic>('/admin/categories');
+  Future<ApiResponse<List<Category>>> adminCategoriesList({
+    String? search,
+    int perPage = 100,
+  }) async {
+    final params = <String, String>{'per_page': '$perPage'};
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final res = await _client.get<dynamic>('/admin/categories', params: params);
     if (res.success && res.data != null) {
       final d = res.data;
       List<Category> list = [];
       if (d is Map && d['data'] != null) {
-        list = (d['data'] as List)
-            .map((e) => Category.fromJson(e as Map<String, dynamic>))
-            .toList();
+        final nested = d['data'];
+        if (nested is Map && nested['data'] is List) {
+          list = (nested['data'] as List)
+              .map((e) => Category.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        } else if (nested is List) {
+          list = nested
+              .map((e) => Category.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
       } else if (d is List) {
-        list = d.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+        list = d.map((e) => Category.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       }
       return ApiResponse(success: true, message: res.message, data: list);
     }
@@ -1018,11 +1046,16 @@ class ApiService {
   }
 
   Future<ApiResponse<List<Map<String, dynamic>>>> adminPublishersList({
+    String? search,
     int perPage = 200,
   }) async {
+    final params = <String, String>{'per_page': '$perPage'};
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
     final res = await _client.get<dynamic>(
       '/admin/publishers',
-      params: {'per_page': '$perPage'},
+      params: params,
     );
     if (res.success && res.data != null) {
       return ApiResponse(

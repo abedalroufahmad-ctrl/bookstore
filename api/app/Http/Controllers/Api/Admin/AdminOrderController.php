@@ -51,7 +51,7 @@ class AdminOrderController extends BaseApiController
             } elseif ($employee->role === \App\Domain\Auth\Enums\UserRole::PublisherManager->value) {
                 $pubId = $employee->getManagedPublisherId();
                 if ($pubId) {
-                    $managedIds = \App\Models\Warehouse::where('publisher_id', $pubId)->pluck('_id')->map(fn($id) => (string) $id)->toArray();
+                    $managedIds = \App\Models\Warehouse::where('publisher_id', $pubId)->pluck('_id')->map(fn ($id) => (string) $id)->toArray();
                     if (! empty($managedIds)) {
                         $filters['warehouse_ids'] = $managedIds;
                     } else {
@@ -63,11 +63,77 @@ class AdminOrderController extends BaseApiController
             }
         }
 
+        $this->applyOptionalOrderFilters($request, $filters);
+
         $perPage = min((int) $request->get('per_page', 15), 100);
 
         $orders = $this->orderService->getOrdersForAdmin($filters, $perPage);
 
         return $this->successResponse($orders);
+    }
+
+    /**
+     * Apply optional UI filters (warehouse / publisher / direct sales),
+     * intersecting with any role-based warehouse scope already on $filters.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyOptionalOrderFilters(Request $request, array &$filters): void
+    {
+        if ($request->filled('publisher_id')) {
+            $publisherId = (string) $request->get('publisher_id');
+            $publisherWarehouseIds = \App\Models\Warehouse::where('publisher_id', $publisherId)
+                ->pluck('_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
+
+            if (empty($publisherWarehouseIds)) {
+                $filters['warehouse_ids'] = ['__none__'];
+                unset($filters['warehouse_id']);
+            } elseif (! empty($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
+                $intersected = array_values(array_intersect($filters['warehouse_ids'], $publisherWarehouseIds));
+                $filters['warehouse_ids'] = $intersected !== [] ? $intersected : ['__none__'];
+                unset($filters['warehouse_id']);
+            } elseif (! empty($filters['warehouse_id'])) {
+                if (! in_array((string) $filters['warehouse_id'], $publisherWarehouseIds, true)) {
+                    $filters['warehouse_ids'] = ['__none__'];
+                    unset($filters['warehouse_id']);
+                }
+            } else {
+                $filters['warehouse_ids'] = $publisherWarehouseIds;
+            }
+        }
+
+        if ($request->filled('warehouse_id')) {
+            $warehouseId = (string) $request->get('warehouse_id');
+            if (! empty($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
+                if (in_array($warehouseId, $filters['warehouse_ids'], true)) {
+                    $filters['warehouse_id'] = $warehouseId;
+                    unset($filters['warehouse_ids']);
+                } else {
+                    $filters['warehouse_ids'] = ['__none__'];
+                    unset($filters['warehouse_id']);
+                }
+            } else {
+                $filters['warehouse_id'] = $warehouseId;
+            }
+        }
+
+        if ($request->has('is_direct_sale') && $request->get('is_direct_sale') !== '' && $request->get('is_direct_sale') !== null) {
+            $raw = $request->get('is_direct_sale');
+            if (is_bool($raw)) {
+                $filters['is_direct_sale'] = $raw;
+            } elseif (is_numeric($raw)) {
+                $filters['is_direct_sale'] = ((int) $raw) === 1;
+            } else {
+                $normalized = strtolower(trim((string) $raw));
+                if (in_array($normalized, ['1', 'true', 'yes'], true)) {
+                    $filters['is_direct_sale'] = true;
+                } elseif (in_array($normalized, ['0', 'false', 'no'], true)) {
+                    $filters['is_direct_sale'] = false;
+                }
+            }
+        }
     }
 
     public function show(string $id): JsonResponse
