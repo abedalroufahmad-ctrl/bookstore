@@ -3,7 +3,7 @@
         'name' => 'bookstore/api',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '8af6ffa8a4dc0c4b013e4c82e7658d018751a750',
+        'reference' => 'dbd300ffaa075dd2db263390e20578262e406527',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'bookstore/api' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '8af6ffa8a4dc0c4b013e4c82e7658d018751a750',
+            'reference' => 'dbd300ffaa075dd2db263390e20578262e406527',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -814,8 +814,8 @@
         'psr/log-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '3.0.0',
-                1 => '1.0|2.0|3.0',
+                0 => '1.0|2.0|3.0',
+                1 => '3.0.0',
             ),
         ),
         'psr/simple-cache' => array(

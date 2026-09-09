@@ -419,8 +419,8 @@ class ComposerStaticInitf0ceda2dc49ae96bca2f6e10ad4fa2f5
         ),
         'Nette\\' => 
         array (
-            0 => __DIR__ . '/..' . '/nette/utils/src',
-            1 => __DIR__ . '/..' . '/nette/schema/src',
+            0 => __DIR__ . '/..' . '/nette/schema/src',
+            1 => __DIR__ . '/..' . '/nette/utils/src',
         ),
         'Monolog\\' => 
         array (
@@ -620,6 +620,7 @@ class ComposerStaticInitf0ceda2dc49ae96bca2f6e10ad4fa2f5
         'App\\Http\\Controllers\\Api\\Admin\\CountryController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/CountryController.php',
         'App\\Http\\Controllers\\Api\\Admin\\CustomerController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/CustomerController.php',
         'App\\Http\\Controllers\\Api\\Admin\\EmployeeController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/EmployeeController.php',
+        'App\\Http\\Controllers\\Api\\Admin\\PosController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/PosController.php',
         'App\\Http\\Controllers\\Api\\Admin\\PublisherController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/PublisherController.php',
         'App\\Http\\Controllers\\Api\\Admin\\SettingController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/SettingController.php',
         'App\\Http\\Controllers\\Api\\Admin\\UploadAuthorPhotoController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/Admin/UploadAuthorPhotoController.php',
@@ -712,6 +713,8 @@ class ComposerStaticInitf0ceda2dc49ae96bca2f6e10ad4fa2f5
         'App\\Services\\EmployeeAuthService' => __DIR__ . '/../..' . '/app/Services/EmployeeAuthService.php',
         'App\\Services\\OrderService' => __DIR__ . '/../..' . '/app/Services/OrderService.php',
         'App\\Services\\PayPalService' => __DIR__ . '/../..' . '/app/Services/PayPalService.php',
+        'App\\Services\\PosReportAggregator' => __DIR__ . '/../..' . '/app/Services/PosReportAggregator.php',
+        'App\\Services\\PublisherPayoutService' => __DIR__ . '/../..' . '/app/Services/PublisherPayoutService.php',
         'App\\Support\\MessageLocalizer' => __DIR__ . '/../..' . '/app/Support/MessageLocalizer.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Brick\\Math\\BigDecimal' => __DIR__ . '/..' . '/brick/math/src/BigDecimal.php',
@@ -861,6 +864,7 @@ class ComposerStaticInitf0ceda2dc49ae96bca2f6e10ad4fa2f5
         'Database\\Seeders\\CatalogSeeder' => __DIR__ . '/../..' . '/database/seeders/CatalogSeeder.php',
         'Database\\Seeders\\DatabaseSeeder' => __DIR__ . '/../..' . '/database/seeders/DatabaseSeeder.php',
         'Database\\Seeders\\EmployeeSeeder' => __DIR__ . '/../..' . '/database/seeders/EmployeeSeeder.php',
+        'Database\\Seeders\\PosInvoiceSeeder' => __DIR__ . '/../..' . '/database/seeders/PosInvoiceSeeder.php',
         'Database\\Seeders\\PublisherSeeder' => __DIR__ . '/../..' . '/database/seeders/PublisherSeeder.php',
         'Database\\Seeders\\WarehouseSeeder' => __DIR__ . '/../..' . '/database/seeders/WarehouseSeeder.php',
         'DateError' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateError.php',
@@ -7894,6 +7898,8 @@ class ComposerStaticInitf0ceda2dc49ae96bca2f6e10ad4fa2f5
         'Tests\\CreatesApplication' => __DIR__ . '/../..' . '/tests/CreatesApplication.php',
         'Tests\\TestCase' => __DIR__ . '/../..' . '/tests/TestCase.php',
         'Tests\\Unit\\Domain\\Order\\OrderStatusTest' => __DIR__ . '/../..' . '/tests/Unit/Domain/Order/OrderStatusTest.php',
+        'Tests\\Unit\\Services\\PosReportAggregatorTest' => __DIR__ . '/../..' . '/tests/Unit/Services/PosReportAggregatorTest.php',
+        'Tests\\Unit\\Services\\PublisherPayoutServiceTest' => __DIR__ . '/../..' . '/tests/Unit/Services/PublisherPayoutServiceTest.php',
         'TheSeer\\Tokenizer\\Exception' => __DIR__ . '/..' . '/theseer/tokenizer/src/Exception.php',
         'TheSeer\\Tokenizer\\NamespaceUri' => __DIR__ . '/..' . '/theseer/tokenizer/src/NamespaceUri.php',
         'TheSeer\\Tokenizer\\NamespaceUriException' => __DIR__ . '/..' . '/theseer/tokenizer/src/NamespaceUriException.php',
