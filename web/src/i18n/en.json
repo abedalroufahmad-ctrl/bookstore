@@ -419,6 +419,7 @@
     "importResult": "Import done. Created: {{created}}, skipped: {{skipped}}, errors: {{errors}}.",
     "selectStoreFirst": "Select a warehouse before importing.",
     "holdCtrlToSelectMultiple": "Hold Ctrl (Cmd on Mac) to select multiple",
+    "employeeMultiWarehouseHint": "Select one or more warehouses. The employee can access each selected warehouse.",
     "addNewCategory": "+ Add new category",
     "addNewAuthor": "+ Add new author",
     "warehouse": "Warehouse",

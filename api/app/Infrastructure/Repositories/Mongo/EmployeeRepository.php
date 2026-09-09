@@ -52,15 +52,27 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             $query->whereIn('warehouse_id', $filters['warehouse_ids']);
         }
 
-        // Publisher-manager scope: employees with this publisher_id OR warehouse(s) of that publisher.
+        // Publisher-manager scope: peer PMs of this house, or staff whose warehouse(s) belong to it.
         if (! empty($filters['linked_publisher_id'])) {
             $publisherId = (string) $filters['linked_publisher_id'];
             $warehouseIds = array_values(array_map('strval', $filters['publisher_warehouse_ids'] ?? []));
+            $query->where('role', '!=', \App\Domain\Auth\Enums\UserRole::Manager->value);
             $query->where(function ($q) use ($publisherId, $warehouseIds) {
-                $q->where('publisher_id', $publisherId);
+                $q->where(function ($peer) use ($publisherId) {
+                    $peer->where('role', \App\Domain\Auth\Enums\UserRole::PublisherManager->value)
+                        ->where('publisher_id', $publisherId);
+                });
                 if (! empty($warehouseIds)) {
-                    $q->orWhereIn('warehouse_id', $warehouseIds)
-                        ->orWhereIn('warehouse_ids', $warehouseIds);
+                    $q->orWhere(function ($staff) use ($warehouseIds) {
+                        $staff->where('role', '!=', \App\Domain\Auth\Enums\UserRole::PublisherManager->value)
+                            ->where(function ($wh) use ($warehouseIds) {
+                                $wh->whereIn('warehouse_id', $warehouseIds);
+                                foreach ($warehouseIds as $wid) {
+                                    // Match warehouse_ids array elements (Mongo).
+                                    $wh->orWhere('warehouse_ids', $wid);
+                                }
+                            });
+                    });
                 }
             });
         }

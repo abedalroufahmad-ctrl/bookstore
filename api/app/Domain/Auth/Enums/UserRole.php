@@ -84,6 +84,20 @@ enum UserRole: string
     }
 
     /**
+     * Staff whose access is stored as warehouse_ids (one or more warehouses).
+     */
+    public static function usesWarehouseIds(string $role): bool
+    {
+        return in_array($role, [
+            self::WarehouseManager->value,
+            self::Shipping->value,
+            self::DirectSales->value,
+            self::Accounting->value,
+            self::Review->value,
+        ], true);
+    }
+
+    /**
      * Staff who are limited to assigned warehouse(s).
      */
     public static function isLimitedToAssignedWarehouses(string $role): bool

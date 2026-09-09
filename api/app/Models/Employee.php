@@ -42,7 +42,7 @@ class Employee extends Authenticatable implements JWTSubject
      */
     public function managesWarehouse(string $warehouseId): bool
     {
-        if ($this->role !== UserRole::WarehouseManager->value && $this->role !== UserRole::Shipping->value && $this->role !== UserRole::DirectSales->value) {
+        if (! UserRole::usesWarehouseIds((string) ($this->role ?? ''))) {
             return (string) $this->warehouse_id === (string) $warehouseId;
         }
         $ids = $this->warehouse_ids ?? [];
@@ -58,7 +58,7 @@ class Employee extends Authenticatable implements JWTSubject
      */
     public function getManagedWarehouseIds(): array
     {
-        if ($this->role === UserRole::WarehouseManager->value || $this->role === UserRole::Shipping->value || $this->role === UserRole::DirectSales->value) {
+        if (UserRole::usesWarehouseIds((string) ($this->role ?? ''))) {
             $ids = $this->warehouse_ids ?? [];
             if (is_array($ids) && ! empty($ids)) {
                 return array_values(array_map('strval', $ids));
@@ -90,8 +90,10 @@ class Employee extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Whether the given employee record is linked to this publisher manager's publisher
-     * (same publisher_id, or warehouse belonging to that publisher).
+     * Whether the given employee belongs to this publisher manager's publishing house.
+     * - Peer publisher managers: same publisher_id
+     * - All other staff: at least one warehouse must belong to that publisher
+     *   (a bare publisher_id alone is not enough — prevents cross-house leakage)
      *
      * @param  list<string>  $publisherWarehouseIds
      */
@@ -102,8 +104,18 @@ class Employee extends Authenticatable implements JWTSubject
             return false;
         }
 
-        if ((string) ($employee->publisher_id ?? '') === $publisherId) {
-            return true;
+        // Never treat global managers as publisher-scoped staff.
+        if ((string) ($employee->role ?? '') === UserRole::Manager->value) {
+            return false;
+        }
+
+        if ((string) ($employee->role ?? '') === UserRole::PublisherManager->value) {
+            return (string) ($employee->publisher_id ?? '') === $publisherId;
+        }
+
+        $publisherWarehouseIds = array_values(array_map('strval', $publisherWarehouseIds));
+        if ($publisherWarehouseIds === []) {
+            return false;
         }
 
         $wid = (string) ($employee->warehouse_id ?? '');

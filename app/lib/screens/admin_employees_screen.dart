@@ -119,6 +119,8 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
     final t = AppLocalizations.of(context);
     final auth = context.read<AuthProvider>();
     final myRole = auth.employee?.role;
+    final managedPublisherId = auth.employee?.publisherId;
+    final isPublisherManager = myRole == 'publisher_manager';
     final roles = _rolesFor(myRole);
 
     final nameCtrl = TextEditingController(text: employee?.name ?? '');
@@ -129,14 +131,33 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
     if (role == null || !roles.contains(role)) {
       role = roles.first;
     }
-    String? warehouseId = employee?.warehouseId;
-    String? publisherId = employee?.publisherId;
+    String? publisherId = isPublisherManager
+        ? (managedPublisherId?.isNotEmpty == true ? managedPublisherId : employee?.publisherId)
+        : employee?.publisherId;
     final warehouseIds = <String>{
       ...?employee?.warehouseIds,
       if (employee?.warehouseId != null && employee!.warehouseId!.isNotEmpty)
         employee.warehouseId!,
     };
     var saving = false;
+
+    List<Map<String, dynamic>> warehousesForForm() {
+      if (!isPublisherManager || managedPublisherId == null || managedPublisherId.isEmpty) {
+        return _warehouses;
+      }
+      return _warehouses
+          .where((w) => (w['publisher_id']?.toString() ?? '') == managedPublisherId)
+          .toList();
+    }
+
+    List<Map<String, dynamic>> publishersForForm() {
+      if (!isPublisherManager || managedPublisherId == null || managedPublisherId.isEmpty) {
+        return _publishers;
+      }
+      return _publishers
+          .where((p) => _mapId(p) == managedPublisherId)
+          .toList();
+    }
 
     await showModalBottomSheet<void>(
       context: context,
@@ -208,10 +229,11 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         setSheet(() => role = v);
                       },
                     ),
-                    if (role == 'warehouse_manager' || role == 'shipping' || role == 'direct_sales') ...[
+                    if (role != 'manager' &&
+                        role != 'publisher_manager') ...[
                       const SizedBox(height: 8),
                       Text(t.adminSelectWarehouse),
-                      ..._warehouses.map((w) {
+                      ...warehousesForForm().map((w) {
                         final id = _mapId(w);
                         return CheckboxListTile(
                           value: warehouseIds.contains(id),
@@ -235,11 +257,12 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                         decoration:
                             InputDecoration(labelText: t.adminSelectPublisher),
                         items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text(t.adminSelectPublisher),
-                          ),
-                          ..._publishers.map((p) {
+                          if (!isPublisherManager)
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(t.adminSelectPublisher),
+                            ),
+                          ...publishersForForm().map((p) {
                             final id = _mapId(p);
                             return DropdownMenuItem(
                               value: id,
@@ -247,28 +270,9 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                             );
                           }),
                         ],
-                        onChanged: (v) => setSheet(() => publisherId = v),
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<String?>(
-                        initialValue: warehouseId,
-                        decoration:
-                            InputDecoration(labelText: t.adminSelectWarehouse),
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text(t.adminSelectWarehouse),
-                          ),
-                          ..._warehouses.map((w) {
-                            final id = _mapId(w);
-                            return DropdownMenuItem(
-                              value: id,
-                              child: Text(w['name']?.toString() ?? id),
-                            );
-                          }),
-                        ],
-                        onChanged: (v) => setSheet(() => warehouseId = v),
+                        onChanged: isPublisherManager
+                            ? null
+                            : (v) => setSheet(() => publisherId = v),
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -308,12 +312,20 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
                                 body['password'] = password;
                                 body['password_confirmation'] = confirm;
                               }
-                              if (role == 'warehouse_manager' || role == 'shipping' || role == 'direct_sales') {
-                                body['warehouse_ids'] = warehouseIds.toList();
+                              final lockedPublisherId = isPublisherManager
+                                  ? managedPublisherId
+                                  : publisherId;
+                              if (role == 'manager') {
+                                body['warehouse_id'] = null;
+                                body['warehouse_ids'] = null;
+                                body['publisher_id'] = null;
                               } else if (role == 'publisher_manager') {
-                                body['publisher_id'] = publisherId;
+                                body['publisher_id'] = lockedPublisherId;
                               } else {
-                                body['warehouse_id'] = warehouseId;
+                                body['warehouse_ids'] = warehouseIds.toList();
+                                if (lockedPublisherId != null && lockedPublisherId.isNotEmpty) {
+                                  body['publisher_id'] = lockedPublisherId;
+                                }
                               }
 
                               setSheet(() => saving = true);

@@ -8,9 +8,16 @@ use Illuminate\Validation\Rule;
 
 class EmployeeUpdateRequest extends BaseFormRequest
 {
+    use MergesWarehouseIdsFromSingleId;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->mergeWarehouseIdsFromSingleId();
     }
 
     public function rules(): array
@@ -34,7 +41,13 @@ class EmployeeUpdateRequest extends BaseFormRequest
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['sometimes', 'string', Rule::in($employeeRoles)],
             'warehouse_id' => ['sometimes', 'nullable', 'string'],
-            'warehouse_ids' => ['required_if:role,'.UserRole::WarehouseManager->value.',shipping,'.UserRole::DirectSales->value, 'sometimes', 'nullable', 'array', 'min:1'],
+            'warehouse_ids' => ['required_if:role,'.implode(',', [
+                UserRole::WarehouseManager->value,
+                UserRole::Shipping->value,
+                UserRole::DirectSales->value,
+                UserRole::Accounting->value,
+                UserRole::Review->value,
+            ]), 'sometimes', 'nullable', 'array', 'min:1'],
             'warehouse_ids.*' => ['string'],
             'publisher_id' => ['required_if:role,'.UserRole::PublisherManager->value, 'nullable', 'string'],
         ];

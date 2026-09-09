@@ -58,9 +58,10 @@ class EmployeeController extends BaseApiController
     public function store(EmployeeStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
-        if ((($data['role'] ?? '') === UserRole::WarehouseManager->value || ($data['role'] ?? '') === UserRole::Shipping->value || ($data['role'] ?? '') === UserRole::DirectSales->value) && ! empty($data['warehouse_ids'] ?? [])) {
+        if (UserRole::usesWarehouseIds((string) ($data['role'] ?? '')) && ! empty($data['warehouse_ids'] ?? [])) {
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
+        $this->unassignScopeIfGlobalAdmin($data);
         $currentEmployee = auth('employee')->user();
         if ($currentEmployee && UserRole::isLimitedToAssignedWarehouses($currentEmployee->role) && ! UserRole::isWarehouseScoped($currentEmployee->role)) {
             return $this->errorResponse('Forbidden. Only managers or warehouse managers can create employees.', 403);
@@ -117,7 +118,7 @@ class EmployeeController extends BaseApiController
     public function update(EmployeeUpdateRequest $request, string $id): JsonResponse
     {
         $data = $request->validated();
-        if (isset($data['role']) && ($data['role'] === UserRole::WarehouseManager->value || $data['role'] === UserRole::Shipping->value || $data['role'] === UserRole::DirectSales->value) && ! empty($data['warehouse_ids'] ?? [])) {
+        if (isset($data['role']) && UserRole::usesWarehouseIds((string) $data['role']) && ! empty($data['warehouse_ids'] ?? [])) {
             $data['warehouse_id'] = $data['warehouse_ids'][0];
         }
         $currentEmployee = auth('employee')->user();
@@ -175,6 +176,8 @@ class EmployeeController extends BaseApiController
             unset($data['password'], $data['password_confirmation']);
         }
 
+        $this->unassignScopeIfGlobalAdmin($data, $this->employeeService->getById($id)?->role);
+
         $employee = $this->employeeService->update($id, $data);
 
         if (! $employee) {
@@ -220,6 +223,8 @@ class EmployeeController extends BaseApiController
             if (! in_array((string) $existing->role, UserRole::publisherManagerStaffRoles(), true)) {
                 return $this->errorResponse('Forbidden. You cannot delete this employee role.', 403);
             }
+        } elseif (! UserRole::isWarehouseScoped($currentEmployee->role) && $currentEmployee->role !== UserRole::Manager->value) {
+            return $this->errorResponse('Forbidden. Insufficient role.', 403);
         }
 
         if (! $this->employeeService->delete($id)) {
@@ -280,11 +285,8 @@ class EmployeeController extends BaseApiController
         }
 
         if ($role === UserRole::PublisherManager->value) {
-            $requested = (string) ($data['publisher_id'] ?? $existing?->publisher_id ?? $publisherId);
-            if ($requested === '') {
-                return $this->errorResponse('Forbidden. Publisher is required.', 403);
-            }
-            $data['publisher_id'] = $requested;
+            // Always lock peer PMs to this manager's publishing house.
+            $data['publisher_id'] = $publisherId;
             unset($data['warehouse_id'], $data['warehouse_ids']);
 
             return null;
@@ -293,7 +295,7 @@ class EmployeeController extends BaseApiController
         // Warehouse-based staff stay on this publisher manager's publisher.
         $data['publisher_id'] = $publisherId;
 
-        if ($role === UserRole::WarehouseManager->value || $role === UserRole::Shipping->value || $role === UserRole::DirectSales->value) {
+        if (UserRole::usesWarehouseIds($role)) {
             $ids = array_values(array_map('strval', $data['warehouse_ids'] ?? ($existing?->warehouse_ids ?? [])));
             if ($ids === []) {
                 return $this->errorResponse('Forbidden. Select at least one of your publisher\'s warehouses.', 403);
@@ -309,14 +311,24 @@ class EmployeeController extends BaseApiController
             return null;
         }
 
-        $wid = (string) ($data['warehouse_id'] ?? $existing?->warehouse_id ?? '');
-        if ($wid === '' || ! in_array($wid, $warehouseIds, true)) {
-            return $this->errorResponse('Forbidden. You can only assign staff to warehouses belonging to your publisher.', 403);
-        }
-        $data['warehouse_id'] = $wid;
-        unset($data['warehouse_ids']);
-
         return null;
+    }
+
+    /**
+     * Global managers are not tied to a publisher or warehouse.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function unassignScopeIfGlobalAdmin(array &$data, ?string $fallbackRole = null): void
+    {
+        $role = (string) ($data['role'] ?? $fallbackRole ?? '');
+        if ($role !== UserRole::Manager->value) {
+            return;
+        }
+
+        $data['warehouse_id'] = null;
+        $data['warehouse_ids'] = null;
+        $data['publisher_id'] = null;
     }
 
     /**

@@ -268,9 +268,9 @@ export const admin = {
       password: string
       password_confirmation: string
       role: string
-      warehouse_id?: string
-      warehouse_ids?: string[]
-      publisher_id?: string
+      warehouse_id?: string | null
+      warehouse_ids?: string[] | null
+      publisher_id?: string | null
     }) => api.post<ApiResponse<Employee>>('/admin/employees', data),
     update: (id: string, data: {
       name?: string
@@ -278,9 +278,9 @@ export const admin = {
       password?: string
       password_confirmation?: string
       role?: string
-      warehouse_id?: string
-      warehouse_ids?: string[]
-      publisher_id?: string
+      warehouse_id?: string | null
+      warehouse_ids?: string[] | null
+      publisher_id?: string | null
     }) => api.put<ApiResponse<Employee>>(`/admin/employees/${id}`, data),
     delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/employees/${id}`),
   },

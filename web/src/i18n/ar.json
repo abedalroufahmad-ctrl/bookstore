@@ -419,6 +419,7 @@
     "importResult": "اكتمل الاستيراد. أُنشئ: {{created}}، تُخطي: {{skipped}}، أخطاء: {{errors}}.",
     "selectStoreFirst": "اختر مستودعاً قبل الاستيراد.",
     "holdCtrlToSelectMultiple": "استخدم Ctrl (أو Cmd في Mac) لاختيار عدة عناصر",
+    "employeeMultiWarehouseHint": "اختر مستودعاً واحداً أو أكثر. سيتمكن الموظف من الوصول إلى كل مستودع محدد.",
     "addNewCategory": "+ إضافة تصنيف جديد",
     "addNewAuthor": "+ إضافة مؤلف جديد",
     "warehouse": "المستودع",

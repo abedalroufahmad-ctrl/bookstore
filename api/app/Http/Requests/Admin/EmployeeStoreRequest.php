@@ -8,9 +8,16 @@ use Illuminate\Validation\Rule;
 
 class EmployeeStoreRequest extends BaseFormRequest
 {
+    use MergesWarehouseIdsFromSingleId;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->mergeWarehouseIdsFromSingleId();
     }
 
     public function rules(): array
@@ -30,12 +37,13 @@ class EmployeeStoreRequest extends BaseFormRequest
             UserRole::WarehouseManager->value,
             UserRole::Shipping->value,
             UserRole::DirectSales->value,
+            UserRole::Accounting->value,
+            UserRole::Review->value,
         ];
         $rolesWithoutWarehouse = [
-            UserRole::WarehouseManager->value,
+            UserRole::Manager->value,
             UserRole::PublisherManager->value,
-            UserRole::Shipping->value,
-            UserRole::DirectSales->value,
+            ...$rolesUsingWarehouseIds,
         ];
 
         return [
