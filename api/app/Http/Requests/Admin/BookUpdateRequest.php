@@ -71,10 +71,6 @@ class BookUpdateRequest extends BaseFormRequest
                 'condition' => BookCondition::normalize($this->input('condition'))->value,
             ]);
         }
-
-        if ($this->input('condition') === BookCondition::Used->value && $this->has('stock_quantity') && (int) $this->input('stock_quantity') > 1) {
-            $this->merge(['stock_quantity' => 1]);
-        }
     }
 
     private function existingWarehouseId(): string

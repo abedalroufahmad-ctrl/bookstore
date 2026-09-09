@@ -227,9 +227,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   Text('$_qty'),
                   IconButton(
                     icon: const Icon(Icons.add),
-                    onPressed: b.isUsed
-                        ? null
-                        : () => setState(() => _qty++),
+                    onPressed: _qty < b.stockQuantity
+                        ? () => setState(() => _qty++)
+                        : null,
                   ),
                 ],
               ),

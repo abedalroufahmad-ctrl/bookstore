@@ -23,19 +23,30 @@ class EmployeeController extends BaseApiController
         $filters = [
             'search' => $request->get('search'),
             'role' => $request->get('role'),
-            'warehouse_id' => $request->get('warehouse_id'),
         ];
+
+        $requestedWarehouseId = trim((string) $request->get('warehouse_id', ''));
+        $requestedPublisherId = trim((string) $request->get('publisher_id', ''));
 
         $currentEmployee = auth('employee')->user();
         if ($currentEmployee && UserRole::isLimitedToAssignedWarehouses($currentEmployee->role)) {
             $managedIds = $currentEmployee->getManagedWarehouseIds();
-            if (! empty($managedIds)) {
-                $filters['warehouse_ids'] = $managedIds;
-            } elseif (! empty($currentEmployee->warehouse_id)) {
-                $filters['warehouse_id'] = $currentEmployee->warehouse_id;
-            } else {
-                $filters['warehouse_id'] = '__none__';
+            if ($managedIds === [] && ! empty($currentEmployee->warehouse_id)) {
+                $managedIds = [(string) $currentEmployee->warehouse_id];
             }
+            if ($managedIds === []) {
+                $filters['warehouse_id'] = '__none__';
+            } elseif ($requestedWarehouseId !== '') {
+                if (in_array($requestedWarehouseId, $managedIds, true)) {
+                    $filters['warehouse_ids'] = [$requestedWarehouseId];
+                } else {
+                    $filters['warehouse_id'] = '__none__';
+                }
+            } else {
+                $filters['warehouse_ids'] = $managedIds;
+            }
+        } elseif ($requestedWarehouseId !== '') {
+            $filters['warehouse_id'] = $requestedWarehouseId;
         }
 
         if ($currentEmployee && UserRole::isPublisherScoped($currentEmployee->role)) {
@@ -46,6 +57,9 @@ class EmployeeController extends BaseApiController
                 $filters['linked_publisher_id'] = $publisherId;
                 $filters['publisher_warehouse_ids'] = $this->warehouseIdsForPublisher($publisherId);
             }
+        } elseif ($requestedPublisherId !== '') {
+            $filters['filter_publisher_id'] = $requestedPublisherId;
+            $filters['filter_publisher_warehouse_ids'] = $this->warehouseIdsForPublisher($requestedPublisherId);
         }
 
         $perPage = min((int) $request->get('per_page', 15), 100);

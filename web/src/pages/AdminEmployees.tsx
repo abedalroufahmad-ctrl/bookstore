@@ -65,6 +65,9 @@ export function AdminEmployees() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const { searchInput, setSearchInput, committedSearch, commitSearch } = useSearchCommit()
+  const [roleFilter, setRoleFilter] = useState('')
+  const [publisherFilter, setPublisherFilter] = useState('')
+  const [warehouseFilter, setWarehouseFilter] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -80,7 +83,7 @@ export function AdminEmployees() {
 
   useEffect(() => {
     setPage(1)
-  }, [committedSearch])
+  }, [committedSearch, roleFilter, publisherFilter, warehouseFilter])
 
   const defaultRoleForActor = () => {
     if (isWarehouseManager) return 'shipping'
@@ -89,12 +92,15 @@ export function AdminEmployees() {
   }
 
   const { data: employeesData, isLoading, isFetching, error: employeesError } = useQuery({
-    queryKey: ['admin-employees', page, committedSearch],
+    queryKey: ['admin-employees', page, committedSearch, roleFilter, publisherFilter, warehouseFilter],
     queryFn: async () => {
       const res = await admin.employees.list({
         page,
         per_page: 25,
         ...(committedSearch ? { search: committedSearch } : {}),
+        ...(roleFilter ? { role: roleFilter } : {}),
+        ...(publisherFilter ? { publisher_id: publisherFilter } : {}),
+        ...(warehouseFilter ? { warehouse_id: warehouseFilter } : {}),
       })
       return res.data
     },
@@ -258,7 +264,6 @@ export function AdminEmployees() {
           (PUBLISHER_MANAGER_STAFF_ROLE_VALUES as readonly string[]).includes(r.value)
         )
       : EMPLOYEE_ROLES
-  const isWarehouseManagerRole = (r: string) => r === 'warehouse_manager'
   const isPublisherManagerRole = (r: string) => r === 'publisher_manager'
   const isGlobalAdminRole = (r: string) => r === 'manager'
   const roleNeedsWarehouses = (r: string) =>
@@ -277,6 +282,28 @@ export function AdminEmployees() {
     if (u.warehouse_id) return [String(u.warehouse_id)]
     return []
   }, [isWarehouseManager, user])
+
+  const warehousesForListFilter = useMemo(() => {
+    if (isWarehouseManager && managedWarehouseIds.length > 0) {
+      return warehouses.filter((w) => managedWarehouseIds.includes(String(w._id)))
+    }
+    const publisherId = isPublisherManager ? managedPublisherId : publisherFilter
+    if (!publisherId) return warehouses
+    return warehouses.filter((w) => String(w.publisher_id ?? '') === String(publisherId))
+  }, [
+    isWarehouseManager,
+    isPublisherManager,
+    managedWarehouseIds,
+    managedPublisherId,
+    publisherFilter,
+    warehouses,
+  ])
+
+  useEffect(() => {
+    if (!warehouseFilter) return
+    const stillValid = warehousesForListFilter.some((w) => String(w._id) === warehouseFilter)
+    if (!stillValid) setWarehouseFilter('')
+  }, [warehouseFilter, warehousesForListFilter])
 
   const warehousesForEmployeeForm = (publisherId: string) => {
     if (isWarehouseManager && managedWarehouseIds.length > 0) {
@@ -522,6 +549,64 @@ export function AdminEmployees() {
         {isPublisherManager && (
           <p className="text-sm text-stone-600">{t('admin.employeesPublisherScopeHint')}</p>
         )}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-stone-700" htmlFor="employee-role-filter">
+              {t('admin.filterByRole')}
+            </label>
+            <select
+              id="employee-role-filter"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">{t('admin.allRoles')}</option>
+              {EMPLOYEE_ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {t(r.labelKey)}
+                </option>
+              ))}
+            </select>
+          </div>
+          {!isWarehouseManager && !isPublisherManager && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-stone-700" htmlFor="employee-publisher-filter">
+                {t('admin.filterByPublisher')}
+              </label>
+              <select
+                id="employee-publisher-filter"
+                value={publisherFilter}
+                onChange={(e) => setPublisherFilter(e.target.value)}
+                className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+              >
+                <option value="">{t('admin.allPublishers')}</option>
+                {publishers.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name || p._id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-stone-700" htmlFor="employee-warehouse-filter">
+              {t('admin.filterByWarehouse')}
+            </label>
+            <select
+              id="employee-warehouse-filter"
+              value={warehouseFilter}
+              onChange={(e) => setWarehouseFilter(e.target.value)}
+              className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+            >
+              <option value="">{t('admin.allWarehouses')}</option>
+              {warehousesForListFilter.map((w) => (
+                <option key={w._id} value={w._id}>
+                  {w.name || w._id}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
       {editingId && (
         <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">

@@ -89,10 +89,6 @@ class StockService implements StockServiceInterface
             throw new \InvalidArgumentException("Book '{$book->title}' is already sold.");
         }
 
-        if ($book->isUsed() && $quantity > 1) {
-            throw new \InvalidArgumentException("Used book '{$book->title}' can only be purchased once.");
-        }
-
         if ($book->stock_quantity < $quantity) {
             throw new \InvalidArgumentException(
                 "Insufficient stock for '{$book->title}'. Available: {$book->stock_quantity}, requested: {$quantity}"

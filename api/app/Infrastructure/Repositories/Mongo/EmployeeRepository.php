@@ -44,12 +44,25 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             if ($filters['warehouse_id'] === '__none__') {
                 $query->whereIn('warehouse_id', []);
             } else {
-                $query->where('warehouse_id', $filters['warehouse_id']);
+                $this->constrainToWarehouses($query, [(string) $filters['warehouse_id']]);
             }
         }
 
         if (! empty($filters['warehouse_ids']) && is_array($filters['warehouse_ids'])) {
-            $query->whereIn('warehouse_id', $filters['warehouse_ids']);
+            $this->constrainToWarehouses($query, array_values(array_map('strval', $filters['warehouse_ids'])));
+        }
+
+        if (! empty($filters['filter_publisher_id'])) {
+            $publisherId = (string) $filters['filter_publisher_id'];
+            $warehouseIds = array_values(array_map('strval', $filters['filter_publisher_warehouse_ids'] ?? []));
+            $query->where(function ($q) use ($publisherId, $warehouseIds) {
+                $q->where('publisher_id', $publisherId);
+                if ($warehouseIds !== []) {
+                    $q->orWhere(function ($wh) use ($warehouseIds) {
+                        $this->constrainToWarehouses($wh, $warehouseIds);
+                    });
+                }
+            });
         }
 
         // Publisher-manager scope: peer PMs of this house, or staff whose warehouse(s) belong to it.
@@ -64,14 +77,8 @@ class EmployeeRepository implements EmployeeRepositoryInterface
                 });
                 if (! empty($warehouseIds)) {
                     $q->orWhere(function ($staff) use ($warehouseIds) {
-                        $staff->where('role', '!=', \App\Domain\Auth\Enums\UserRole::PublisherManager->value)
-                            ->where(function ($wh) use ($warehouseIds) {
-                                $wh->whereIn('warehouse_id', $warehouseIds);
-                                foreach ($warehouseIds as $wid) {
-                                    // Match warehouse_ids array elements (Mongo).
-                                    $wh->orWhere('warehouse_ids', $wid);
-                                }
-                            });
+                        $staff->where('role', '!=', \App\Domain\Auth\Enums\UserRole::PublisherManager->value);
+                        $this->constrainToWarehouses($staff, $warehouseIds);
                     });
                 }
             });
@@ -109,5 +116,21 @@ class EmployeeRepository implements EmployeeRepositoryInterface
     public function exists(string $id): bool
     {
         return $this->model->newQuery()->whereKey($id)->exists();
+    }
+
+    /**
+     * Match warehouse_id or any warehouse_ids array element (Mongo).
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Employee>|\Illuminate\Database\Eloquent\Builder  $query
+     * @param  list<string>  $warehouseIds
+     */
+    private function constrainToWarehouses($query, array $warehouseIds): void
+    {
+        $query->where(function ($q) use ($warehouseIds) {
+            $q->whereIn('warehouse_id', $warehouseIds);
+            foreach ($warehouseIds as $id) {
+                $q->orWhere('warehouse_ids', $id);
+            }
+        });
     }
 }

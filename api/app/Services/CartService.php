@@ -122,9 +122,6 @@ class CartService extends BaseService implements CartServiceInterface
         if ($book->is_sold ?? false) {
             throw new \InvalidArgumentException('This book has already been sold.');
         }
-        if ($book->isUsed() && $quantity > 1) {
-            throw new \InvalidArgumentException('Used books can only be purchased as a single copy.');
-        }
         if ($book->stock_quantity < $quantity) {
             throw new \InvalidArgumentException("Insufficient stock. Available: {$book->stock_quantity}");
         }
@@ -161,9 +158,6 @@ class CartService extends BaseService implements CartServiceInterface
             $qty = max(0, (int) ($item['quantity'] ?? 0));
             if ($qty <= 0) {
                 continue;
-            }
-            if ($book->isUsed() && $qty > 1) {
-                throw new \InvalidArgumentException("Used book '{$book->title}' can only be purchased once.");
             }
             if ($book->stock_quantity < $qty) {
                 throw new \InvalidArgumentException("Insufficient stock for '{$book->title}'.");

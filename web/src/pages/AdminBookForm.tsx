@@ -811,7 +811,6 @@ export function AdminBookForm() {
           <input
             type="number"
             min="0"
-            max={form.condition === 'used' ? 1 : undefined}
             value={form.stock_quantity}
             onChange={(e) =>
               setForm((p) => ({
@@ -822,9 +821,6 @@ export function AdminBookForm() {
             required
             className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
-          {form.condition === 'used' && (
-            <p className="mt-1 text-xs text-stone-500">{t('admin.usedStockHint')}</p>
-          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
@@ -837,7 +833,6 @@ export function AdminBookForm() {
               setForm((p) => ({
                 ...p,
                 condition,
-                stock_quantity: condition === 'used' ? Math.min(1, p.stock_quantity || 1) : p.stock_quantity,
                 is_sold: condition === 'new' ? false : p.is_sold,
               }))
             }}

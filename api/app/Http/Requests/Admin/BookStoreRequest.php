@@ -97,9 +97,5 @@ class BookStoreRequest extends BaseFormRequest
         if ($this->input('condition') === BookCondition::Used->value && ! $this->filled('stock_quantity')) {
             $this->merge(['stock_quantity' => 1]);
         }
-
-        if ($this->input('condition') === BookCondition::Used->value && (int) $this->input('stock_quantity', 0) > 1) {
-            $this->merge(['stock_quantity' => 1]);
-        }
     }
 }

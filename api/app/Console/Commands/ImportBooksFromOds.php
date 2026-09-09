@@ -158,9 +158,6 @@ class ImportBooksFromOds extends Command
                 $price = (float) ($this->getCell($row, 'price') ?: 0);
                 $condition = \App\Domain\Book\Enums\BookCondition::normalize($this->getCell($row, 'condition'));
                 $stock = (int) ($this->getCell($row, 'stock') ?: ($condition === \App\Domain\Book\Enums\BookCondition::Used ? 1 : 10));
-                if ($condition === \App\Domain\Book\Enums\BookCondition::Used) {
-                    $stock = min(1, max(0, $stock));
-                }
                 $visibilityRaw = strtolower((string) ($this->getCell($row, 'visibility') ?? 'visible'));
                 $isVisible = ! in_array($visibilityRaw, ['hidden', 'hide', '0', 'false', 'no', 'مخفي'], true);
                 $description = $this->getCell($row, 'description') ?: '';

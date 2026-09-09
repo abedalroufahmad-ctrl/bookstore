@@ -103,9 +103,6 @@ class BookImportService
                 $condition = BookCondition::normalize($this->getCell($row, $columnMap, 'condition'));
                 $stockRaw = $this->getCell($row, $columnMap, 'stock');
                 $stock = $stockRaw !== null && $stockRaw !== '' ? (int) $stockRaw : ($condition === BookCondition::Used ? 1 : 10);
-                if ($condition === BookCondition::Used) {
-                    $stock = min(1, max(0, $stock));
-                }
 
                 $visibilityRaw = strtolower((string) ($this->getCell($row, $columnMap, 'visibility') ?? 'visible'));
                 $isVisible = ! in_array($visibilityRaw, ['hidden', 'hide', '0', 'false', 'no', 'مخفي'], true);

@@ -73,10 +73,6 @@ class Book extends Model
                 $book->is_sold = false;
             }
 
-            // Used copies are unique inventory units.
-            if ($book->condition === 'used' && (int) $book->stock_quantity > 1) {
-                $book->stock_quantity = 1;
-            }
             if ($book->condition === 'used' && (bool) $book->is_sold) {
                 $book->stock_quantity = 0;
             }
