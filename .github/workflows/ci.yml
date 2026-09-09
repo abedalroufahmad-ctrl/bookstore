@@ -25,7 +25,11 @@ jobs:
           coverage: none
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
+        run: |
+          # Tracked vendor is incomplete (e.g. missing polyfill-php85/bootstrap80.php).
+          # Install from the lockfile so CI does not reuse a partial checkout.
+          rm -rf vendor
+          composer install --no-interaction --prefer-dist
 
       - name: Prepare environment
         run: |
