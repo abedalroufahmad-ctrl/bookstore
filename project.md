@@ -6,8 +6,11 @@ Full-stack online bookstore: catalog, cart, multi-warehouse orders, admin/ops, a
 > Root / `web/` / `app/` READMEs only point here for setup shortcuts.
 
 ---
+// ... existing code ...
 
-## 1. Repository layout
+// Fix errors and add necessary fixes here
+
+// ... rest of code ...
 
 | Area | Path | Stack / role |
 |------|------|----------------|
