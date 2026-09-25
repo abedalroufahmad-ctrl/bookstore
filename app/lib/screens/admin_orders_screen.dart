@@ -110,7 +110,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.instance.adminOrdersBulkDelete(_selectedIds.toList());
     if (mounted) {

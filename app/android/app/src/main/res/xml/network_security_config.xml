@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cleartext HTTP for local Laravel API during development.
-     Production builds should use HTTPS and tighten this. -->
+<!-- Release / profile builds: HTTPS only. Debug builds override this file from
+     src/debug/res/xml to allow cleartext HTTP to a local Laravel API. -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">192.168.25.197</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>

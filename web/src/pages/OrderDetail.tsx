@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { orders } from '../lib/api'
+import { isTrustedPayPalUrl } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
 
 type OrderPayload = {
@@ -56,7 +57,9 @@ export function OrderDetail() {
       if (payload.success && payload.data?.approval_url) {
         queryClient.invalidateQueries({ queryKey: ['order', id] })
         queryClient.invalidateQueries({ queryKey: ['orders'] })
-        window.location.href = payload.data.approval_url
+        if (isTrustedPayPalUrl(payload.data.approval_url)) {
+          window.location.assign(payload.data.approval_url)
+        }
       }
     },
   })

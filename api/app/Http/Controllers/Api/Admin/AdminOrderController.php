@@ -168,7 +168,7 @@ class AdminOrderController extends BaseApiController
 
             return $this->successResponse($order, 'Warehouse quote saved.');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 
@@ -189,7 +189,7 @@ class AdminOrderController extends BaseApiController
 
             return $this->successResponse($order, 'Order status updated');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 
@@ -263,8 +263,13 @@ class AdminOrderController extends BaseApiController
         $forbidden = 0;
         $missing = 0;
 
+        $ordersById = \App\Models\Order::query()
+            ->with('employee')
+            ->findMany($ids)
+            ->keyBy(fn ($order) => (string) $order->getKey());
+
         foreach ($ids as $id) {
-            $order = $this->orderService->getOrderById($id);
+            $order = $ordersById->get($id);
             if (! $order) {
                 $missing++;
                 continue;
@@ -298,12 +303,11 @@ class AdminOrderController extends BaseApiController
                 return $this->errorResponse('Forbidden. No publisher assigned.', 403);
             }
             $orderWarehouseId = $order->warehouse_id ?? $order->employee?->warehouse_id ?? null;
-            if ($orderWarehouseId) {
-                $wh = \App\Models\Warehouse::find($orderWarehouseId);
-                if (! $wh || (string) $wh->publisher_id !== $pubId) {
-                    return $this->errorResponse('Forbidden. Order does not belong to your publisher.', 403);
-                }
+            $wh = $orderWarehouseId ? \App\Models\Warehouse::find($orderWarehouseId) : null;
+            if (! $wh || (string) $wh->publisher_id !== $pubId) {
+                return $this->errorResponse('Forbidden. Order does not belong to your publisher.', 403);
             }
+
             return null;
         }
 

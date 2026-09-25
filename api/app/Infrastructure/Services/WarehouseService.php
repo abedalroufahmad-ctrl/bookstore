@@ -19,7 +19,7 @@ class WarehouseService
         return $this->repository->getPaginated($filters, $perPage);
     }
 
-    public function getById(string $id, array $with = ['employees', 'books', 'manager', 'publisher']): ?Warehouse
+    public function getById(string $id, array $with = ['employees', 'manager', 'publisher']): ?Warehouse
     {
         return $this->repository->findById($id, $with);
     }
@@ -38,7 +38,7 @@ class WarehouseService
             $this->assignEmployeesToWarehouse($warehouse->getKey(), $employeeIds, false, null);
         }
 
-        return $warehouse->fresh(['employees', 'books', 'manager', 'publisher']);
+        return $warehouse->fresh(['employees', 'manager', 'publisher']);
     }
 
     public function update(string $id, array $data, $currentEmployee = null): ?Warehouse
@@ -57,7 +57,7 @@ class WarehouseService
             $this->assignEmployeesToWarehouse($id, $employeeIds, false, $currentEmployee);
         }
 
-        return $updated ? $this->repository->findById($id, ['employees', 'books', 'manager', 'publisher']) : null;
+        return $updated ? $this->repository->findById($id, ['employees', 'manager', 'publisher']) : null;
     }
 
     /**

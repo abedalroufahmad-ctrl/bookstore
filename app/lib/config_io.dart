@@ -1,31 +1,24 @@
 import 'dart:io' show Platform;
 
-/// API base URL for native platforms.
+/// API base URL for native platforms, configured at build time:
 ///
-/// Physical Android device (same Wi‑Fi as the PC):
-///   flutter run --dart-define=API_HOST=192.168.x.x
-/// Android emulator:
-///   flutter run --dart-define=API_HOST=10.0.2.2
-///   (or omit — default is the machine LAN IP below for physical phones)
+///   flutter build apk --dart-define=API_BASE_URL=https://api.example.com/api/v1
+///
+/// For local development pass the host instead (HTTP is only allowed in debug builds):
+///   Physical device (same Wi‑Fi):  flutter run --dart-define=API_HOST=192.168.x.x
+///   Android emulator:              flutter run   (defaults to 10.0.2.2)
+///   iOS simulator / desktop:       flutter run   (defaults to localhost)
 String getApiBaseUrl() {
-  if (Platform.isAndroid) {
-    return 'http://$_androidApiHost:8000/api/v1';
+  if (_apiBaseUrl.isNotEmpty) {
+    return _apiBaseUrl;
   }
-  if (Platform.isIOS) {
-    // iOS simulator can use localhost; physical iPhone needs LAN IP via API_HOST.
-    return 'http://$_iosApiHost:8000/api/v1';
-  }
-  return 'http://localhost:8000/api/v1';
+  final host = _apiHost.isNotEmpty
+      ? _apiHost
+      : (Platform.isAndroid ? '10.0.2.2' : 'localhost');
+  return '$_apiScheme://$host:$_apiPort/api/v1';
 }
 
-/// Host of the Laravel API from the device's perspective.
-/// Override: `--dart-define=API_HOST=YOUR_LAN_IP` or `10.0.2.2` for emulator.
-const String _androidApiHost = String.fromEnvironment(
-  'API_HOST',
-  defaultValue: '192.168.70.197',
-);
-
-const String _iosApiHost = String.fromEnvironment(
-  'API_HOST',
-  defaultValue: 'localhost',
-);
+const String _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+const String _apiHost = String.fromEnvironment('API_HOST');
+const String _apiScheme = String.fromEnvironment('API_SCHEME', defaultValue: 'http');
+const String _apiPort = String.fromEnvironment('API_PORT', defaultValue: '8000');

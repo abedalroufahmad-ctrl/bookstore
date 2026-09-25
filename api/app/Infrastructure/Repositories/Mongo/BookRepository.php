@@ -6,6 +6,7 @@ use App\Domain\Book\Interfaces\BookRepositoryInterface;
 use App\Models\Author;
 use App\Models\Book;
 use App\Models\Publisher;
+use App\Support\CatalogCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
@@ -330,7 +331,7 @@ class BookRepository implements BookRepositoryInterface
 
     private function cachedTotal($query, array $filters): int
     {
-        $version = (int) Cache::get('bookstore_catalog_version', 0);
+        $version = CatalogCache::version();
         $fingerprint = $filters;
         unset($fingerprint['with'], $fingerprint['max_page']);
 

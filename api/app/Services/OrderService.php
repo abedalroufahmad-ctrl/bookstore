@@ -131,39 +131,64 @@ class OrderService extends BaseService implements OrderServiceInterface
             }
 
             $groupedByWarehouse = $this->groupCartItemsByWarehouse($repricedItems);
+
+            // Reserve all stock up front so concurrent checkouts cannot sell the same copies.
+            $reserved = [];
+            try {
+                foreach ($groupedByWarehouse as $items) {
+                    $this->stockService->validateAndDeduct($items);
+                    $reserved[] = $items;
+                }
+            } catch (\Throwable $e) {
+                foreach ($reserved as $items) {
+                    $this->stockService->restore($items);
+                }
+                throw $e;
+            }
+
             $createdOrders = [];
+            try {
+                foreach ($groupedByWarehouse as $warehouseId => $items) {
+                    $booksSubtotal = $this->calculateItemsTotal($items);
+                    $shippingFee = $this->invoiceShippingFee();
+                    $total = round($booksSubtotal + $shippingFee, 2);
+                    $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal);
 
-            foreach ($groupedByWarehouse as $warehouseId => $items) {
-                $this->stockService->validateAvailability($items);
-                $booksSubtotal = $this->calculateItemsTotal($items);
-                $shippingFee = $this->invoiceShippingFee();
-                $total = round($booksSubtotal + $shippingFee, 2);
-                $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal);
+                    $order = $this->orderRepository->create(array_merge([
+                        'customer_id' => $customer->getKey(),
+                        'warehouse_id' => $warehouseId,
+                        'items' => $items,
+                        'status' => OrderStatus::PendingWarehouseReview->value,
+                        'stock_reserved' => true,
+                        'books_subtotal' => $booksSubtotal,
+                        'shipping_fee' => $shippingFee,
+                        'shipping_method' => null,
+                        'total' => $total,
+                        'shipping_address' => $shippingAddress,
+                        'payment_info' => $paymentInfo ?? [],
+                        'payment_method' => $paymentMethod,
+                        'payment_status' => $paymentStatusPending,
+                    ], $payout));
 
-                $order = $this->orderRepository->create(array_merge([
-                    'customer_id' => $customer->getKey(),
-                    'warehouse_id' => $warehouseId,
-                    'items' => $items,
-                    'status' => OrderStatus::PendingWarehouseReview->value,
-                    'books_subtotal' => $booksSubtotal,
-                    'shipping_fee' => $shippingFee,
-                    'shipping_method' => null,
-                    'total' => $total,
-                    'shipping_address' => $shippingAddress,
-                    'payment_info' => $paymentInfo ?? [],
-                    'payment_method' => $paymentMethod,
-                    'payment_status' => $paymentStatusPending,
-                ], $payout));
+                    $this->paymentRepository->create([
+                        'order_id' => $order->getKey(),
+                        'user_id' => $customer->getKey(),
+                        'payment_method' => $paymentMethod,
+                        'payment_status' => $paymentStatusPending,
+                        'transaction_id' => null,
+                    ]);
 
-                $this->paymentRepository->create([
-                    'order_id' => $order->getKey(),
-                    'user_id' => $customer->getKey(),
-                    'payment_method' => $paymentMethod,
-                    'payment_status' => $paymentStatusPending,
-                    'transaction_id' => null,
-                ]);
-
-                $createdOrders[] = $order->fresh();
+                    $createdOrders[] = $order->fresh();
+                }
+            } catch (\Throwable $e) {
+                foreach ($createdOrders as $created) {
+                    Payment::query()->where('order_id', (string) $created->getKey())->delete();
+                    $created->delete();
+                }
+                foreach ($reserved as $items) {
+                    $this->stockService->restore($items);
+                }
+                throw $e;
             }
 
             $this->cartService->markAsConverted($cart);
@@ -259,22 +284,32 @@ class OrderService extends BaseService implements OrderServiceInterface
                 throw new \InvalidArgumentException('Order cannot be cancelled from its current status.');
             }
 
-            if ($current === OrderStatus::ProcessingFulfillment) {
+            $wasHeld = $this->orderHoldsStock($order);
+            $cancelled = Order::query()
+                ->whereKey($order->getKey())
+                ->where('status', '!=', OrderStatus::Cancelled->value)
+                ->update([
+                    'status' => OrderStatus::Cancelled->value,
+                    'stock_reserved' => false,
+                ]);
+            if ($cancelled > 0 && $wasHeld) {
                 $this->stockService->restore($order->items ?? []);
             }
-
-            $this->orderRepository->update($order->getKey(), ['status' => OrderStatus::Cancelled->value]);
 
             return $order->fresh();
         }
 
         $this->assertEmployeeWorkflowTransition($current, $next);
 
-        if ($current === OrderStatus::ResubmittedToWarehouse && $next === OrderStatus::ProcessingFulfillment) {
-            $this->stockService->validateAndDeduct($order->items ?? []);
-        }
-
         $patch = ['status' => $next->value];
+
+        // Orders created before checkout-time reservation still deduct when fulfillment starts.
+        if ($current === OrderStatus::ResubmittedToWarehouse
+            && $next === OrderStatus::ProcessingFulfillment
+            && ! $order->stock_reserved) {
+            $this->stockService->validateAndDeduct($order->items ?? []);
+            $patch['stock_reserved'] = true;
+        }
 
         if ($next === OrderStatus::Completed
             && (string) ($order->payment_method ?? '') === 'cod'
@@ -326,13 +361,19 @@ class OrderService extends BaseService implements OrderServiceInterface
     {
         $grouped = [];
 
+        $bookIds = array_values(array_unique(array_filter(array_map(
+            fn ($item) => isset($item['book_id']) ? (string) $item['book_id'] : '',
+            $items
+        ))));
+        $booksById = Book::query()->findMany($bookIds)->keyBy(fn (Book $book) => (string) $book->getKey());
+
         foreach ($items as $item) {
             $bookId = $item['book_id'] ?? null;
             if (! $bookId) {
                 continue;
             }
 
-            $book = Book::find($bookId);
+            $book = $booksById->get((string) $bookId);
             if (! $book) {
                 throw new \InvalidArgumentException("Book not found: {$bookId}");
             }
@@ -549,19 +590,31 @@ class OrderService extends BaseService implements OrderServiceInterface
         return $this->orderRepository->deleteMany($ids);
     }
 
-    /**
-     * Stock is deducted when entering processing_fulfillment. Restore on delete
-     * for in-progress fulfillment / shipping (not completed sales).
-     */
     private function restoreStockIfNeededBeforeDelete(Order $order): void
     {
-        $status = OrderStatus::normalizeStored((string) $order->status);
-        if (
-            $status === OrderStatus::ProcessingFulfillment
-            || $status === OrderStatus::ShippedCollectingPayment
-        ) {
+        if ($this->orderHoldsStock($order)) {
             $this->stockService->restore($order->items ?? []);
         }
+    }
+
+    /**
+     * Whether this order currently holds deducted stock that must be returned if it is
+     * cancelled or deleted. New orders reserve at checkout (stock_reserved); legacy orders
+     * only deducted on entering processing_fulfillment.
+     */
+    private function orderHoldsStock(Order $order): bool
+    {
+        $status = OrderStatus::normalizeStored((string) $order->status);
+        if ($status === OrderStatus::Cancelled || $status === OrderStatus::Completed || $order->is_direct_sale) {
+            return false;
+        }
+
+        if ($order->stock_reserved) {
+            return true;
+        }
+
+        return $status === OrderStatus::ProcessingFulfillment
+            || $status === OrderStatus::ShippedCollectingPayment;
     }
 
     public function markPayPalOrdersPaid(array $orderIds, ?string $transactionId): void

@@ -8,7 +8,7 @@ use App\Models\Book;
 use App\Models\Category;
 use App\Models\Publisher;
 use App\Models\Warehouse;
-use Illuminate\Support\Facades\Cache;
+use App\Support\CatalogCache;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -153,7 +153,7 @@ class BookImportService
         }
 
         if (! $dryRun && $created > 0) {
-            Cache::increment('bookstore_catalog_version');
+            CatalogCache::bump();
         }
 
         return [

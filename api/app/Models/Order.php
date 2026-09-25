@@ -24,6 +24,7 @@ class Order extends Model
         'warehouse_id',
         'items',
         'status',
+        'stock_reserved',
         'books_subtotal',
         'shipping_fee',
         'shipping_method',
@@ -52,6 +53,7 @@ class Order extends Model
     {
         return [
             'is_direct_sale' => 'boolean',
+            'stock_reserved' => 'boolean',
             'items' => 'array',
             'books_subtotal' => 'float',
             'shipping_fee' => 'float',

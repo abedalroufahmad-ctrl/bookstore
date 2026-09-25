@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Services;
 
+use App\Support\CatalogCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 
@@ -78,15 +79,13 @@ class CachedCatalogService
      */
     public function forgetCatalogCache(): void
     {
-        $version = (int) Cache::get('bookstore_catalog_version', 0);
-
-        Cache::put('bookstore_catalog_version', $version + 1, now()->addYears(1));
+        CatalogCache::bump();
     }
 
     private function cacheKey(string $type, array $filters, int $perPage, int $page = 1): string
     {
         $prefix = config('catalog.cache_prefix', 'bookstore_catalog_');
-        $version = (int) Cache::get('bookstore_catalog_version', 0);
+        $version = CatalogCache::version();
 
         return $prefix.'v'.$version.'_'.$type.'_'.md5(json_encode($filters).$perPage.$page);
     }

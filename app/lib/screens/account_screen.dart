@@ -356,95 +356,125 @@ class AccountScreen extends StatelessWidget {
   }
 
   static void _showEditProfileSheet(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    final profile = context.read<ProfileProvider>();
-    final phoneController = TextEditingController(text: profile.phone);
-    final addressController = TextEditingController(text: profile.address);
-    final cityController = TextEditingController(text: profile.city);
-    final countryController = TextEditingController(text: profile.country);
-    final postalController = TextEditingController(text: profile.postalCode);
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(t.editProfile, style: Theme.of(ctx).textTheme.titleLarge),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: InputDecoration(labelText: t.phoneLabel),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: addressController,
-                  decoration: InputDecoration(labelText: t.addressLabel),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: cityController,
-                  decoration: InputDecoration(labelText: t.cityLabel),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: countryController,
-                  decoration: InputDecoration(labelText: t.countryLabel),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: postalController,
-                  decoration: InputDecoration(labelText: t.postalCodeLabel),
-                  keyboardType: TextInputType.streetAddress,
-                ),
-                const SizedBox(height: 24),
-                GFButton(
-                  onPressed: () async {
-                    final navigator = Navigator.of(ctx);
-                    final phone = phoneController.text.trim();
-                    final address = addressController.text.trim();
-                    final city = cityController.text.trim();
-                    final country = countryController.text.trim();
-                    final postalCode = postalController.text.trim();
-                    final res = await ApiService.instance.updateCustomerProfile(
-                      address: address.isEmpty ? null : address,
-                      city: city.isEmpty ? null : city,
-                      country: country.isEmpty ? null : country,
-                      postalCode: postalCode.isEmpty ? null : postalCode,
-                      phone: phone.isEmpty ? null : phone,
-                    );
-                    if (!ctx.mounted) return;
-                    if (res.success) {
-                      await profile.save(
-                        phone: phone.isEmpty ? null : phone,
-                        address: address.isEmpty ? null : address,
-                        city: city.isEmpty ? null : city,
-                        country: country.isEmpty ? null : country,
-                        postalCode: postalCode.isEmpty ? null : postalCode,
-                      );
-                      if (!ctx.mounted) return;
-                      navigator.pop();
-                    }
-                  },
-                  text: t.save,
-                  fullWidthButton: true,
-                  color: Theme.of(ctx).colorScheme.primary,
-                ),
-              ],
+      builder: (_) => const _EditProfileSheet(),
+    );
+  }
+}
+
+/// Owns its text controllers so they are disposed with the sheet (after its exit animation).
+class _EditProfileSheet extends StatefulWidget {
+  const _EditProfileSheet();
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final ProfileProvider _profile = context.read<ProfileProvider>();
+  late final TextEditingController _phoneController =
+      TextEditingController(text: _profile.phone);
+  late final TextEditingController _addressController =
+      TextEditingController(text: _profile.address);
+  late final TextEditingController _cityController =
+      TextEditingController(text: _profile.city);
+  late final TextEditingController _countryController =
+      TextEditingController(text: _profile.country);
+  late final TextEditingController _postalController =
+      TextEditingController(text: _profile.postalCode);
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _countryController.dispose();
+    _postalController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final navigator = Navigator.of(context);
+    final phone = _phoneController.text.trim();
+    final address = _addressController.text.trim();
+    final city = _cityController.text.trim();
+    final country = _countryController.text.trim();
+    final postalCode = _postalController.text.trim();
+    final res = await ApiService.instance.updateCustomerProfile(
+      address: address.isEmpty ? null : address,
+      city: city.isEmpty ? null : city,
+      country: country.isEmpty ? null : country,
+      postalCode: postalCode.isEmpty ? null : postalCode,
+      phone: phone.isEmpty ? null : phone,
+    );
+    if (!mounted) return;
+    if (res.success) {
+      await _profile.save(
+        phone: phone.isEmpty ? null : phone,
+        address: address.isEmpty ? null : address,
+        city: city.isEmpty ? null : city,
+        country: country.isEmpty ? null : country,
+        postalCode: postalCode.isEmpty ? null : postalCode,
+      );
+      if (!mounted) return;
+      navigator.pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(t.editProfile, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _phoneController,
+              decoration: InputDecoration(labelText: t.phoneLabel),
+              keyboardType: TextInputType.phone,
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _addressController,
+              decoration: InputDecoration(labelText: t.addressLabel),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _cityController,
+              decoration: InputDecoration(labelText: t.cityLabel),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _countryController,
+              decoration: InputDecoration(labelText: t.countryLabel),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _postalController,
+              decoration: InputDecoration(labelText: t.postalCodeLabel),
+              keyboardType: TextInputType.streetAddress,
+            ),
+            const SizedBox(height: 24),
+            GFButton(
+              onPressed: _save,
+              text: t.save,
+              fullWidthButton: true,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

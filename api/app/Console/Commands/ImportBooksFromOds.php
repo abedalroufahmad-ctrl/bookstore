@@ -7,8 +7,8 @@ use App\Models\Book;
 use App\Models\Category;
 use App\Models\Publisher;
 use App\Models\Warehouse;
+use App\Support\CatalogCache;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -220,7 +220,7 @@ class ImportBooksFromOds extends Command
         }
 
         if (! $dryRun) {
-            Cache::flush();
+            CatalogCache::bump();
         }
 
         $this->newLine();

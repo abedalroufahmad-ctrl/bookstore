@@ -18,6 +18,14 @@ return [
     'currency' => env('PAYPAL_CURRENCY', 'USD'),
 
     /*
+    | Outbound HTTP limits (seconds). Without them a slow PayPal response holds a PHP worker
+    | for the default socket timeout and can exhaust the pool under load.
+    */
+    'http_timeout' => (int) env('PAYPAL_HTTP_TIMEOUT', 20),
+
+    'http_connect_timeout' => (int) env('PAYPAL_HTTP_CONNECT_TIMEOUT', 5),
+
+    /*
     |--------------------------------------------------------------------------
     | Redirect URLs (browser flow)
     |--------------------------------------------------------------------------

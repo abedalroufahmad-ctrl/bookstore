@@ -290,6 +290,8 @@ export function HomePage() {
                                     const valid = c && c.toLowerCase() !== 'null' && c.toLowerCase() !== 'undefined'
                                     return valid ? (
                                         <img
+                                            loading="lazy"
+                                            decoding="async"
                                             src={resolveCoverUrl(c)}
                                             alt={book.title}
                                             className="w-full h-full object-cover absolute inset-0"

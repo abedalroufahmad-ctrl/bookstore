@@ -15,6 +15,20 @@ function isRealCoverUrl(url: string): boolean {
   return !PLACEHOLDER_HOSTS.some((h) => lower.includes(h))
 }
 
+/**
+ * Only follow PayPal approval links that really point at PayPal over HTTPS, so a
+ * tampered or misconfigured API response cannot redirect buyers to a phishing page.
+ */
+export function isTrustedPayPalUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw)
+    const host = url.hostname.toLowerCase()
+    return url.protocol === 'https:' && (host === 'paypal.com' || host.endsWith('.paypal.com'))
+  } catch {
+    return false
+  }
+}
+
 /** True when the book has at least one cover image URL (thumb or full). */
 export function hasCover(book: { cover_image?: string; cover_image_thumb?: string }): boolean {
   return (

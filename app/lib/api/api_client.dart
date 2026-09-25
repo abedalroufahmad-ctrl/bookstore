@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +12,15 @@ class ApiClient {
   final String _baseUrl;
   String get baseUrl => _baseUrl;
   void Function()? onUnauthenticated;
+
+  /// One keep-alive client for every request instead of a new connection per call.
+  final http.Client _http = http.Client();
+
+  static const Duration _requestTimeout = Duration(seconds: 20);
+  static const Duration _uploadTimeout = Duration(seconds: 90);
+
+  /// Bodies above this size are decoded on a background isolate to avoid janking the UI.
+  static const int _backgroundDecodeThreshold = 64 * 1024;
 
   Future<bool> _isArabic() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +55,11 @@ class ApiClient {
 
   Future<String> _connectionError(Object e) async {
     final ar = await _isArabic();
+    if (e is TimeoutException) {
+      return ar
+          ? 'انتهت مهلة الاتصال بالخادم. تحقق من الشبكة وحاول مرة أخرى.'
+          : 'The server took too long to respond. Check your connection and try again.';
+    }
     final hint = ar
         ? 'تأكد أن الهاتف على نفس الشبكة وأن API يعمل على $_baseUrl'
         : 'Check phone is on the same Wi‑Fi and API is running at $_baseUrl';
@@ -59,7 +75,7 @@ class ApiClient {
       final uri = params != null && params.isNotEmpty
           ? Uri.parse('$_baseUrl$path').replace(queryParameters: params)
           : Uri.parse('$_baseUrl$path');
-      final res = await http.get(uri, headers: await _headers());
+      final res = await _http.get(uri, headers: await _headers()).timeout(_requestTimeout);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
@@ -73,11 +89,13 @@ class ApiClient {
   }) async {
     try {
       final uri = Uri.parse('$_baseUrl$path');
-      final res = await http.post(
-        uri,
-        headers: await _headers(),
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final res = await _http
+          .post(
+            uri,
+            headers: await _headers(),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(_requestTimeout);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
@@ -90,11 +108,13 @@ class ApiClient {
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final res = await http.put(
-        Uri.parse('$_baseUrl$path'),
-        headers: await _headers(),
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final res = await _http
+          .put(
+            Uri.parse('$_baseUrl$path'),
+            headers: await _headers(),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(_requestTimeout);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
@@ -107,11 +127,13 @@ class ApiClient {
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final res = await http.patch(
-        Uri.parse('$_baseUrl$path'),
-        headers: await _headers(),
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final res = await _http
+          .patch(
+            Uri.parse('$_baseUrl$path'),
+            headers: await _headers(),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(_requestTimeout);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
@@ -123,10 +145,12 @@ class ApiClient {
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final res = await http.delete(
-        Uri.parse('$_baseUrl$path'),
-        headers: await _headers(),
-      );
+      final res = await _http
+          .delete(
+            Uri.parse('$_baseUrl$path'),
+            headers: await _headers(),
+          )
+          .timeout(_requestTimeout);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
@@ -151,8 +175,8 @@ class ApiClient {
           filename: filename,
         ),
       );
-      final streamed = await request.send();
-      final res = await http.Response.fromStream(streamed);
+      final streamed = await _http.send(request).timeout(_uploadTimeout);
+      final res = await http.Response.fromStream(streamed).timeout(_uploadTimeout);
       return await _parseResponse<T>(res, fromJson);
     } catch (e) {
       return ApiResponse(success: false, message: await _connectionError(e), data: null);
@@ -164,7 +188,9 @@ class ApiClient {
     T Function(dynamic)? fromJson,
   ) async {
     try {
-      final map = jsonDecode(res.body) as Map<String, dynamic>?;
+      final map = res.bodyBytes.length > _backgroundDecodeThreshold
+          ? await compute(_decodeJsonMap, res.body)
+          : _decodeJsonMap(res.body);
       if (map == null) {
         final ar = await _isArabic();
         return ApiResponse(
@@ -204,6 +230,9 @@ class ApiClient {
       );
     }
   }
+
+  static Map<String, dynamic>? _decodeJsonMap(String body) =>
+      jsonDecode(body) as Map<String, dynamic>?;
 
   /// Prefer Laravel field errors over generic "Validation failed." (better UX on checkout, etc.).
   static String _firstValidationErrorMessage(String fallback, dynamic errors) {

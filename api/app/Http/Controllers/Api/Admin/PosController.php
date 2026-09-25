@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Admin\PosInvoiceStoreRequest;
 use App\Infrastructure\Services\BookService;
 use App\Models\Order;
 use App\Models\Warehouse;
@@ -60,18 +61,12 @@ class PosController extends BaseApiController
         return $this->successResponse($books);
     }
 
-    public function createInvoice(Request $request): JsonResponse
+    public function createInvoice(PosInvoiceStoreRequest $request): JsonResponse
     {
-        $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.book_id' => ['required', 'string'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'warehouse_id' => ['required', 'string'],
-            'customer_name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $employee = auth('employee')->user();
-        $warehouseId = (string) $request->get('warehouse_id');
+        $warehouseId = (string) $validated['warehouse_id'];
         $warehouse = Warehouse::find($warehouseId);
         if (! $warehouse) {
             return $this->errorResponse('Warehouse not found.', 404);
@@ -81,11 +76,11 @@ class PosController extends BaseApiController
             return $deny;
         }
 
-        $customerName = trim((string) $request->get('customer_name', ''));
+        $customerName = trim((string) ($validated['customer_name'] ?? ''));
 
         try {
             $order = $this->orderService->createPosInvoice(
-                $request->get('items'),
+                $validated['items'],
                 $warehouseId,
                 $employee?->getKey(),
                 $customerName !== '' ? $customerName : null
@@ -93,7 +88,7 @@ class PosController extends BaseApiController
 
             return $this->successResponse($order, 'Invoice created successfully', 201);
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             return $this->errorResponse(config('app.debug') ? $e->getMessage() : 'Failed to create invoice.', 500);
         }
@@ -152,9 +147,8 @@ class PosController extends BaseApiController
             $request->get('utc_offset_minutes')
         );
 
-        $orders = $query->get(['total', 'created_at']);
-        $aggregated = $this->posReportAggregator->aggregate(
-            $orders,
+        $aggregated = $this->posReportAggregator->aggregateDailyBuckets(
+            $this->posReportAggregator->fetchDailyBuckets($query, $timezone),
             is_string($type) ? $type : 'daily',
             $timezone
         );

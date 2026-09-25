@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BustsCatalogCache;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MongoDB\Laravel\Eloquent\Model;
@@ -11,6 +12,8 @@ use MongoDB\Laravel\Eloquent\Model;
  */
 class Warehouse extends Model
 {
+    use BustsCatalogCache;
+
     protected $connection = 'mongodb';
 
     protected $table = 'warehouses';

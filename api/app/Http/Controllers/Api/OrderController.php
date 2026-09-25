@@ -32,7 +32,7 @@ class OrderController extends BaseApiController
                 'count' => count($orders),
             ], 'Order(s) created successfully', 201);
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             return $this->errorResponse(
                 config('app.debug') ? $e->getMessage() : 'Checkout failed. Please try again.',
@@ -83,7 +83,7 @@ class OrderController extends BaseApiController
 
             return $this->successResponse($order->hideInternalPayouts(), 'Order cancelled');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 
@@ -101,7 +101,7 @@ class OrderController extends BaseApiController
 
             return $this->successResponse($order->hideInternalPayouts(), 'Order confirmed with warehouse.');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\WarehouseStoreRequest;
 use App\Http\Requests\Admin\WarehouseUpdateRequest;
 use App\Infrastructure\Services\WarehouseService;
+use App\Models\Warehouse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -28,13 +29,11 @@ class WarehouseController extends BaseApiController
 
                 return $this->successResponse($paginator);
             }
-            $warehouses = [];
-            foreach ($managedIds as $wid) {
-                $w = $this->warehouseService->getById($wid);
-                if ($w) {
-                    $warehouses[] = $w;
-                }
-            }
+            $warehouses = Warehouse::query()
+                ->with(['publisher', 'manager'])
+                ->whereIn('_id', array_map('strval', $managedIds))
+                ->get()
+                ->all();
             if ($search = $request->get('search')) {
                 $needle = mb_strtolower((string) $search);
                 $warehouses = array_values(array_filter($warehouses, function ($w) use ($needle) {

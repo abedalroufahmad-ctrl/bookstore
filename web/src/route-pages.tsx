@@ -108,3 +108,10 @@ export const PublisherBooks = lazy(() =>
 export const PublisherSettings = lazy(() =>
   import('./pages/PublisherSettings').then((m) => ({ default: m.PublisherSettings })),
 )
+export const AdminPos = lazy(() => import('./pages/AdminPos').then((m) => ({ default: m.AdminPos })))
+export const AdminPosReports = lazy(() =>
+  import('./pages/AdminPosReports').then((m) => ({ default: m.AdminPosReports })),
+)
+export const AdminPosInvoice = lazy(() =>
+  import('./pages/AdminPosInvoice').then((m) => ({ default: m.AdminPosInvoice })),
+)

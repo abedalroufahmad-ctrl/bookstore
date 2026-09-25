@@ -142,13 +142,14 @@ class CartService extends BaseService implements CartServiceInterface
      */
     public function repriceItems(array $items): array
     {
+        $books = $this->loadBooksById($items);
         $repriced = [];
         foreach ($items as $item) {
             $bookId = $item['book_id'] ?? null;
             if (! $bookId) {
                 continue;
             }
-            $book = Book::find($bookId);
+            $book = $books[(string) $bookId] ?? null;
             if (! $book) {
                 throw new \InvalidArgumentException("Book not found: {$bookId}");
             }
@@ -184,9 +185,10 @@ class CartService extends BaseService implements CartServiceInterface
     public function getItemsWithDetails(Cart $cart): Collection
     {
         $items = collect($cart->items ?? []);
+        $books = $this->loadBooksById($items->all(), ['warehouse', 'publisher']);
 
-        return $items->map(function (array $item) {
-            $book = Book::with(['warehouse', 'publisher'])->find($item['book_id'] ?? null);
+        return $items->map(function (array $item) use ($books) {
+            $book = $books[(string) ($item['book_id'] ?? '')] ?? null;
             $currentPrice = $book ? $this->calculateDiscountedPrice($book) : ($item['price'] ?? 0);
 
             return [
@@ -206,11 +208,36 @@ class CartService extends BaseService implements CartServiceInterface
                     'publisher' => $book->publisher ? [
                         'id' => $book->publisher->getKey(),
                         'name' => $book->publisher->name,
-                        'settings' => $book->publisher->settings,
+                        'settings' => $book->publisher->public_settings,
                     ] : null,
                 ] : null,
             ];
         });
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<string, Book>
+     */
+    private function loadBooksById(array $items, array $with = []): array
+    {
+        $ids = [];
+        foreach ($items as $item) {
+            if (! empty($item['book_id'])) {
+                $ids[] = (string) $item['book_id'];
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return [];
+        }
+
+        $byId = [];
+        foreach (Book::query()->with($with)->findMany($ids) as $book) {
+            $byId[(string) $book->getKey()] = $book;
+        }
+
+        return $byId;
     }
 
     protected function calculateDiscountedPrice(Book $book): float

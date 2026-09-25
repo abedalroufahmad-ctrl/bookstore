@@ -4,8 +4,8 @@ namespace App\Infrastructure\Services;
 
 use App\Domain\Book\Interfaces\BookRepositoryInterface;
 use App\Models\Book;
+use App\Support\CatalogCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 
 class BookService
 {
@@ -89,7 +89,6 @@ class BookService
 
     private function bustCatalogCache(): void
     {
-        $version = (int) Cache::get('bookstore_catalog_version', 0);
-        Cache::put('bookstore_catalog_version', $version + 1, now()->addYears(1));
+        CatalogCache::bump();
     }
 }

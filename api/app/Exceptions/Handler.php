@@ -59,6 +59,9 @@ class Handler extends ExceptionHandler
     {
         SetLocaleFromAcceptLanguage::apply($request);
 
+        // ModelNotFound -> 404, AuthorizationException -> 403, etc. instead of a generic 500.
+        $e = $this->prepareException($this->mapException($e));
+
         if ($e instanceof TokenExpiredException) {
             return response()->json([
                 'success' => false,
@@ -105,6 +108,9 @@ class Handler extends ExceptionHandler
 
         if ($e instanceof HttpException) {
             $msg = $e->getMessage() ?: 'An error occurred.';
+            if ($e->getStatusCode() >= 500 && ! config('app.debug')) {
+                $msg = 'Server error.';
+            }
 
             return response()->json([
                 'success' => false,
@@ -114,7 +120,10 @@ class Handler extends ExceptionHandler
         }
 
         $message = config('app.debug') ? $e->getMessage() : 'Server error.';
-        $code = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+        $code = method_exists($e, 'getStatusCode') ? (int) $e->getStatusCode() : 500;
+        if ($code < 400 || $code > 599) {
+            $code = 500;
+        }
 
         return response()->json([
             'success' => false,

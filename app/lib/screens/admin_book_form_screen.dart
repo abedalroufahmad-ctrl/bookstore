@@ -210,6 +210,7 @@ class _AdminBookFormScreenState extends State<AdminBookFormScreen> {
       }
     }
 
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 

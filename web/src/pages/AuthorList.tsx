@@ -112,6 +112,8 @@ export function AuthorList() {
                         >
                             {author.photo && (
                                 <img
+                                    loading="lazy"
+                                    decoding="async"
                                     src={resolveCoverUrl(author.photo)}
                                     alt={author.name}
                                     style={{

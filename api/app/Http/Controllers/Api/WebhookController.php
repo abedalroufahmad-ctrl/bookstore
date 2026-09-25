@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Order\Interfaces\OrderServiceInterface;
+use App\Services\PayPalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Stripe\Webhook;
 
@@ -141,7 +141,8 @@ class WebhookController extends BaseApiController
             : 'https://api-m.sandbox.paypal.com';
 
         try {
-            $tokenRes = Http::asForm()
+            $tokenRes = PayPalService::http()
+                ->asForm()
                 ->withBasicAuth($clientId, $clientSecret)
                 ->post("{$base}/v1/oauth2/token", ['grant_type' => 'client_credentials']);
 
@@ -154,7 +155,8 @@ class WebhookController extends BaseApiController
                 return false;
             }
 
-            $verifyRes = Http::withToken($accessToken)
+            $verifyRes = PayPalService::http()
+                ->withToken($accessToken)
                 ->acceptJson()
                 ->post("{$base}/v1/notifications/verify-webhook-signature", [
                     'auth_algo' => $authAlgo,

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: cleartext HTTP to a local Laravel API (emulator, localhost, LAN IP
+     passed via -dart-define=API_HOST). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -2,12 +2,19 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PayPalService
 {
+    public static function http(): PendingRequest
+    {
+        return Http::timeout((int) config('paypal.http_timeout', 20))
+            ->connectTimeout((int) config('paypal.http_connect_timeout', 5));
+    }
+
     public function baseUrl(): string
     {
         return config('paypal.mode') === 'live'
@@ -23,7 +30,8 @@ class PayPalService
             throw new \RuntimeException('PayPal client credentials are not configured.');
         }
 
-        $response = Http::asForm()
+        $response = self::http()
+            ->asForm()
             ->withBasicAuth($clientId, $secret)
             ->post($this->baseUrl().'/v1/oauth2/token', [
                 'grant_type' => 'client_credentials',
@@ -250,7 +258,8 @@ class PayPalService
 
     private function authorizedGet(string $path): Response
     {
-        return Http::withToken($this->getAccessToken())
+        return self::http()
+            ->withToken($this->getAccessToken())
             ->acceptJson()
             ->get($this->baseUrl().$path);
     }
@@ -260,7 +269,8 @@ class PayPalService
      */
     private function authorizedPost(string $path, array|\stdClass $body): Response
     {
-        return Http::withToken($this->getAccessToken())
+        return self::http()
+            ->withToken($this->getAccessToken())
             ->acceptJson()
             ->asJson()
             ->post($this->baseUrl().$path, $body);

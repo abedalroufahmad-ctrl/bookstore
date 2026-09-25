@@ -30,6 +30,9 @@ use App\Services\CartService;
 use App\Services\CustomerAuthService;
 use App\Services\EmployeeAuthService;
 use App\Services\OrderService;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -55,6 +58,55 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        $this->configureRateLimiting();
+    }
+
+    private function configureRateLimiting(): void
+    {
+        RateLimiter::for('api', function (Request $request) {
+            $userKey = $this->rateLimitUserKey($request);
+
+            return $userKey !== null
+                ? Limit::perMinute(config('rate_limits.user_per_minute'))->by($userKey)
+                : Limit::perMinute(config('rate_limits.guest_per_minute'))->by('ip:'.$request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            $email = mb_strtolower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(config('rate_limits.login_per_minute'))->by('login:'.$email.'|'.$request->ip()),
+                Limit::perMinute(config('rate_limits.login_ip_per_minute'))->by('login-ip:'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('heavy', function (Request $request) {
+            return Limit::perMinute(config('rate_limits.heavy_per_minute'))
+                ->by('heavy:'.($this->rateLimitUserKey($request) ?? 'ip:'.$request->ip()));
+        });
+    }
+
+    /**
+     * Throttling runs before route auth middleware, so resolve the JWT here. Invalid or
+     * forged tokens resolve to null and fall back to the stricter per-IP guest limit.
+     */
+    private function rateLimitUserKey(Request $request): ?string
+    {
+        if (! $request->bearerToken()) {
+            return null;
+        }
+
+        foreach (['employee', 'customer'] as $guard) {
+            try {
+                $user = auth($guard)->user();
+            } catch (\Throwable) {
+                $user = null;
+            }
+            if ($user) {
+                return $guard.':'.$user->getAuthIdentifier();
+            }
+        }
+
+        return null;
     }
 }

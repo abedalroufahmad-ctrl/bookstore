@@ -8,6 +8,7 @@ import '../models/book.dart';
 import '../providers/auth_provider.dart';
 import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
 import '../utils/weight_format.dart';
+import '../widgets/decode_size.dart';
 import '../widgets/pos_section_nav.dart';
 
 class AdminPosScreen extends StatefulWidget {
@@ -648,11 +649,14 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                               children: [
                                 Expanded(
                                   child: cover.isNotEmpty
-                                      ? Image.network(
-                                          cover,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, _, _) =>
-                                              const Center(child: Icon(Icons.book, size: 40)),
+                                      ? LayoutBuilder(
+                                          builder: (context, constraints) => Image.network(
+                                            cover,
+                                            fit: BoxFit.cover,
+                                            cacheWidth: decodeWidthFor(context, constraints),
+                                            errorBuilder: (_, _, _) =>
+                                                const Center(child: Icon(Icons.book, size: 40)),
+                                          ),
                                         )
                                       : const Center(child: Icon(Icons.book, size: 40)),
                                 ),

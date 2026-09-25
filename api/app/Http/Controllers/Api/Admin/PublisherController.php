@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Admin\PublisherSettingsUpdateRequest;
 use App\Http\Requests\Admin\PublisherStoreRequest;
 use App\Http\Requests\Admin\PublisherUpdateRequest;
 use App\Infrastructure\Services\PublisherService;
@@ -66,8 +67,7 @@ class PublisherController extends BaseApiController
 
     public function getSettings(string $id): JsonResponse
     {
-        $user = auth('employee')->user();
-        if (UserRole::isPublisherScoped($user->role) && $user->getManagedPublisherId() !== $id) {
+        if (! $this->canManagePublisherSettings($id)) {
             return $this->errorResponse('Forbidden', 403);
         }
 
@@ -79,10 +79,9 @@ class PublisherController extends BaseApiController
         return $this->successResponse($publisher->settings ?? (object)[]);
     }
 
-    public function updateSettings(Request $request, string $id): JsonResponse
+    public function updateSettings(PublisherSettingsUpdateRequest $request, string $id): JsonResponse
     {
-        $user = auth('employee')->user();
-        if (UserRole::isPublisherScoped($user->role) && $user->getManagedPublisherId() !== $id) {
+        if (! $this->canManagePublisherSettings($id)) {
             return $this->errorResponse('Forbidden', 403);
         }
 
@@ -91,25 +90,9 @@ class PublisherController extends BaseApiController
             return $this->errorResponse('Publisher not found', 404);
         }
 
-        $isManager = $user->role === UserRole::Manager->value;
+        $isManager = auth('employee')->user()->role === UserRole::Manager->value;
 
-        $rules = [
-            'support_email' => 'nullable|email',
-            'support_phone' => 'nullable|string|max:50',
-            'return_policy' => 'nullable|string',
-            'default_discount' => 'nullable|numeric|min:0|max:100',
-            'payment_methods' => 'nullable|array',
-            'payment_methods.*' => 'string',
-            'paypal_email' => 'nullable|email|max:255',
-            'paypal_merchant_id' => 'nullable|string|max:64',
-            'bank_name' => 'nullable|string|max:255',
-            'bank_account_number' => 'nullable|string|max:128',
-        ];
-        if ($isManager) {
-            $rules['platform_commission_percent'] = 'nullable|numeric|min:0|max:100';
-        }
-
-        $settings = $request->validate($rules);
+        $settings = $request->validated();
         $merged = array_merge($publisher->settings ?? [], $settings);
         if (! $isManager) {
             $merged['platform_commission_percent'] = $publisher->settings['platform_commission_percent'] ?? 0;
@@ -121,5 +104,20 @@ class PublisherController extends BaseApiController
         $publisher->save();
 
         return $this->successResponse($publisher->settings, 'Settings updated');
+    }
+
+    /** Payout settings (bank / PayPal / commission): global managers or the publisher's own manager. */
+    private function canManagePublisherSettings(string $publisherId): bool
+    {
+        $user = auth('employee')->user();
+        if (! $user) {
+            return false;
+        }
+        if ($user->role === UserRole::Manager->value) {
+            return true;
+        }
+
+        return UserRole::isPublisherScoped($user->role)
+            && $user->getManagedPublisherId() === $publisherId;
     }
 }

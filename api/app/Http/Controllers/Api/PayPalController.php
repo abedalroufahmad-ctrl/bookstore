@@ -33,9 +33,10 @@ class PayPalController extends BaseApiController
         $orderIds = $request->validated('order_ids');
 
         try {
+            $ordersById = $this->loadOrdersById($orderIds);
             $orders = [];
             foreach ($orderIds as $orderId) {
-                $order = Order::find($orderId);
+                $order = $ordersById[(string) $orderId] ?? null;
                 if (! $order) {
                     return $this->errorResponse('Order not found.', 404);
                 }
@@ -135,8 +136,9 @@ class PayPalController extends BaseApiController
 
             $ids = array_values(array_filter(array_map('trim', explode(',', $customId))));
             $expected = 0.0;
+            $ordersById = $this->loadOrdersById($ids);
             foreach ($ids as $orderId) {
-                $order = Order::find($orderId);
+                $order = $ordersById[$orderId] ?? null;
                 if (! $order) {
                     Log::warning('PayPal capture referenced missing order', ['order_id' => $orderId]);
 
@@ -225,6 +227,20 @@ class PayPalController extends BaseApiController
         $ids = array_values(array_unique($ids));
 
         return [implode(',', $ids), $captureId, $hasAmount ? round($capturedAmount, 2) : null];
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return array<string, Order>
+     */
+    private function loadOrdersById(array $ids): array
+    {
+        $byId = [];
+        foreach (Order::query()->findMany(array_map('strval', $ids)) as $order) {
+            $byId[(string) $order->getKey()] = $order;
+        }
+
+        return $byId;
     }
 
     private function redirectToConfiguredUrl(string $base, string $querySuffix): RedirectResponse

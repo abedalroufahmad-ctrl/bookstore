@@ -349,7 +349,7 @@ export function AdminPos() {
                 >
                   <div className="aspect-[3/4] bg-stone-100 rounded mb-2 overflow-hidden flex items-center justify-center">
                     {hasCover(book) ? (
-                      <img src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)} alt="" className="object-cover w-full h-full" />
+                      <img loading="lazy" decoding="async" src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)} alt="" className="object-cover w-full h-full" />
                     ) : (
                       <span className="text-stone-300 font-serif">BOOK</span>
                     )}

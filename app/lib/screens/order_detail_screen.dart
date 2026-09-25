@@ -113,16 +113,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         approvalUrl.isNotEmpty) {
       final uri = Uri.tryParse(approvalUrl);
       if (uri != null &&
+          _isTrustedPayPalUri(uri) &&
           await canLaunchUrl(uri) &&
           await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         if (mounted) await _load();
         return;
       }
+      if (!mounted) return;
       setState(() => _actionMessage = AppLocalizations.of(context).error);
       return;
     }
 
     setState(() => _actionMessage = res.message);
+  }
+
+  /// Only open PayPal over HTTPS, so a tampered API response can't send buyers elsewhere.
+  static bool _isTrustedPayPalUri(Uri uri) {
+    final host = uri.host.toLowerCase();
+    return uri.scheme == 'https' && (host == 'paypal.com' || host.endsWith('.paypal.com'));
   }
 
   @override

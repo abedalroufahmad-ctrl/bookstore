@@ -45,7 +45,7 @@ class CartController extends BaseApiController
                 'total' => round($total, 2),
             ], 'Item added to cart');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 
@@ -62,7 +62,7 @@ class CartController extends BaseApiController
                 'total' => round($total, 2),
             ], 'Item removed from cart');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 
@@ -84,7 +84,7 @@ class CartController extends BaseApiController
                 'total' => round($total, 2),
             ], 'Cart updated');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 }

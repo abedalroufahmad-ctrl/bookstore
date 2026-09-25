@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BustsCatalogCache;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use MongoDB\Laravel\Eloquent\Model;
 
 class Author extends Model
 {
+    use BustsCatalogCache;
+
     protected $connection = 'mongodb';
 
     protected $table = 'authors';

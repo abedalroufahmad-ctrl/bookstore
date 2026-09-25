@@ -4,6 +4,7 @@ import '../config.dart';
 import '../models/book.dart';
 import '../theme.dart';
 import '../utils/weight_format.dart';
+import 'decode_size.dart';
 import 'neumorphic.dart';
 
 String _resolveCoverUrl(String path) {
@@ -34,14 +35,17 @@ class BookCard extends StatelessWidget {
     if (url == null || url.isEmpty || isNullLike) {
       return _buildLogoPlaceholder(context);
     }
-    return Image.network(
-      _resolveCoverUrl(url),
-      fit: BoxFit.cover,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return _buildLogoPlaceholder(context);
-      },
-      errorBuilder: (_, _, _) => _buildLogoPlaceholder(context),
+    return LayoutBuilder(
+      builder: (context, constraints) => Image.network(
+        _resolveCoverUrl(url),
+        fit: BoxFit.cover,
+        cacheWidth: decodeWidthFor(context, constraints),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _buildLogoPlaceholder(context);
+        },
+        errorBuilder: (_, _, _) => _buildLogoPlaceholder(context),
+      ),
     );
   }
 

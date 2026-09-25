@@ -18,7 +18,7 @@ class PayPalQuotedOrdersRequest extends BaseFormRequest
     {
         return [
             'order_ids' => ['required', 'array', 'min:1'],
-            'order_ids.*' => ['required', 'string'],
+            'order_ids.*' => ['required', 'string', 'distinct'],
         ];
     }
 
@@ -35,8 +35,12 @@ class PayPalQuotedOrdersRequest extends BaseFormRequest
                 return;
             }
 
+            $ordersById = Order::query()
+                ->findMany(array_map('strval', $ids))
+                ->keyBy(fn (Order $order) => (string) $order->getKey());
+
             foreach ($ids as $id) {
-                $order = Order::find((string) $id);
+                $order = $ordersById->get((string) $id);
                 if (! $order) {
                     $validator->errors()->add('order_ids', 'One or more orders were not found.');
 

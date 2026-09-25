@@ -233,6 +233,8 @@ export function BookCard({
                     <div style={{ position: 'relative', width: 22, height: 22, flexShrink: 0 }}>
                       {a.photo && (
                         <img
+                          loading="lazy"
+                          decoding="async"
                           src={resolveCoverUrl(a.photo)}
                           alt={name}
                           style={{

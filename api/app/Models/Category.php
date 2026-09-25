@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BustsCatalogCache;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MongoDB\Laravel\Eloquent\Model;
 
 class Category extends Model
 {
+    use BustsCatalogCache;
+
     protected $connection = 'mongodb';
 
     protected $table = 'categories';

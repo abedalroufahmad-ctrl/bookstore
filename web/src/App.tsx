@@ -39,6 +39,9 @@ import {
   AdminReportsBooksWithoutCover,
   AdminWarehouseBrowse,
   AdminWarehouseBooksAdmin,
+  AdminPos,
+  AdminPosReports,
+  AdminPosInvoice,
 } from './route-pages'
 import { SettingsProvider } from './contexts/SettingsContext'
 
@@ -51,9 +54,6 @@ const queryClient = new QueryClient({
   },
 })
 
-import { AdminPos } from './pages/AdminPos'
-import { AdminPosReports } from './pages/AdminPosReports'
-import { AdminPosInvoice } from './pages/AdminPosInvoice'
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { userType, isLoading } = useAuth()

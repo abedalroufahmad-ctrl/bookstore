@@ -28,7 +28,7 @@ use App\Http\Controllers\Api\PublicWarehouseController;
 use App\Http\Controllers\Api\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
+Route::middleware('throttle:api')->prefix('v1')->group(function () {
     // Payment webhooks (no auth; signature verified in controller — fail closed)
     Route::post('webhooks/stripe', [WebhookController::class, 'stripe']);
     Route::post('webhooks/paypal', [WebhookController::class, 'paypal']);
@@ -53,12 +53,12 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
         // Catalog: managers + publisher managers + warehouse managers (scoped by restrict middleware)
         Route::middleware('role:manager,publisher_manager,warehouse_manager')->group(function () {
             Route::post('upload-cover', UploadCoverController::class);
-            Route::post('analyze-cover', AnalyzeCoverController::class);
+            Route::post('analyze-cover', AnalyzeCoverController::class)->middleware('throttle:heavy');
             Route::post('upload-author-photo', UploadAuthorPhotoController::class);
 
             Route::get('books', [BookController::class, 'index']);
             Route::post('books', [BookController::class, 'store']);
-            Route::post('books/import', [BookController::class, 'import']);
+            Route::post('books/import', [BookController::class, 'import'])->middleware('throttle:heavy');
             Route::post('books/bulk-delete', [BookController::class, 'bulkDestroy']);
             Route::get('books/{id}', [BookController::class, 'show']);
             Route::put('books/{id}', [BookController::class, 'update']);
@@ -113,8 +113,8 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
             Route::put('settings', [SettingController::class, 'update']);
 
             Route::get('countries', [CountryController::class, 'index']);
-            Route::post('countries/sync-from-network', [CountryController::class, 'syncFromNetwork']);
-            Route::post('countries/sync-cities-from-dataset', [CountryController::class, 'syncCitiesFromDataset']);
+            Route::post('countries/sync-from-network', [CountryController::class, 'syncFromNetwork'])->middleware('throttle:heavy');
+            Route::post('countries/sync-cities-from-dataset', [CountryController::class, 'syncCitiesFromDataset'])->middleware('throttle:heavy');
             Route::get('countries/{id}', [CountryController::class, 'show']);
         });
 
@@ -154,7 +154,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
 
     // Employee Auth
     Route::prefix('employees')->group(function () {
-        Route::post('login', [EmployeeAuthController::class, 'login'])->middleware('throttle:10,1');
+        Route::post('login', [EmployeeAuthController::class, 'login'])->middleware('throttle:login');
 
         Route::middleware(['auth:employee'])->group(function () {
             Route::post('logout', [EmployeeAuthController::class, 'logout']);
@@ -173,7 +173,7 @@ Route::middleware('throttle:60,1')->prefix('v1')->group(function () {
     // Customer Auth
     Route::prefix('customers')->group(function () {
         Route::post('register', [CustomerAuthController::class, 'register'])->middleware('throttle:30,1');
-        Route::post('login', [CustomerAuthController::class, 'login'])->middleware('throttle:20,1');
+        Route::post('login', [CustomerAuthController::class, 'login'])->middleware('throttle:login');
 
         Route::middleware(['auth:customer'])->group(function () {
             Route::post('logout', [CustomerAuthController::class, 'logout']);

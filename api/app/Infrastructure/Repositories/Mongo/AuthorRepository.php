@@ -4,6 +4,7 @@ namespace App\Infrastructure\Repositories\Mongo;
 
 use App\Domain\Author\Interfaces\AuthorRepositoryInterface;
 use App\Models\Author;
+use App\Support\CatalogCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Cache;
@@ -95,7 +96,7 @@ class AuthorRepository implements AuthorRepositoryInterface
 
     private function cachedTotal($query, array $filters): int
     {
-        $version = (int) Cache::get('bookstore_catalog_version', 0);
+        $version = CatalogCache::version();
         $key = 'bookstore_authors_total_v'.$version.'_'.md5(json_encode($filters));
 
         return (int) Cache::remember($key, self::COUNT_CACHE_TTL, function () use ($query) {

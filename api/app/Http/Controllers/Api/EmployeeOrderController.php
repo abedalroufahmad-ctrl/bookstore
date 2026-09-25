@@ -79,7 +79,7 @@ class EmployeeOrderController extends BaseApiController
 
             return $this->successResponse($order, 'Warehouse quote saved.');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 
@@ -100,7 +100,7 @@ class EmployeeOrderController extends BaseApiController
 
             return $this->successResponse($order, 'Order status updated');
         } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 422);
+            return $this->domainErrorResponse($e);
         }
     }
 

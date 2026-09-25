@@ -138,6 +138,8 @@ export function AuthorBooks() {
                     >
                         {author.photo && (
                             <img
+                                loading="lazy"
+                                decoding="async"
                                 src={resolveCoverUrl(author.photo)}
                                 alt={author.name}
                                 style={{
