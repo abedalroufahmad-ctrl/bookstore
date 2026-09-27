@@ -212,7 +212,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                 });
                               } : null,
                               child: Container(
-                                color: _selectedIds.contains(o.id) ? Colors.amber.withValues(alpha: 0.1) : null,
+                                color: _selectedIds.contains(o.id) ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08) : null,
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,

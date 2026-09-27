@@ -59,13 +59,13 @@ export function AuthorBooks() {
 
     if (isLoading) {
         return (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
                 <div
                     style={{
                         width: 40,
                         height: 40,
-                        border: '3px solid #e7e5e4',
-                        borderTopColor: '#92400e',
+                        border: '3px solid #e2e8f0',
+                        borderTopColor: '#1f2f58',
                         borderRadius: '50%',
                         animation: 'spin 0.8s linear infinite',
                         margin: '0 auto 16px',
@@ -80,9 +80,9 @@ export function AuthorBooks() {
     // Generate a deterministic color from the name
     const getColor = (name: string) => {
         const colors = [
-            '#92400e', '#78350f', '#a16207', '#4d7c0f',
-            '#0e7490', '#1d4ed8', '#6d28d9', '#be123c',
-            '#0f766e', '#7c2d12', '#4338ca', '#9f1239',
+            '#0e162d', '#172344', '#1f2f58', '#283d70',
+            '#344e8a', '#4865a6', '#1e293b', '#334155',
+            '#475569', '#1e3a8a', '#1e40af', '#312e81',
         ]
         let hash = 0
         for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -98,13 +98,13 @@ export function AuthorBooks() {
     return (
         <div>
             {/* Breadcrumb */}
-            <div style={{ marginBottom: 24, fontSize: 14, color: '#78716c' }}>
-                <Link to="/" style={{ color: '#92400e', textDecoration: 'none' }}>
+            <div style={{ marginBottom: 24, fontSize: 14, color: '#64748b' }}>
+                <Link to="/" style={{ color: '#1f2f58', textDecoration: 'none' }}>
                     {t('nav.bookStore')}
                 </Link>
                 {' '}
                 /{' '}
-                <Link to="/authors" style={{ color: '#92400e', textDecoration: 'none' }}>
+                <Link to="/authors" style={{ color: '#1f2f58', textDecoration: 'none' }}>
                     {t('authors.title')}
                 </Link>
                 {' '}
@@ -122,7 +122,7 @@ export function AuthorBooks() {
                         padding: '24px 28px',
                         background: '#fff',
                         borderRadius: 12,
-                        border: '1px solid #e7e5e4',
+                        border: '1px solid #e2e8f0',
                     }}
                 >
                     {/* Avatar - show image when available, fallback to initials on error */}
@@ -178,11 +178,11 @@ export function AuthorBooks() {
 
                     <div className="flex-1 min-w-0 flex justify-between items-start gap-4">
                         <div>
-                            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', margin: 0 }}>
+                            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', margin: 0 }}>
                                 {author.name}
                             </h1>
                             {(author.date_of_birth || author.date_of_death) && (
-                                <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 4 }}>
+                                <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>
                                     {author.date_of_birth && (
                                         <span>{t('authors.born')}: {new Date(author.date_of_birth).toLocaleDateString()}</span>
                                     )}
@@ -193,18 +193,18 @@ export function AuthorBooks() {
                                 </p>
                             )}
                             {author.biography && (
-                                <p style={{ fontSize: 14, color: '#78716c', marginTop: 6, lineHeight: 1.6 }}>
+                                <p style={{ fontSize: 14, color: '#64748b', marginTop: 6, lineHeight: 1.6 }}>
                                     {author.biography}
                                 </p>
                             )}
-                            <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 6 }}>
+                            <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
                                 {t('authors.booksByAuthor', { name: '' }).replace('{{name}}', '').trim()} {meta?.total ?? bookItems.length}
                             </p>
                         </div>
                         {userType === 'employee' && (
                             <Link
                                 to={`/admin/authors/${author._id}/edit`}
-                                className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg border border-stone-300 transition-colors flex-shrink-0"
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 transition-colors flex-shrink-0"
                             >
                                 ✏️ {t('admin.edit', 'Edit')}
                             </Link>
@@ -246,7 +246,7 @@ export function AuthorBooks() {
                     ))}
                 </div>
             ) : (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+                <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
                     <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
                     <p style={{ fontSize: 16 }}>{t('authors.noBooksForAuthor')}</p>
                 </div>

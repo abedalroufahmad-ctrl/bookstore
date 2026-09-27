@@ -33,7 +33,7 @@ class NeumorphicContainer extends StatelessWidget {
         color: baseColor,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: isDark ? FlamingoColors.darkBorder : FlamingoColors.border,
+          color: isDark ? AppColors.darkBorder : AppColors.border,
         ),
         boxShadow: [
           BoxShadow(

@@ -134,14 +134,14 @@ export function AdminReportsBooksWithoutCover() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Link to="/admin" className="text-amber-700 hover:underline text-sm">
+        <Link to="/admin" className="text-navy-700 hover:underline text-sm">
           ← {t('admin.dashboard')}
         </Link>
       </div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-2">
+      <h1 className="text-2xl font-bold text-navy-900 mb-2">
         {t('admin.reports.booksWithoutCover') ?? 'Books without cover image'}
       </h1>
-      <p className="text-stone-600 mb-4">
+      <p className="text-slate-600 mb-4">
         {t('admin.reports.booksWithoutCoverHint') ??
           'These books are hidden from the public catalog. Add a cover image to show them on the site.'}
       </p>
@@ -156,7 +156,7 @@ export function AdminReportsBooksWithoutCover() {
         className="mb-6"
       />
       {items.length === 0 ? (
-        <p className="text-center text-stone-500 py-8 bg-white rounded-lg border border-stone-200">
+        <p className="text-center text-slate-500 py-8 bg-white rounded-lg border border-slate-200">
           {t('admin.reports.noBooksWithoutCover') ?? 'All books have a cover image.'}
         </p>
       ) : (
@@ -172,9 +172,9 @@ export function AdminReportsBooksWithoutCover() {
               {selectedCount > 0 ? ` (${selectedCount})` : ''}
             </button>
           </div>
-          <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
             <table className="w-full">
-              <thead className="bg-stone-100">
+              <thead className="bg-slate-100">
                 <tr>
                   <th className="px-2 py-2 w-10 text-center">
                     <input
@@ -195,7 +195,7 @@ export function AdminReportsBooksWithoutCover() {
               </thead>
               <tbody>
                 {items.map((book: Book) => (
-                  <tr key={book._id} className="border-t border-stone-200">
+                  <tr key={book._id} className="border-t border-slate-200">
                     <td className="px-2 py-2 text-center">
                       <input
                         type="checkbox"
@@ -212,7 +212,7 @@ export function AdminReportsBooksWithoutCover() {
                     <td className="px-4 py-2 text-right">
                       <Link
                         to={`/admin/books/${book._id}/edit`}
-                        className="text-amber-700 hover:underline mr-3"
+                        className="text-navy-700 hover:underline mr-3"
                       >
                         {t('admin.edit')}
                       </Link>

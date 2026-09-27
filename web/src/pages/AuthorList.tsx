@@ -69,9 +69,9 @@ export function AuthorList() {
     // Generate a deterministic color from the name
     const getColor = (name: string) => {
         const colors = [
-            '#92400e', '#78350f', '#a16207', '#4d7c0f',
-            '#0e7490', '#1d4ed8', '#6d28d9', '#be123c',
-            '#0f766e', '#7c2d12', '#4338ca', '#9f1239',
+            '#0e162d', '#172344', '#1f2f58', '#283d70',
+            '#344e8a', '#4865a6', '#1e293b', '#334155',
+            '#475569', '#1e3a8a', '#1e40af', '#312e81',
         ]
         let hash = 0
         for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)

@@ -90,11 +90,11 @@ export function AdminCategories() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.categories')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.categories')}</h1>
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
+          className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 shrink-0 self-start"
         >
           {t('admin.addCategory')}
         </button>
@@ -110,7 +110,7 @@ export function AdminCategories() {
         className="mb-6"
       />
       {showForm && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-2">{t('admin.newCategory')}</h2>
           <div className="flex gap-2 flex-wrap">
             <input
@@ -118,21 +118,21 @@ export function AdminCategories() {
               value={form.dewey_code}
               onChange={(e) => setForm((p) => ({ ...p, dewey_code: e.target.value }))}
               placeholder={t('admin.deweyCode')}
-              className="w-28 px-4 py-2 border border-stone-300 rounded-lg"
+              className="w-28 px-4 py-2 border border-slate-300 rounded-lg"
             />
             <input
               type="text"
               value={form.subject_title_en}
               onChange={(e) => setForm((p) => ({ ...p, subject_title_en: e.target.value }))}
               placeholder={t('admin.subjectTitle') || 'Subject Title (EN)'}
-              className="flex-1 min-w-[150px] px-4 py-2 border border-stone-300 rounded-lg"
+              className="flex-1 min-w-[150px] px-4 py-2 border border-slate-300 rounded-lg"
             />
             <input
               type="text"
               value={form.subject_title_ar}
               onChange={(e) => setForm((p) => ({ ...p, subject_title_ar: e.target.value }))}
               placeholder={(t('admin.subjectTitleAr') as string) || 'Subject Title (AR)'}
-              className="flex-1 min-w-[150px] px-4 py-2 border border-stone-300 rounded-lg text-right"
+              className="flex-1 min-w-[150px] px-4 py-2 border border-slate-300 rounded-lg text-right"
               dir="rtl"
             />
               <button
@@ -147,7 +147,7 @@ export function AdminCategories() {
                   !form.dewey_code ||
                   !form.subject_title_en
                 }
-                className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
               >
               {t('admin.create')}
             </button>
@@ -158,7 +158,7 @@ export function AdminCategories() {
                   setForm({ dewey_code: '', subject_title_en: '', subject_title_ar: '' })
                   setError('')
                 }}
-                className="px-4 py-2 border border-stone-300 rounded-lg"
+                className="px-4 py-2 border border-slate-300 rounded-lg"
               >
               {t('admin.cancel')}
             </button>
@@ -167,9 +167,9 @@ export function AdminCategories() {
         </div>
       )}
       <div className="mb-4">{error && editingId && <p className="text-red-600 text-sm">{error}</p>}</div>
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-4 py-2 text-left">{t('admin.deweyCode')}</th>
               <th className="px-4 py-2 text-left">{t('admin.subject')}</th>
@@ -180,7 +180,7 @@ export function AdminCategories() {
           </thead>
           <tbody>
             {items.map((c) => (
-              <tr key={c._id} className="border-t border-stone-200">
+              <tr key={c._id} className="border-t border-slate-200">
                 <td className="px-4 py-2">
                   {editingId === c._id ? (
                     <input
@@ -188,7 +188,7 @@ export function AdminCategories() {
                       value={editingForm.dewey_code}
                       onChange={(e) => setEditingForm((p) => ({ ...p, dewey_code: e.target.value }))}
                       placeholder={t('admin.deweyCode')}
-                      className="w-24 px-3 py-1.5 border border-stone-300 rounded-lg"
+                      className="w-24 px-3 py-1.5 border border-slate-300 rounded-lg"
                     />
                   ) : (
                     c.dewey_code
@@ -201,7 +201,7 @@ export function AdminCategories() {
                       value={editingForm.subject_title_en}
                       onChange={(e) => setEditingForm((p) => ({ ...p, subject_title_en: e.target.value }))}
                       placeholder={t('admin.subjectTitle') || 'Subject Title (EN)'}
-                      className="w-full min-w-[120px] px-3 py-1.5 border border-stone-300 rounded-lg"
+                      className="w-full min-w-[120px] px-3 py-1.5 border border-slate-300 rounded-lg"
                     />
                   ) : (
                     c.subject_title_en
@@ -214,14 +214,14 @@ export function AdminCategories() {
                       value={editingForm.subject_title_ar}
                       onChange={(e) => setEditingForm((p) => ({ ...p, subject_title_ar: e.target.value }))}
                       placeholder={(t('admin.subjectTitleAr') as string) || 'Subject Title (AR)'}
-                      className="w-full min-w-[120px] px-3 py-1.5 border border-stone-300 rounded-lg text-right"
+                      className="w-full min-w-[120px] px-3 py-1.5 border border-slate-300 rounded-lg text-right"
                       dir="rtl"
                     />
                   ) : (
                     c.subject_title_ar || '—'
                   )}
                 </td>
-                <td className="px-4 py-2 text-center text-sm text-stone-700">
+                <td className="px-4 py-2 text-center text-sm text-slate-700">
                   {typeof c.books_count === 'number' ? c.books_count : '—'}
                 </td>
                 <td className="px-4 py-2 text-right">
@@ -235,14 +235,14 @@ export function AdminCategories() {
                           !editingForm.dewey_code.trim() ||
                           !editingForm.subject_title_en.trim()
                         }
-                        className="text-amber-700 hover:underline text-sm mr-3 disabled:opacity-50"
+                        className="text-navy-700 hover:underline text-sm mr-3 disabled:opacity-50"
                       >
                         {updateMutation.isPending ? t('common.saving') : t('admin.update')}
                       </button>
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="text-stone-500 hover:underline text-sm"
+                        className="text-slate-500 hover:underline text-sm"
                       >
                         {t('admin.cancel')}
                       </button>
@@ -252,7 +252,7 @@ export function AdminCategories() {
                       <button
                         type="button"
                         onClick={() => handleStartEdit(c)}
-                        className="text-amber-700 hover:underline text-sm mr-3"
+                        className="text-navy-700 hover:underline text-sm mr-3"
                       >
                         {t('admin.edit')}
                       </button>
@@ -275,7 +275,7 @@ export function AdminCategories() {
         </table>
       </div>
       {items.length === 0 && !showForm && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noCategories')}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noCategories')}</p>
       )}
       {meta && (
         <Pagination

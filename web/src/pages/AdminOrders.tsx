@@ -248,7 +248,7 @@ export function AdminOrders() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-4">{t('admin.orders')}</h1>
+      <h1 className="text-2xl font-bold text-navy-900 mb-4">{t('admin.orders')}</h1>
 
       <AdminListSearchBar
         value={searchInput}
@@ -263,11 +263,11 @@ export function AdminOrders() {
 
       <div className="mb-4 flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-stone-700">{t('admin.filterByStatus')}</label>
+          <label className="text-sm font-medium text-slate-700">{t('admin.filterByStatus')}</label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             <option value="">{t('admin.all')}</option>
             {ORDER_STATUSES.map((s) => (
@@ -278,11 +278,11 @@ export function AdminOrders() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-stone-700">{t('admin.filterByPaymentStatus')}</label>
+          <label className="text-sm font-medium text-slate-700">{t('admin.filterByPaymentStatus')}</label>
           <select
             value={paymentStatusFilter}
             onChange={(e) => setPaymentStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             <option value="">{t('admin.all')}</option>
             <option value="pending">{t('admin.paymentPending')}</option>
@@ -291,11 +291,11 @@ export function AdminOrders() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-stone-700">{t('admin.filterByPublisher')}</label>
+          <label className="text-sm font-medium text-slate-700">{t('admin.filterByPublisher')}</label>
           <select
             value={publisherFilter}
             onChange={(e) => setPublisherFilter(e.target.value)}
-            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500 min-w-[10rem]"
           >
             <option value="">{t('admin.allPublishers')}</option>
             {publishers.map((p) => (
@@ -306,11 +306,11 @@ export function AdminOrders() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-stone-700">{t('admin.filterByWarehouse')}</label>
+          <label className="text-sm font-medium text-slate-700">{t('admin.filterByWarehouse')}</label>
           <select
             value={warehouseFilter}
             onChange={(e) => setWarehouseFilter(e.target.value)}
-            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500 min-w-[10rem]"
           >
             <option value="">{t('admin.allWarehouses')}</option>
             {warehousesForFilter.map((w) => (
@@ -321,11 +321,11 @@ export function AdminOrders() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-stone-700">{t('admin.filterByDirectSales')}</label>
+          <label className="text-sm font-medium text-slate-700">{t('admin.filterByDirectSales')}</label>
           <select
             value={directSalesFilter}
             onChange={(e) => setDirectSalesFilter(e.target.value)}
-            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             <option value="">{t('admin.all')}</option>
             <option value="1">{t('admin.directSalesOnly')}</option>
@@ -352,9 +352,9 @@ export function AdminOrders() {
       {isLoading && !data ? (
         <div className="text-center py-12">{t('common.loading')}</div>
       ) : (
-        <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <table className="w-full">
-            <thead className="bg-stone-100">
+            <thead className="bg-slate-100">
               <tr>
                 <th className="px-3 py-2 w-10">
                   <input
@@ -363,7 +363,7 @@ export function AdminOrders() {
                     checked={allSelected}
                     onChange={toggleSelectAllOnPage}
                     aria-label={t('admin.selectAll')}
-                    className="rounded border-stone-300"
+                    className="rounded border-slate-300"
                   />
                 </th>
                 <th className="px-4 py-2 text-left">{t('admin.order')}</th>
@@ -378,14 +378,14 @@ export function AdminOrders() {
             </thead>
             <tbody>
               {orders.map((order) => (
-                <tr key={order._id} className="border-t border-stone-200">
+                <tr key={order._id} className="border-t border-slate-200">
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(order._id)}
                       onChange={() => toggleRow(order._id)}
                       aria-label={t('admin.selectOrder')}
-                      className="rounded border-stone-300"
+                      className="rounded border-slate-300"
                     />
                   </td>
                   <td className="px-4 py-2 font-mono text-xs break-all max-w-[14rem]">
@@ -401,7 +401,7 @@ export function AdminOrders() {
                   <td className="px-4 py-2">${order.total?.toFixed(2)}</td>
                   <td className="px-4 py-2">
                     {order.employee?.name ?? order.employee_id ?? (
-                      <span className="text-stone-500">{t('admin.unassigned')}</span>
+                      <span className="text-slate-500">{t('admin.unassigned')}</span>
                     )}
                   </td>
                   <td className="px-4 py-2">{formatDate(order.created_at)}</td>
@@ -409,7 +409,7 @@ export function AdminOrders() {
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(order)}
-                      className="text-amber-700 hover:underline text-sm"
+                      className="text-navy-700 hover:underline text-sm"
                     >
                       {t('admin.view')}
                     </button>
@@ -422,7 +422,7 @@ export function AdminOrders() {
       )}
 
       {orders.length === 0 && !isLoading && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noOrders')}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noOrders')}</p>
       )}
       {ordersMeta && (
         <Pagination
@@ -546,13 +546,13 @@ function OrderDetailModal({
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
-            <h2 className="text-xl font-bold text-amber-900 font-mono text-base sm:text-lg break-all pr-2">
+            <h2 className="text-xl font-bold text-navy-900 font-mono text-base sm:text-lg break-all pr-2">
               Order #{order._id}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="text-stone-500 hover:text-stone-700 text-2xl"
+              className="text-slate-500 hover:text-slate-700 text-2xl"
             >
               ×
             </button>
@@ -560,14 +560,14 @@ function OrderDetailModal({
 
           <div className="space-y-4">
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.customer')}:
               </span>{' '}
               {displayOrder.customer?.name ?? displayOrder.customer_id ?? '-'}
             </div>
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.warehouse')}:
               </span>{' '}
               {(() => {
@@ -577,14 +577,14 @@ function OrderDetailModal({
             </div>
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.status')}:
               </span>{' '}
               <select
                 value={displayOrder.status}
                 onChange={(e) => onStatusChange(e.target.value)}
                 disabled={isUpdating}
-                className="ml-2 px-3 py-1 border border-stone-300 rounded"
+                className="ml-2 px-3 py-1 border border-slate-300 rounded"
               >
                 {!ORDER_STATUSES.includes(displayOrder.status) && (
                   <option value={displayOrder.status}>{displayOrder.status}</option>
@@ -598,18 +598,18 @@ function OrderDetailModal({
             </div>
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.total')}:
               </span>{' '}
               ${displayOrder.total?.toFixed(2)}
               {displayOrder.books_subtotal != null && (
-                <span className="block text-xs text-stone-500 mt-1">
+                <span className="block text-xs text-slate-500 mt-1">
                   {t('orders.booksSubtotal', 'Books')}: ${displayOrder.books_subtotal.toFixed(2)} +{' '}
                   {t('orders.shippingFee', 'Shipping')}: ${(displayOrder.shipping_fee ?? 0).toFixed(2)}
                 </span>
               )}
               {displayOrder.publisher_payout_amount != null && (
-                <span className="block text-xs text-stone-500 mt-1">
+                <span className="block text-xs text-slate-500 mt-1">
                   {t('admin.publisherPayoutAmount')}: ${Number(displayOrder.publisher_payout_amount).toFixed(2)}
                   {' · '}
                   {t('admin.platformCommissionAmount')}: ${Number(displayOrder.platform_commission_amount ?? 0).toFixed(2)}
@@ -619,23 +619,23 @@ function OrderDetailModal({
                 </span>
               )}
               {displayOrder.payout_paypal_email && (
-                <span className="block text-xs text-stone-500 mt-1">
+                <span className="block text-xs text-slate-500 mt-1">
                   {t('admin.payoutPaypalEmail')}: {displayOrder.payout_paypal_email}
                 </span>
               )}
             </div>
 
             {needsWarehouseQuote && (
-              <div className="border border-amber-200 bg-amber-50/60 rounded-lg p-4 space-y-3">
-                <h3 className="font-medium text-amber-900">{t('admin.warehouseQuote', 'Warehouse quote')}</h3>
-                <p className="text-sm text-stone-600">
+              <div className="border border-navy-200 bg-navy-50/60 rounded-lg p-4 space-y-3">
+                <h3 className="font-medium text-navy-900">{t('admin.warehouseQuote', 'Warehouse quote')}</h3>
+                <p className="text-sm text-slate-600">
                   {t(
                     'admin.warehouseQuoteHint',
                     'Confirm line totals, add shipping fee, and save to send the quote to the customer.',
                   )}
                 </p>
                 <div>
-                  <label className="block text-sm text-stone-700 mb-1">
+                  <label className="block text-sm text-slate-700 mb-1">
                     {t('orders.shippingFee', 'Shipping fee')}
                   </label>
                   <input
@@ -644,28 +644,28 @@ function OrderDetailModal({
                     step="0.01"
                     value={shippingFeeInput}
                     onChange={(e) => setShippingFeeInput(e.target.value)}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-stone-700 mb-1">
+                  <label className="block text-sm text-slate-700 mb-1">
                     {t('orders.shippingMethod', 'Shipping method')}
                   </label>
                   <input
                     type="text"
                     value={shippingMethodInput}
                     onChange={(e) => setShippingMethodInput(e.target.value)}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                     placeholder={t('admin.shippingMethodPlaceholder', 'e.g. Standard courier')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-stone-700 mb-1">{t('checkout.paymentMethod')}</label>
+                  <label className="block text-sm text-slate-700 mb-1">{t('checkout.paymentMethod')}</label>
                   <input
                     type="text"
                     value={confirmPaymentMethod}
                     onChange={(e) => setConfirmPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                     placeholder="cod / paypal / stripe …"
                   />
                 </div>
@@ -679,7 +679,7 @@ function OrderDetailModal({
                   type="button"
                   onClick={submitQuote}
                   disabled={quoteMutation.isPending}
-                  className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                  className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
                 >
                   {quoteMutation.isPending ? t('common.loading') : t('admin.sendQuoteToCustomer', 'Save quote')}
                 </button>
@@ -687,20 +687,20 @@ function OrderDetailModal({
             )}
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.paymentStatus')}:
               </span>{' '}
               {displayOrder.payment_status ?? '-'}
               {displayOrder.payment_method && (
-                <span className="text-stone-500"> ({displayOrder.payment_method})</span>
+                <span className="text-slate-500"> ({displayOrder.payment_method})</span>
               )}
             </div>
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('checkout.shippingAddress')}:
               </span>
-              <p className="mt-1 text-stone-700">
+              <p className="mt-1 text-slate-700">
                 {displayOrder.shipping_address
                   ? [
                       displayOrder.shipping_address.address,
@@ -715,14 +715,14 @@ function OrderDetailModal({
             </div>
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.assignTo')}:
               </span>
               <div className="mt-2 flex gap-2">
                 <select
                   value={assignTo}
                   onChange={(e) => setAssignTo(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-stone-300 rounded-lg"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
                 >
                   <option value="">{t('admin.selectEmployee')}</option>
                   {employees.map((e) => (
@@ -735,7 +735,7 @@ function OrderDetailModal({
                   type="button"
                   onClick={() => assignTo && onAssign(assignTo)}
                   disabled={!assignTo || isAssigning}
-                  className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                  className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
                 >
                   {t('admin.assign')}
                 </button>
@@ -743,25 +743,25 @@ function OrderDetailModal({
             </div>
 
             <div>
-              <span className="text-sm font-medium text-stone-600">
+              <span className="text-sm font-medium text-slate-600">
                 {t('admin.items')}:
               </span>
-              <div className="mt-2 overflow-x-auto rounded-lg border border-stone-200">
+              <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full table-fixed border-collapse text-sm">
                   <thead>
-                    <tr className="bg-stone-100 border-b border-stone-200">
-                      <th className="min-w-0 w-[62%] px-3 py-2 font-medium text-stone-700 align-top text-start">
+                    <tr className="bg-slate-100 border-b border-slate-200">
+                      <th className="min-w-0 w-[62%] px-3 py-2 font-medium text-slate-700 align-top text-start">
                         {t('orders.itemTitleCol')}
                       </th>
-                      <th className="w-[38%] px-3 py-2 font-medium text-stone-700 align-top text-end whitespace-nowrap">
+                      <th className="w-[38%] px-3 py-2 font-medium text-slate-700 align-top text-end whitespace-nowrap">
                         {t('orders.itemPriceCol')}
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100 bg-white">
+                  <tbody className="divide-y divide-slate-100 bg-white">
                     {detailLoading ? (
                       <tr>
-                        <td colSpan={2} className="px-3 py-6 text-center text-stone-500 text-sm">
+                        <td colSpan={2} className="px-3 py-6 text-center text-slate-500 text-sm">
                           {t('common.loading')}
                         </td>
                       </tr>
@@ -772,7 +772,7 @@ function OrderDetailModal({
                           `${t('common.book')} (${item.book_id?.slice(-8)})`
                         const linePrice = `${item.quantity} × $${item.price?.toFixed(2)}`
                         return (
-                          <tr key={i} className="text-stone-800 align-top">
+                          <tr key={i} className="text-slate-800 align-top">
                             <td className="min-w-0 px-3 py-2 break-words whitespace-normal align-top font-medium">
                               {title}
                             </td>
@@ -795,7 +795,7 @@ function OrderDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-stone-300 rounded-lg"
+              className="px-4 py-2 border border-slate-300 rounded-lg"
             >
               {t('admin.close')}
             </button>

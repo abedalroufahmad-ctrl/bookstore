@@ -507,7 +507,7 @@ export function AdminEmployees() {
       )}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <h1 className="text-2xl font-bold text-amber-900">{t('admin.employees')}</h1>
+          <h1 className="text-2xl font-bold text-navy-900">{t('admin.employees')}</h1>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
             <AdminListSearchBar
               value={searchInput}
@@ -537,28 +537,28 @@ export function AdminEmployees() {
                 }))
                 setShowForm(true)
               }}
-              className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 whitespace-nowrap"
+              className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 whitespace-nowrap"
             >
               {t('admin.addEmployee')}
             </button>
           </div>
         </div>
         {isWarehouseManager && (
-          <p className="text-sm text-stone-600">{t('admin.employeesAllUsersHint')}</p>
+          <p className="text-sm text-slate-600">{t('admin.employeesAllUsersHint')}</p>
         )}
         {isPublisherManager && (
-          <p className="text-sm text-stone-600">{t('admin.employeesPublisherScopeHint')}</p>
+          <p className="text-sm text-slate-600">{t('admin.employeesPublisherScopeHint')}</p>
         )}
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-stone-700" htmlFor="employee-role-filter">
+            <label className="text-sm font-medium text-slate-700" htmlFor="employee-role-filter">
               {t('admin.filterByRole')}
             </label>
             <select
               id="employee-role-filter"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             >
               <option value="">{t('admin.allRoles')}</option>
               {EMPLOYEE_ROLES.map((r) => (
@@ -570,14 +570,14 @@ export function AdminEmployees() {
           </div>
           {!isWarehouseManager && !isPublisherManager && (
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-stone-700" htmlFor="employee-publisher-filter">
+              <label className="text-sm font-medium text-slate-700" htmlFor="employee-publisher-filter">
                 {t('admin.filterByPublisher')}
               </label>
               <select
                 id="employee-publisher-filter"
                 value={publisherFilter}
                 onChange={(e) => setPublisherFilter(e.target.value)}
-                className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500 min-w-[10rem]"
               >
                 <option value="">{t('admin.allPublishers')}</option>
                 {publishers.map((p) => (
@@ -589,14 +589,14 @@ export function AdminEmployees() {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-stone-700" htmlFor="employee-warehouse-filter">
+            <label className="text-sm font-medium text-slate-700" htmlFor="employee-warehouse-filter">
               {t('admin.filterByWarehouse')}
             </label>
             <select
               id="employee-warehouse-filter"
               value={warehouseFilter}
               onChange={(e) => setWarehouseFilter(e.target.value)}
-              className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-w-[10rem]"
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500 min-w-[10rem]"
             >
               <option value="">{t('admin.allWarehouses')}</option>
               {warehousesForListFilter.map((w) => (
@@ -609,61 +609,61 @@ export function AdminEmployees() {
         </div>
       </div>
       {editingId && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.editEmployee')}</h2>
           {showAssignFromDirectoryHint && (
-            <p className="mb-4 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p className="mb-4 text-sm text-navy-900 bg-navy-50 border border-navy-200 rounded-lg px-3 py-2">
               {t('admin.assignEmployeeToWarehouseHint')}
             </p>
           )}
           <form onSubmit={handleSaveEdit} className="space-y-4 max-w-md">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.name')}</label>
               <input
                 type="text"
                 value={editingForm.name}
                 onChange={(e) => setEditingForm((p) => ({ ...p, name: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.email')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.email')}</label>
               <input
                 type="email"
                 value={editingForm.email}
                 onChange={(e) => setEditingForm((p) => ({ ...p, email: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.password')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')} ({t('admin.optional')})</label>
               <input
                 type="password"
                 value={editingForm.password}
                 onChange={(e) => setEditingForm((p) => ({ ...p, password: e.target.value }))}
                 minLength={8}
                 placeholder={t('admin.leaveBlankToKeep')}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.confirmPassword')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.confirmPassword')} ({t('admin.optional')})</label>
               <input
                 type="password"
                 value={editingForm.password_confirmation}
                 onChange={(e) => setEditingForm((p) => ({ ...p, password_confirmation: e.target.value }))}
                 minLength={8}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.role')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.role')}</label>
               <select
                 value={editingForm.role}
                 onChange={(e) => setEditingForm((p) => ({ ...p, role: e.target.value }))}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               >
                 {roleOptions.map((r) => (
                   <option key={r.value} value={r.value}>
@@ -672,16 +672,16 @@ export function AdminEmployees() {
                 ))}
               </select>
               {isWarehouseManager && (
-                <p className="mt-1 text-stone-500 text-sm">{t('admin.warehouseManagerStaffRolesHint')}</p>
+                <p className="mt-1 text-slate-500 text-sm">{t('admin.warehouseManagerStaffRolesHint')}</p>
               )}
               {isPublisherManager && (
-                <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerStaffRolesHint')}</p>
+                <p className="mt-1 text-slate-500 text-sm">{t('admin.publisherManagerStaffRolesHint')}</p>
               )}
             </div>
             <div className="space-y-4">
               {canEditPublisher && !isGlobalAdminRole(editingForm.role) && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisher')}</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.publisher')}</label>
                   <select
                     value={editingForm.publisher_id}
                     onChange={(e) => {
@@ -699,7 +699,7 @@ export function AdminEmployees() {
                     }}
                     required
                     disabled={isPublisherManager}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg disabled:bg-stone-100 disabled:text-stone-600"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100 disabled:text-slate-600"
                   >
                     <option value="">{t('admin.selectPublisher')}</option>
                     {publisherOptions.map((p) => (
@@ -709,19 +709,19 @@ export function AdminEmployees() {
                     ))}
                   </select>
                   {isPublisherManagerRole(editingForm.role) && (
-                    <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
+                    <p className="mt-1 text-slate-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
                   )}
                 </div>
               )}
               {!isGlobalAdminRole(editingForm.role) && !isPublisherManagerRole(editingForm.role) && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.warehouses')}</label>
-                  <div className="max-h-48 overflow-auto rounded-lg border border-stone-300 p-3 space-y-2 bg-white">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.warehouses')}</label>
+                  <div className="max-h-48 overflow-auto rounded-lg border border-slate-300 p-3 space-y-2 bg-white">
                     {warehousesForEmployeeForm(editingForm.publisher_id).length === 0 ? (
-                      <p className="text-sm text-stone-500">{t('admin.noWarehouses')}</p>
+                      <p className="text-sm text-slate-500">{t('admin.noWarehouses')}</p>
                     ) : (
                       warehousesForEmployeeForm(editingForm.publisher_id).map((w) => (
-                        <label key={w._id} className="flex items-center gap-2 text-sm text-stone-800">
+                        <label key={w._id} className="flex items-center gap-2 text-sm text-slate-800">
                           <input
                             type="checkbox"
                             checked={selectedWarehouseIds(editingForm).includes(String(w._id))}
@@ -731,14 +731,14 @@ export function AdminEmployees() {
                                 ...toggleWarehouseSelection(p, String(w._id)),
                               }))
                             }
-                            className="rounded border-stone-300 text-amber-700 focus:ring-amber-500"
+                            className="rounded border-slate-300 text-navy-700 focus:ring-navy-500"
                           />
                           <span>{w.name}</span>
                         </label>
                       ))
                     )}
                   </div>
-                  <p className="mt-1 text-stone-500 text-sm">{t('admin.employeeMultiWarehouseHint')}</p>
+                  <p className="mt-1 text-slate-500 text-sm">{t('admin.employeeMultiWarehouseHint')}</p>
                 </div>
               )}
             </div>
@@ -754,11 +754,11 @@ export function AdminEmployees() {
                   (roleNeedsWarehouses(editingForm.role) && selectedWarehouseIds(editingForm).length === 0) ||
                   (isPublisherManagerRole(editingForm.role) && !editingForm.publisher_id)
                 }
-                className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
               >
                 {updateMutation.isPending ? t('common.saving') : t('admin.update')}
               </button>
-              <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-stone-300 rounded-lg">
+              <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-slate-300 rounded-lg">
                 {t('admin.cancel')}
               </button>
             </div>
@@ -766,57 +766,57 @@ export function AdminEmployees() {
         </div>
       )}
       {showForm && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.newEmployee')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.name')}</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.email')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.email')}</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.password')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
               <input
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                 required
                 minLength={8}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.confirmPassword')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.confirmPassword')}</label>
               <input
                 type="password"
                 value={form.password_confirmation}
                 onChange={(e) => setForm((p) => ({ ...p, password_confirmation: e.target.value }))}
                 required
                 minLength={8}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.role')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.role')}</label>
               <select
                 value={form.role}
                 onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               >
                 {roleOptions.map((r) => (
                   <option key={r.value} value={r.value}>
@@ -825,16 +825,16 @@ export function AdminEmployees() {
                 ))}
               </select>
               {isWarehouseManager && (
-                <p className="mt-1 text-stone-500 text-sm">{t('admin.warehouseManagerStaffRolesHint')}</p>
+                <p className="mt-1 text-slate-500 text-sm">{t('admin.warehouseManagerStaffRolesHint')}</p>
               )}
               {isPublisherManager && (
-                <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerStaffRolesHint')}</p>
+                <p className="mt-1 text-slate-500 text-sm">{t('admin.publisherManagerStaffRolesHint')}</p>
               )}
             </div>
             <div className="space-y-4">
               {canEditPublisher && !isGlobalAdminRole(form.role) && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisher')}</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.publisher')}</label>
                   <select
                     value={form.publisher_id}
                     onChange={(e) => {
@@ -852,7 +852,7 @@ export function AdminEmployees() {
                     }}
                     required
                     disabled={isPublisherManager}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg disabled:bg-stone-100 disabled:text-stone-600"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100 disabled:text-slate-600"
                   >
                     <option value="">{t('admin.selectPublisher')}</option>
                     {publisherOptions.map((p) => (
@@ -862,19 +862,19 @@ export function AdminEmployees() {
                     ))}
                   </select>
                   {isPublisherManagerRole(form.role) && (
-                    <p className="mt-1 text-stone-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
+                    <p className="mt-1 text-slate-500 text-sm">{t('admin.publisherManagerScopeHint')}</p>
                   )}
                 </div>
               )}
               {!isGlobalAdminRole(form.role) && !isPublisherManagerRole(form.role) && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.warehouses')}</label>
-                  <div className="max-h-48 overflow-auto rounded-lg border border-stone-300 p-3 space-y-2 bg-white">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.warehouses')}</label>
+                  <div className="max-h-48 overflow-auto rounded-lg border border-slate-300 p-3 space-y-2 bg-white">
                     {warehousesForEmployeeForm(form.publisher_id).length === 0 ? (
-                      <p className="text-sm text-stone-500">{t('admin.noWarehouses')}</p>
+                      <p className="text-sm text-slate-500">{t('admin.noWarehouses')}</p>
                     ) : (
                       warehousesForEmployeeForm(form.publisher_id).map((w) => (
-                        <label key={w._id} className="flex items-center gap-2 text-sm text-stone-800">
+                        <label key={w._id} className="flex items-center gap-2 text-sm text-slate-800">
                           <input
                             type="checkbox"
                             checked={selectedWarehouseIds(form).includes(String(w._id))}
@@ -884,14 +884,14 @@ export function AdminEmployees() {
                                 ...toggleWarehouseSelection(p, String(w._id)),
                               }))
                             }
-                            className="rounded border-stone-300 text-amber-700 focus:ring-amber-500"
+                            className="rounded border-slate-300 text-navy-700 focus:ring-navy-500"
                           />
                           <span>{w.name}</span>
                         </label>
                       ))
                     )}
                   </div>
-                  <p className="mt-1 text-stone-500 text-sm">{t('admin.employeeMultiWarehouseHint')}</p>
+                  <p className="mt-1 text-slate-500 text-sm">{t('admin.employeeMultiWarehouseHint')}</p>
                 </div>
               )}
             </div>
@@ -900,7 +900,7 @@ export function AdminEmployees() {
               <button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
               >
                 {createMutation.isPending ? t('common.saving') : t('admin.create')}
               </button>
@@ -920,7 +920,7 @@ export function AdminEmployees() {
                   })
                   setError('')
                 }}
-                className="px-4 py-2 border border-stone-300 rounded-lg"
+                className="px-4 py-2 border border-slate-300 rounded-lg"
               >
                 {t('admin.cancel')}
               </button>
@@ -928,9 +928,9 @@ export function AdminEmployees() {
           </form>
         </div>
       )}
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-4 py-2 text-left">{t('admin.name')}</th>
               <th className="px-4 py-2 text-left">{t('admin.email')}</th>
@@ -942,7 +942,7 @@ export function AdminEmployees() {
           </thead>
           <tbody>
             {items.map((emp) => (
-              <tr key={emp._id} className="border-t border-stone-200">
+              <tr key={emp._id} className="border-t border-slate-200">
                 <td className="px-4 py-2">{emp.name}</td>
                 <td className="px-4 py-2">{emp.email}</td>
                 <td className="px-4 py-2">{t(EMPLOYEE_ROLES.find((r) => r.value === emp.role)?.labelKey ?? emp.role)}</td>
@@ -960,7 +960,7 @@ export function AdminEmployees() {
                           ? t('admin.cannotEditGlobalManager')
                           : undefined
                     }
-                    className="text-amber-700 hover:underline text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+                    className="text-navy-700 hover:underline text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
                   >
                     {t('admin.edit')}
                   </button>
@@ -989,7 +989,7 @@ export function AdminEmployees() {
         </table>
       </div>
       {items.length === 0 && !showForm && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noEmployees')}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noEmployees')}</p>
       )}
       {(() => {
         const paginated = employeesData?.data

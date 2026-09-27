@@ -187,7 +187,7 @@ export function Layout() {
       <main className={`${isHomePage ? '' : isBooksPage && location.pathname === '/books' ? 'max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'} print:max-w-none print:mx-0 print:px-0 print:py-0`}>
         <Suspense
           fallback={
-            <div className="py-16 text-center text-stone-600 text-sm">{t('common.loading')}</div>
+            <div className="py-16 text-center text-slate-600 text-sm">{t('common.loading')}</div>
           }
         >
           <Outlet />

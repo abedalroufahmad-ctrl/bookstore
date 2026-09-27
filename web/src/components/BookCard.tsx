@@ -44,7 +44,7 @@ interface BookCardProps {
 }
 
 function getAuthorColor(name: string) {
-  const colors = ['#cd071e', '#1d4ed8', '#0e7490', '#4d7c0f', '#6d28d9', '#be123c']
+  const colors = ['#172344', '#283d70', '#344e8a', '#4865a6', '#1e3a8a', '#334155']
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return colors[Math.abs(hash) % colors.length]
@@ -128,7 +128,7 @@ export function BookCard({
                 position: 'absolute',
                 top: 8,
                 insetInlineStart: 8,
-                background: isSold ? '#7f1d1d' : '#92400e',
+                background: isSold ? '#7f1d1d' : '#1f2f58',
                 color: '#fff',
                 fontSize: 10,
                 padding: '2px 8px',

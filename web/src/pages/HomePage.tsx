@@ -283,7 +283,7 @@ export function HomePage() {
                             <Link
                                 to={`/books/${book._id}`}
                                 className="shrink-0 rounded overflow-hidden relative"
-                                style={{ width: 56, height: 80, background: '#f0f0f0', textDecoration: 'none' }}
+                                style={{ width: 56, height: 80, background: '#f2f5fb', textDecoration: 'none' }}
                             >
                                 {(() => {
                                     const c = (book.cover_image_thumb || book.cover_image)?.trim()

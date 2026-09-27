@@ -52,8 +52,8 @@ class BookCard extends StatelessWidget {
   static Widget _buildLogoPlaceholder(BuildContext context) {
     return Container(
       color: Theme.of(context).brightness == Brightness.dark
-          ? FlamingoColors.darkBgCard
-          : FlamingoColors.accentSoft,
+          ? AppColors.darkBgCard
+          : AppColors.accentSoft,
       alignment: Alignment.center,
       child: Icon(
         Icons.menu_book_rounded,
@@ -105,7 +105,7 @@ class BookCard extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: book.isSold ? const Color(0xFF7F1D1D) : const Color(0xFF92400E),
+                            color: book.isSold ? AppColors.sold : AppColors.navy600,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -127,7 +127,7 @@ class BookCard extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: FlamingoColors.discount,
+                            color: AppColors.discount,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -175,7 +175,7 @@ class BookCard extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.6,
-                        color: FlamingoColors.accentHover,
+                        color: AppColors.accentHover,
                       ),
                     ),
                   ),

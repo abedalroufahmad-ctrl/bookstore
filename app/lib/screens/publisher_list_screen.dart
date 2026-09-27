@@ -102,10 +102,10 @@ class _PublisherListScreenState extends State<PublisherListScreen> {
 
   Color _tileColor(String name) {
     final colors = [
-      const Color(0xFFFEF3C7),
+      const Color(0xFFE3E9F5),
+      const Color(0xFFC5D1EA),
       const Color(0xFFDBEAFE),
-      const Color(0xFFD1FAE5),
-      const Color(0xFFFCE7F3),
+      const Color(0xFFE0E7FF),
     ];
     return colors[name.hashCode.abs() % colors.length];
   }

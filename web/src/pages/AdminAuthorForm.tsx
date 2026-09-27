@@ -105,19 +105,19 @@ export function AdminAuthorForm() {
         <button
           type="button"
           onClick={() => navigate('/admin/authors')}
-          className="text-amber-700 hover:underline text-sm"
+          className="text-navy-700 hover:underline text-sm"
         >
           ← {t('admin.backToAuthors')}
         </button>
       </div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">
+      <h1 className="text-2xl font-bold text-navy-900 mb-6">
         {isEdit ? t('admin.editAuthor') : t('admin.newAuthor')}
       </h1>
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
         <div className="flex flex-col sm:flex-row gap-6">
           <div className="flex-shrink-0">
-            <label className="block text-sm font-medium text-stone-700 mb-2">{t('admin.authorPhoto')}</label>
-            <div className="w-32 h-32 rounded-lg border-2 border-dashed border-stone-300 flex items-center justify-center overflow-hidden bg-stone-50">
+            <label className="block text-sm font-medium text-slate-700 mb-2">{t('admin.authorPhoto')}</label>
+            <div className="w-32 h-32 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden bg-slate-50">
               {form.photo ? (
                 <img
                   src={resolveCoverUrl(form.photo)}
@@ -125,7 +125,7 @@ export function AdminAuthorForm() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-4xl text-stone-400">👤</span>
+                <span className="text-4xl text-slate-400">👤</span>
               )}
             </div>
             <input
@@ -149,10 +149,10 @@ export function AdminAuthorForm() {
                 }
               }}
               disabled={photoUploading}
-              className="mt-2 w-full text-sm file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-100 file:text-amber-900 file:font-medium hover:file:bg-amber-200"
+              className="mt-2 w-full text-sm file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-navy-100 file:text-navy-900 file:font-medium hover:file:bg-navy-200"
             />
             {photoUploading && (
-              <p className="mt-1 text-sm text-amber-700">{t('admin.uploading')}</p>
+              <p className="mt-1 text-sm text-navy-700">{t('admin.uploading')}</p>
             )}
             {form.photo && (
               <button
@@ -166,43 +166,43 @@ export function AdminAuthorForm() {
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')} *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.name')} *</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 placeholder={t('admin.authorName')}
                 required
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.biography')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.biography')}</label>
               <textarea
                 value={form.biography}
                 onChange={(e) => setForm((p) => ({ ...p, biography: e.target.value }))}
                 placeholder={t('admin.biographyPlaceholder')}
                 rows={4}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.dateOfBirth')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.dateOfBirth')}</label>
                 <input
                   type="date"
                   value={form.date_of_birth}
                   onChange={(e) => setForm((p) => ({ ...p, date_of_birth: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.dateOfDeath')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.dateOfDeath')}</label>
                 <input
                   type="date"
                   value={form.date_of_death}
                   onChange={(e) => setForm((p) => ({ ...p, date_of_death: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
                 />
               </div>
             </div>
@@ -213,14 +213,14 @@ export function AdminAuthorForm() {
           <button
             type="submit"
             disabled={loading || !form.name.trim()}
-            className="px-6 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+            className="px-6 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
           >
             {loading ? t('common.saving') : isEdit ? t('admin.update') : t('admin.create')}
           </button>
           <button
             type="button"
             onClick={() => navigate('/admin/authors')}
-            className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
+            className="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
           >
             {t('admin.cancel')}
           </button>

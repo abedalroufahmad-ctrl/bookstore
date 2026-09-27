@@ -730,10 +730,10 @@ export function AdminBookForm() {
   if (warehousesLoading && !isEdit) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-amber-900 mb-6">
+        <h1 className="text-2xl font-bold text-navy-900 mb-6">
           {t('admin.addBook')}
         </h1>
-        <p className="text-stone-600">{t('common.loading')}</p>
+        <p className="text-slate-600">{t('common.loading')}</p>
       </div>
     )
   }
@@ -741,16 +741,16 @@ export function AdminBookForm() {
   if (needsData) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-amber-900 mb-6">
+        <h1 className="text-2xl font-bold text-navy-900 mb-6">
           {isEdit ? t('admin.editBook') : t('admin.addBook')}
         </h1>
-        <p className="text-stone-600 mb-4">
+        <p className="text-slate-600 mb-4">
           {t('admin.booksNeedsWarehouse')}
         </p>
         <button
           type="button"
           onClick={() => navigate('/admin/books')}
-          className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
+          className="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
         >
           {t('admin.backToBooks')}
         </button>
@@ -760,12 +760,12 @@ export function AdminBookForm() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">
+      <h1 className="text-2xl font-bold text-navy-900 mb-6">
         {isEdit ? t('admin.editBook') : t('admin.addBook')}
       </h1>
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.title')} *
           </label>
           <input
@@ -773,11 +773,11 @@ export function AdminBookForm() {
             value={form.title}
             onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.isbn')} *
           </label>
           <input
@@ -785,11 +785,11 @@ export function AdminBookForm() {
             value={form.isbn}
             onChange={(e) => setForm((p) => ({ ...p, isbn: e.target.value }))}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.price')} *
           </label>
           <input
@@ -801,11 +801,11 @@ export function AdminBookForm() {
               setForm((p) => ({ ...p, price: parseFloat(e.target.value) || 0 }))
             }
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.stockQuantity')} *
           </label>
           <input
@@ -819,11 +819,11 @@ export function AdminBookForm() {
               }))
             }
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.condition')}
           </label>
           <select
@@ -836,14 +836,14 @@ export function AdminBookForm() {
                 is_sold: condition === 'new' ? false : p.is_sold,
               }))
             }}
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             <option value="new">{t('admin.conditionNew')}</option>
             <option value="used">{t('admin.conditionUsed')}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.visibility')}
           </label>
           <select
@@ -851,7 +851,7 @@ export function AdminBookForm() {
             onChange={(e) =>
               setForm((p) => ({ ...p, is_visible: e.target.value !== 'hidden' }))
             }
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             <option value="visible">{t('admin.visible')}</option>
             <option value="hidden">{t('admin.hidden')}</option>
@@ -859,7 +859,7 @@ export function AdminBookForm() {
         </div>
         {form.condition === 'used' && (
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('admin.soldStatus')}
             </label>
             <select
@@ -871,7 +871,7 @@ export function AdminBookForm() {
                   stock_quantity: e.target.value === 'sold' ? 0 : Math.max(1, p.stock_quantity || 1),
                 }))
               }
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             >
               <option value="available">{t('admin.available')}</option>
               <option value="sold">{t('admin.sold')}</option>
@@ -879,7 +879,7 @@ export function AdminBookForm() {
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.specialDiscount')}
           </label>
           <input
@@ -891,12 +891,12 @@ export function AdminBookForm() {
             onChange={(e) =>
               setForm((p) => ({ ...p, discount_percent: parseFloat(e.target.value) || 0 }))
             }
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           />
-          <p className="mt-1 text-xs text-stone-500">{t('admin.globalDiscountHint')}</p>
+          <p className="mt-1 text-xs text-slate-500">{t('admin.globalDiscountHint')}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.categories')} *
           </label>
           <div className="relative">
@@ -920,15 +920,15 @@ export function AdminBookForm() {
               onFocus={() => setCategoryDropdownOpen(true)}
               onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 180)}
               placeholder={t('admin.searchCategory') ?? 'Search or add category...'}
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
             {categoryDropdownOpen && (
               <ul
-                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-stone-200 rounded-lg shadow-lg py-1"
+                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg py-1"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {categoriesSearchLoading ? (
-                  <li className="px-4 py-3 text-sm text-stone-500">
+                  <li className="px-4 py-3 text-sm text-slate-500">
                     {t('common.loading')}
                   </li>
                 ) : (
@@ -938,19 +938,19 @@ export function AdminBookForm() {
                         <button
                           type="button"
                           onClick={() => selectCategory(c._id)}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-amber-50"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-navy-50"
                         >
                           {c.subject_title_en} ({c.dewey_code})
                         </button>
                       </li>
                     ))}
                     {!categoriesSearchLoading && filteredCategories.length === 0 && !showCreateCategory && (
-                      <li className="px-4 py-2 text-sm text-stone-500">
+                      <li className="px-4 py-2 text-sm text-slate-500">
                         {categorySearchDebounced ? (t('admin.noCategoriesMatch') ?? 'No categories match.') : (t('admin.typeToSearchCategories') ?? 'Type to search all categories.')}
                       </li>
                     )}
                     {showCreateCategory && (
-                      <li className="border-t border-stone-100">
+                      <li className="border-t border-slate-100">
                         <button
                           type="button"
                           onClick={() => {
@@ -958,7 +958,7 @@ export function AdminBookForm() {
                             setNewCategory((p) => ({ ...p, subject_title_en: categorySearch.trim() }))
                             setCategoryDropdownOpen(false)
                           }}
-                          className="w-full px-4 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 font-medium"
+                          className="w-full px-4 py-2 text-left text-sm text-navy-700 hover:bg-navy-50 font-medium"
                         >
                           {t('admin.createNewCategoryNamed', { name: categorySearch.trim() }) ??
                             `Add new category "${categorySearch.trim()}"`}
@@ -979,7 +979,7 @@ export function AdminBookForm() {
                   setNewCategory((p) => ({ ...p, dewey_code: e.target.value }))
                 }
                 placeholder={t('admin.deweyCode')}
-                className="px-3 py-1 border border-stone-300 rounded-lg text-sm w-24"
+                className="px-3 py-1 border border-slate-300 rounded-lg text-sm w-24"
               />
               <input
                 type="text"
@@ -988,7 +988,7 @@ export function AdminBookForm() {
                   setNewCategory((p) => ({ ...p, subject_title_en: e.target.value }))
                 }
                 placeholder={t('admin.subjectTitle') || 'Subject Title (EN)'}
-                className="px-3 py-1 border border-stone-300 rounded-lg text-sm flex-1 min-w-[120px]"
+                className="px-3 py-1 border border-slate-300 rounded-lg text-sm flex-1 min-w-[120px]"
               />
               <input
                 type="text"
@@ -997,7 +997,7 @@ export function AdminBookForm() {
                   setNewCategory((p) => ({ ...p, subject_title_ar: e.target.value }))
                 }
                 placeholder={(t('admin.subjectTitleAr') as string) || 'Subject Title (AR)'}
-                className="px-3 py-1 border border-stone-300 rounded-lg text-sm flex-1 min-w-[120px] text-right"
+                className="px-3 py-1 border border-slate-300 rounded-lg text-sm flex-1 min-w-[120px] text-right"
                 dir="rtl"
               />
               <button
@@ -1012,7 +1012,7 @@ export function AdminBookForm() {
                   !newCategory.dewey_code ||
                   !newCategory.subject_title_en
                 }
-                className="text-sm px-3 py-1 bg-amber-100 text-amber-900 rounded-lg hover:bg-amber-200"
+                className="text-sm px-3 py-1 bg-navy-100 text-navy-900 rounded-lg hover:bg-navy-200"
               >
                 {t('admin.add')}
               </button>
@@ -1022,7 +1022,7 @@ export function AdminBookForm() {
                   setAddingCategory(false)
                   setNewCategory({ dewey_code: '', subject_title_en: '', subject_title_ar: '' })
                 }}
-                className="text-sm text-stone-500 hover:underline"
+                className="text-sm text-slate-500 hover:underline"
               >
                 {t('admin.cancel')}
               </button>
@@ -1030,12 +1030,12 @@ export function AdminBookForm() {
           )}
           <div className="flex flex-wrap gap-2 mt-2">
             {selectedCategoryLabel && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-100 border border-navy-200 text-navy-900 text-sm">
                 {selectedCategoryLabel}
                 <button
                   type="button"
                   onClick={clearCategory}
-                  className="text-amber-700 hover:text-amber-900 font-medium"
+                  className="text-navy-700 hover:text-navy-900 font-medium"
                   aria-label={t('admin.remove') ?? 'Remove'}
                 >
                   ×
@@ -1044,20 +1044,20 @@ export function AdminBookForm() {
             )}
           </div>
           {!selectedCategoryLabel && (
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="mt-1 text-xs text-slate-500">
               {t('admin.searchCategoryHint') ?? 'Type to search and select a category, or create a new one.'}
             </p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.warehouses')} *
           </label>
-          <div className="max-h-48 overflow-auto rounded-lg border border-stone-300 p-3 space-y-2 bg-white">
+          <div className="max-h-48 overflow-auto rounded-lg border border-slate-300 p-3 space-y-2 bg-white">
             {warehousesLoading ? (
-              <p className="text-sm text-stone-500">{t('common.loading')}</p>
+              <p className="text-sm text-slate-500">{t('common.loading')}</p>
             ) : warehouseList.length === 0 ? (
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-slate-500">
                 {warehousesError
                   ? t('common.error')
                   : t('admin.noWarehousesList')}
@@ -1071,12 +1071,12 @@ export function AdminBookForm() {
                     : []
                 ).includes(w._id)
                 return (
-                  <label key={w._id} className="flex items-center gap-2 text-sm text-stone-800">
+                  <label key={w._id} className="flex items-center gap-2 text-sm text-slate-800">
                     <input
                       type="checkbox"
                       checked={selected}
                       onChange={() => toggleWarehouse(w._id)}
-                      className="rounded border-stone-300 text-amber-700 focus:ring-amber-500"
+                      className="rounded border-slate-300 text-navy-700 focus:ring-navy-500"
                     />
                     <span>{w.name}</span>
                   </label>
@@ -1084,10 +1084,10 @@ export function AdminBookForm() {
               })
             )}
           </div>
-          <p className="mt-1 text-xs text-stone-500">{t('admin.multiWarehouseHint')}</p>
+          <p className="mt-1 text-xs text-slate-500">{t('admin.multiWarehouseHint')}</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.authors')} *
           </label>
           <div className="relative">
@@ -1113,15 +1113,15 @@ export function AdminBookForm() {
                 setTimeout(() => setAuthorDropdownOpen(false), 180)
               }
               placeholder={t('admin.searchAuthor') ?? 'Search or add author...'}
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
             {authorDropdownOpen && (
               <ul
-                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-stone-200 rounded-lg shadow-lg py-1"
+                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg py-1"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {authorsSearchLoading ? (
-                  <li className="px-4 py-3 text-sm text-stone-500">
+                  <li className="px-4 py-3 text-sm text-slate-500">
                     {t('common.loading')}
                   </li>
                 ) : (
@@ -1131,26 +1131,26 @@ export function AdminBookForm() {
                         <button
                           type="button"
                           onClick={() => addAuthorToBook(a._id)}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-amber-50"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-navy-50"
                         >
                           {a.name}
                         </button>
                       </li>
                     ))}
                     {!authorsSearchLoading && filteredAuthors.length === 0 && !showCreateAuthor && (
-                      <li className="px-4 py-2 text-sm text-stone-500">
+                      <li className="px-4 py-2 text-sm text-slate-500">
                         {authorSearchDebounced ? (t('admin.noAuthorsMatch') ?? 'No authors match.') : (t('admin.typeToSearchAuthors') ?? 'Type to search all authors.')}
                       </li>
                     )}
                     {showCreateAuthor && (
-                      <li className="border-t border-stone-100">
+                      <li className="border-t border-slate-100">
                         <button
                           type="button"
                           onClick={() =>
                             addAuthorMutation.mutate(authorSearch.trim())
                           }
                           disabled={addAuthorMutation.isPending}
-                          className="w-full px-4 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 font-medium"
+                          className="w-full px-4 py-2 text-left text-sm text-navy-700 hover:bg-navy-50 font-medium"
                         >
                           {addAuthorMutation.isPending
                             ? t('common.loading')
@@ -1168,13 +1168,13 @@ export function AdminBookForm() {
             {selectedAuthors.map((a) => (
               <span
                 key={a._id}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-100 border border-navy-200 text-navy-900 text-sm"
               >
                 {a.name || t('admin.authorName')}
                 <button
                   type="button"
                   onClick={() => removeAuthorFromBook(a._id)}
-                  className="text-amber-700 hover:text-amber-900 font-medium"
+                  className="text-navy-700 hover:text-navy-900 font-medium"
                   aria-label={t('admin.remove') ?? 'Remove'}
                 >
                   ×
@@ -1183,13 +1183,13 @@ export function AdminBookForm() {
             ))}
           </div>
           {selectedAuthors.length === 0 && (
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="mt-1 text-xs text-slate-500">
               {t('admin.searchAuthorHint') ?? 'Type to search and select authors, or create a new one.'}
             </p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.description')}
           </label>
           <textarea
@@ -1198,12 +1198,12 @@ export function AdminBookForm() {
               setForm((p) => ({ ...p, description: e.target.value }))
             }
             rows={3}
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('admin.size')}
             </label>
             <input
@@ -1211,11 +1211,11 @@ export function AdminBookForm() {
               value={form.size ?? ''}
               onChange={(e) => setForm((p) => ({ ...p, size: e.target.value }))}
               placeholder={t('common.sizePlaceholder')}
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('admin.weightWithUnit', { unit: settings.weight_unit }) || `Weight (${settings.weight_unit})`}
             </label>
             <input
@@ -1229,19 +1229,19 @@ export function AdminBookForm() {
                   weight: displayToGrams(e.target.value ? parseFloat(e.target.value) : undefined, settings.weight_unit),
                 }))
               }
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.coverImage')}
           </label>
-          <p className="text-xs text-stone-500 mb-2">
+          <p className="text-xs text-slate-500 mb-2">
             {t('admin.coverImageHint')}
           </p>
           <div className="flex flex-wrap gap-2 mb-2">
-            <label className="inline-flex items-center px-4 py-2 rounded-lg border border-stone-300 bg-white text-sm font-medium cursor-pointer hover:bg-stone-50 disabled:opacity-50">
+            <label className="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium cursor-pointer hover:bg-slate-50 disabled:opacity-50">
               {t('admin.takeCoverPhoto')}
               <input
                 type="file"
@@ -1252,7 +1252,7 @@ export function AdminBookForm() {
                 onChange={(e) => void handleCoverFile(e.target.files?.[0] ?? null, e.target)}
               />
             </label>
-            <label className="inline-flex items-center px-4 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm font-medium cursor-pointer hover:bg-amber-100">
+            <label className="inline-flex items-center px-4 py-2 rounded-lg border border-navy-300 bg-navy-50 text-navy-900 text-sm font-medium cursor-pointer hover:bg-navy-100">
               {t('admin.uploadCoverFile')}
               <input
                 type="file"
@@ -1264,7 +1264,7 @@ export function AdminBookForm() {
             </label>
           </div>
           {coverUploading && (
-            <p className="mt-1 text-sm text-amber-700">{t('admin.uploading')}</p>
+            <p className="mt-1 text-sm text-navy-700">{t('admin.uploading')}</p>
           )}
           {coverSuccess && !coverUploading && (
             <p className="mt-1 text-sm text-green-700">{coverSuccess}</p>
@@ -1273,21 +1273,21 @@ export function AdminBookForm() {
             <div className="mt-3 flex gap-4 items-start">
               {form.cover_image_thumb && (
                 <div>
-                  <p className="text-xs text-stone-500 mb-1">{t('admin.thumbnail')}</p>
+                  <p className="text-xs text-slate-500 mb-1">{t('admin.thumbnail')}</p>
                   <img
                     src={resolveCoverUrl(form.cover_image_thumb)}
                     alt="Thumb"
-                    className="h-24 w-auto rounded border border-stone-200"
+                    className="h-24 w-auto rounded border border-slate-200"
                   />
                 </div>
               )}
               {form.cover_image && (
                 <div>
-                  <p className="text-xs text-stone-500 mb-1">{t('admin.original')}</p>
+                  <p className="text-xs text-slate-500 mb-1">{t('admin.original')}</p>
                   <img
                     src={resolveCoverUrl(form.cover_image)}
                     alt="Cover"
-                    className="max-h-24 w-auto rounded border border-stone-200"
+                    className="max-h-24 w-auto rounded border border-slate-200"
                   />
                 </div>
               )}
@@ -1303,7 +1303,7 @@ export function AdminBookForm() {
             </div>
           )}
           <div className="mt-2">
-            <label className="block text-xs text-stone-500 mb-1">{t('admin.orPasteUrl')}</label>
+            <label className="block text-xs text-slate-500 mb-1">{t('admin.orPasteUrl')}</label>
             <input
               type="url"
               value={form.cover_image ?? ''}
@@ -1311,13 +1311,13 @@ export function AdminBookForm() {
                 setForm((p) => ({ ...p, cover_image: e.target.value, cover_image_thumb: e.target.value }))
               }
               placeholder={t('common.urlPlaceholder')}
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500 text-sm"
             />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('admin.pages')}
             </label>
             <input
@@ -1330,11 +1330,11 @@ export function AdminBookForm() {
                   pages: e.target.value ? parseInt(e.target.value, 10) : undefined,
                 }))
               }
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('admin.editionNumber')}
             </label>
             <input
@@ -1349,11 +1349,11 @@ export function AdminBookForm() {
                     : undefined,
                 }))
               }
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('admin.publishYear')}
             </label>
             <input
@@ -1369,13 +1369,13 @@ export function AdminBookForm() {
                     : undefined,
                 }))
               }
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </div>
         </div>
         {!isPublisherManager && (
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {t('admin.publisher')}
           </label>
           <div className="relative">
@@ -1399,15 +1399,15 @@ export function AdminBookForm() {
               onFocus={() => setPublisherDropdownOpen(true)}
               onBlur={() => setTimeout(() => setPublisherDropdownOpen(false), 180)}
               placeholder={t('admin.searchPublisher') ?? 'Search publisher...'}
-              className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
             {publisherDropdownOpen && (
               <ul
-                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-stone-200 rounded-lg shadow-lg py-1"
+                className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg py-1"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {publishersSearchLoading ? (
-                  <li className="px-4 py-3 text-sm text-stone-500">
+                  <li className="px-4 py-3 text-sm text-slate-500">
                     {t('common.loading')}
                   </li>
                 ) : (
@@ -1417,14 +1417,14 @@ export function AdminBookForm() {
                         <button
                           type="button"
                           onClick={() => selectPublisher(p._id)}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-amber-50"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-navy-50"
                         >
                           {p.name}
                         </button>
                       </li>
                     ))}
                     {!publishersSearchLoading && filteredPublishers.length === 0 && (
-                      <li className="px-4 py-2 text-sm text-stone-500">
+                      <li className="px-4 py-2 text-sm text-slate-500">
                         {publisherSearchDebounced ? (t('admin.noPublishersMatch') ?? 'No publishers match.') : (t('admin.typeToSearchPublishers') ?? 'Type to search all publishers.')}
                       </li>
                     )}
@@ -1437,13 +1437,13 @@ export function AdminBookForm() {
             {selectedPublishers.map((p) => (
               <span
                 key={p._id}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-200 text-amber-900 text-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-100 border border-navy-200 text-navy-900 text-sm"
               >
                 {p.name || p._id}
                 <button
                   type="button"
                   onClick={() => removePublisherFromBook(p._id)}
-                  className="text-amber-700 hover:text-amber-900 font-medium"
+                  className="text-navy-700 hover:text-navy-900 font-medium"
                   aria-label={t('admin.remove') ?? 'Remove'}
                 >
                   ×
@@ -1451,7 +1451,7 @@ export function AdminBookForm() {
               </span>
             ))}
           </div>
-          <p className="text-xs text-stone-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             {t('admin.searchPublisherHint') ?? 'Type to search and select one or more publishers.'}
           </p>
         </div>
@@ -1463,14 +1463,14 @@ export function AdminBookForm() {
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+            className="px-6 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
           >
             {loading ? t('common.saving') : isEdit ? t('admin.update') : t('admin.create')}
           </button>
           <button
             type="button"
             onClick={() => navigate('/admin/books')}
-            className="px-6 py-2 border border-stone-300 rounded-lg hover:bg-stone-50"
+            className="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
           >
             {t('admin.cancel')}
           </button>

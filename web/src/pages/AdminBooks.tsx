@@ -196,25 +196,25 @@ export function AdminBooks() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.books')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.books')}</h1>
         <Link
           to="/admin/books/new"
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
+          className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 shrink-0 self-start"
         >
           {t('admin.addBook')}
         </Link>
       </div>
 
-      <div className="mb-6 rounded-lg border border-stone-200 bg-white p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-stone-800">{t('admin.importExcel')}</h2>
-        <p className="text-xs text-stone-500">{t('admin.importExcelHint')}</p>
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-slate-800">{t('admin.importExcel')}</h2>
+        <p className="text-xs text-slate-500">{t('admin.importExcelHint')}</p>
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">{t('admin.warehouse')}</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">{t('admin.warehouse')}</label>
             <select
               value={importWarehouseId}
               onChange={(e) => setImportWarehouseId(e.target.value)}
-              className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
             >
               <option value="">{t('admin.selectWarehouse')}</option>
               {warehouseList.map((w) => (
@@ -225,7 +225,7 @@ export function AdminBooks() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">{t('admin.excelFile')}</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">{t('admin.excelFile')}</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -238,10 +238,10 @@ export function AdminBooks() {
             />
           </div>
           {importMutation.isPending && (
-            <span className="text-sm text-stone-500">{t('admin.importing')}</span>
+            <span className="text-sm text-slate-500">{t('admin.importing')}</span>
           )}
         </div>
-        {importMessage && <p className="text-sm text-stone-700">{importMessage}</p>}
+        {importMessage && <p className="text-sm text-slate-700">{importMessage}</p>}
       </div>
 
       <AdminListSearchBar
@@ -259,7 +259,7 @@ export function AdminBooks() {
         <select
           value={conditionFilter}
           onChange={(e) => setConditionFilter(e.target.value)}
-          className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
         >
           <option value="">{t('admin.allConditions')}</option>
           <option value="new">{t('admin.conditionNew')}</option>
@@ -268,7 +268,7 @@ export function AdminBooks() {
         <select
           value={visibilityFilter}
           onChange={(e) => setVisibilityFilter(e.target.value)}
-          className="px-3 py-2 border border-stone-300 rounded-lg text-sm"
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
         >
           <option value="">{t('admin.allVisibility')}</option>
           <option value="visible">{t('admin.visible')}</option>
@@ -295,9 +295,9 @@ export function AdminBooks() {
           </button>
         </div>
       )}
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-2 py-2 w-10 text-center">
                 <input
@@ -319,7 +319,7 @@ export function AdminBooks() {
           </thead>
           <tbody>
             {items.map((book: Book) => (
-              <tr key={book._id} className="border-t border-stone-200">
+              <tr key={book._id} className="border-t border-slate-200">
                 <td className="px-2 py-2 text-center">
                   <input
                     type="checkbox"
@@ -345,7 +345,7 @@ export function AdminBooks() {
                 <td className="px-4 py-2 text-right">
                   <Link
                     to={`/admin/books/${book._id}/edit`}
-                    className="text-amber-700 hover:underline mr-3"
+                    className="text-navy-700 hover:underline mr-3"
                   >
                     {t('admin.edit')}
                   </Link>
@@ -366,9 +366,9 @@ export function AdminBooks() {
         </table>
       </div>
       {items.length === 0 && (
-        <p className="text-center text-stone-500 py-8">
+        <p className="text-center text-slate-500 py-8">
           {t('admin.noBooks')}{' '}
-          <Link to="/admin/books/new" className="text-amber-700 font-medium">
+          <Link to="/admin/books/new" className="text-navy-700 font-medium">
             {t('admin.addFirstBook')}
           </Link>
         </p>

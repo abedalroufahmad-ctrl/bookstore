@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
@@ -168,12 +169,12 @@ class _CartScreenState extends State<CartScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.amber[100],
+                              color: AppColors.navy100,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               ' خصم ${item.book!.discountPercent}%',
-                              style: const TextStyle(fontSize: 10, color: Colors.brown, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 10, color: AppColors.navy700, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],

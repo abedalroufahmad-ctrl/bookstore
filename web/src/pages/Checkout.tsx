@@ -138,52 +138,52 @@ export function Checkout() {
         ℹ️ {t('cart.warehouseSplitNotice', 'Items are grouped by warehouse. Each warehouse will be processed as a separate order.')}
       </div>
 
-      <p className="text-stone-600 mb-4">{t('checkout.shippingAddress')}</p>
+      <p className="text-slate-600 mb-4">{t('checkout.shippingAddress')}</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('checkout.address')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('checkout.address')}</label>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('checkout.city')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('checkout.city')}</label>
           <input
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('checkout.country')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('checkout.country')}</label>
           <input
             type="text"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('checkout.postalCode')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('checkout.postalCode')}</label>
           <input
             type="text"
             value={postalCode}
             onChange={(e) => setPostalCode(e.target.value)}
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">{t('checkout.paymentMethod')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">{t('checkout.paymentMethod')}</label>
           {enabledMethods.length === 0 ? (
-            <p className="text-amber-700 text-sm">{t('checkout.noPaymentMethods')}</p>
+            <p className="text-navy-700 text-sm">{t('checkout.noPaymentMethods')}</p>
           ) : (
             <div className="space-y-2">
               {enabledMethods.map((m) => (
@@ -194,7 +194,7 @@ export function Checkout() {
                     value={m.id}
                     checked={selectedMethod === m.id}
                     onChange={() => setPaymentMethod(m.id)}
-                    className="rounded-full border-stone-300 text-amber-900 focus:ring-amber-500"
+                    className="rounded-full border-slate-300 text-navy-900 focus:ring-navy-500"
                   />
                   <span>{paymentMethodLabel(m.id, m.name, t)}</span>
                 </label>
@@ -204,7 +204,7 @@ export function Checkout() {
         </div>
 
         {selectedMethod === 'paypal' && (
-          <p className="text-sm text-stone-600 border border-amber-100 bg-amber-50/80 rounded-lg p-3">
+          <p className="text-sm text-slate-600 border border-navy-100 bg-navy-50/80 rounded-lg p-3">
             {t('checkout.paypalAfterQuote', 'After the warehouse sends your final quote, open the order and pay with PayPal from there.')}
           </p>
         )}

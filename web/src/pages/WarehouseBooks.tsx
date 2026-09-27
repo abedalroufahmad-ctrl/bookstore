@@ -57,13 +57,13 @@ export function WarehouseBooks() {
 
   if (isLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+      <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
         <div
           style={{
             width: 40,
             height: 40,
-            border: '3px solid #e7e5e4',
-            borderTopColor: '#92400e',
+            border: '3px solid #e2e8f0',
+            borderTopColor: '#1f2f58',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
             margin: '0 auto 16px',
@@ -77,12 +77,12 @@ export function WarehouseBooks() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, fontSize: 14, color: '#78716c' }}>
-        <Link to="/" style={{ color: '#92400e', textDecoration: 'none' }}>
+      <div style={{ marginBottom: 24, fontSize: 14, color: '#64748b' }}>
+        <Link to="/" style={{ color: '#1f2f58', textDecoration: 'none' }}>
           {t('nav.bookStore')}
         </Link>{' '}
         /{' '}
-        <Link to="/warehouses" style={{ color: '#92400e', textDecoration: 'none' }}>
+        <Link to="/warehouses" style={{ color: '#1f2f58', textDecoration: 'none' }}>
           {t('warehouses.title')}
         </Link>{' '}
         / {warehouse?.name}
@@ -98,7 +98,7 @@ export function WarehouseBooks() {
             padding: '24px 28px',
             background: '#fff',
             borderRadius: 12,
-            border: '1px solid #e7e5e4',
+            border: '1px solid #e2e8f0',
           }}
         >
           <div
@@ -106,7 +106,7 @@ export function WarehouseBooks() {
               width: 72,
               height: 72,
               borderRadius: 16,
-              background: '#fef3c7',
+              background: '#e3e9f5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -117,11 +117,11 @@ export function WarehouseBooks() {
             🏭
           </div>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', margin: 0 }}>{warehouse.name}</h1>
-            <p style={{ fontSize: 13, color: '#78716c', marginTop: 8 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', margin: 0 }}>{warehouse.name}</h1>
+            <p style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
               {[warehouse.city, warehouse.country].filter(Boolean).join(' · ')}
             </p>
-            <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 8 }}>{meta?.total ?? bookItems.length}</p>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 8 }}>{meta?.total ?? bookItems.length}</p>
           </div>
         </div>
       )}
@@ -158,7 +158,7 @@ export function WarehouseBooks() {
           ))}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
           <p style={{ fontSize: 16 }}>{t('warehouses.noBooks')}</p>
         </div>

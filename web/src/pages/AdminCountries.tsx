@@ -176,13 +176,13 @@ export function AdminCountries() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.countries')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.countries')}</h1>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => syncFromNetworkMutation.mutate(false)}
             disabled={syncFromNetworkMutation.isPending}
-            className="px-4 py-2 bg-stone-600 text-white rounded-lg hover:bg-stone-700 disabled:opacity-50"
+            className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
           >
             {syncFromNetworkMutation.isPending ? t('common.loading') : t('admin.syncFromNetwork')}
           </button>
@@ -197,7 +197,7 @@ export function AdminCountries() {
           <button
             type="button"
             onClick={startCreate}
-            className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800"
+            className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800"
           >
             {t('admin.addCountry')}
           </button>
@@ -224,9 +224,9 @@ export function AdminCountries() {
       {isLoading && !data ? (
         <div className="text-center py-12">{t('common.loading')}</div>
       ) : (
-        <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <table className="w-full">
-            <thead className="bg-stone-100">
+            <thead className="bg-slate-100">
               <tr>
                 <th className="px-4 py-2 text-left">{t('admin.name')}</th>
                 <th className="px-4 py-2 text-left">{t('admin.code')}</th>
@@ -237,21 +237,21 @@ export function AdminCountries() {
             </thead>
             <tbody>
               {items.map((c) => (
-                <tr key={c._id} className="border-t border-stone-200">
+                <tr key={c._id} className="border-t border-slate-200">
                   <td className="px-4 py-2 font-medium">{c.name}</td>
-                  <td className="px-4 py-2 text-sm text-stone-600">{c.code || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-stone-800">
+                  <td className="px-4 py-2 text-sm text-slate-600">{c.code || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-slate-800">
                     {c.currency_code}
                     {c.currency_name ? ` – ${c.currency_name}` : ''}
                   </td>
-                  <td className="px-4 py-2 text-sm text-stone-600">
+                  <td className="px-4 py-2 text-sm text-slate-600">
                     {c.cities?.length ?? 0}
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       type="button"
                       onClick={() => startEdit(c)}
-                      className="text-amber-700 hover:underline text-sm mr-3"
+                      className="text-navy-700 hover:underline text-sm mr-3"
                     >
                       {t('admin.edit')}
                     </button>
@@ -272,7 +272,7 @@ export function AdminCountries() {
             </tbody>
           </table>
           {items.length === 0 && (
-            <p className="text-center text-stone-500 py-8">{t('admin.noCountries')}</p>
+            <p className="text-center text-slate-500 py-8">{t('admin.noCountries')}</p>
           )}
         </div>
       )}
@@ -290,12 +290,12 @@ export function AdminCountries() {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-xl font-semibold text-amber-900 mb-4">
+            <h2 className="text-xl font-semibold text-navy-900 mb-4">
               {editingId ? t('admin.editCountry') : t('admin.newCountry')}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   {t('admin.name')}
                 </label>
                 <input
@@ -303,23 +303,23 @@ export function AdminCountries() {
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   required
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     {t('admin.code')}
                   </label>
                   <input
                     type="text"
                     value={form.code}
                     onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     {t('admin.currencyCode')}
                   </label>
                   <input
@@ -327,24 +327,24 @@ export function AdminCountries() {
                     value={form.currency_code}
                     onChange={(e) => setForm((p) => ({ ...p, currency_code: e.target.value }))}
                     required
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   {t('admin.currencyName')}
                 </label>
                 <input
                   type="text"
                   value={form.currency_name}
                   onChange={(e) => setForm((p) => ({ ...p, currency_name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   {t('admin.cities')}
                 </label>
                 <div className="space-y-2">
@@ -357,7 +357,7 @@ export function AdminCountries() {
                           handleCityChange(index, { name: e.target.value })
                         }
                         placeholder={t('admin.city') || 'City'}
-                        className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm"
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
                       />
                       <button
                         type="button"
@@ -371,7 +371,7 @@ export function AdminCountries() {
                   <button
                     type="button"
                     onClick={addCityRow}
-                    className="text-sm text-amber-700 hover:underline"
+                    className="text-sm text-navy-700 hover:underline"
                   >
                     + {t('admin.addCity')}
                   </button>
@@ -387,14 +387,14 @@ export function AdminCountries() {
                     setForm(emptyForm)
                     setError('')
                   }}
-                  className="px-4 py-2 border border-stone-300 rounded-lg"
+                  className="px-4 py-2 border border-slate-300 rounded-lg"
                 >
                   {t('admin.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                  className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
                 >
                   {editingId
                     ? updateMutation.isPending

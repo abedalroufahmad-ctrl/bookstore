@@ -1,27 +1,42 @@
 @import "tailwindcss";
 
-/* Flamingo-inspired shop design tokens (from brand mockup) */
+/* Navy brand palette: generates bg-navy-*, text-navy-*, border-navy-* ... utilities. */
+@theme {
+  --color-navy-50: #f2f5fb;
+  --color-navy-100: #e3e9f5;
+  --color-navy-200: #c5d1ea;
+  --color-navy-300: #9bb0d8;
+  --color-navy-400: #6b87c0;
+  --color-navy-500: #4865a6;
+  --color-navy-600: #344e8a;
+  --color-navy-700: #283d70;
+  --color-navy-800: #1f2f58;
+  --color-navy-900: #172344;
+  --color-navy-950: #0e162d;
+}
+
+/* Shop design tokens (navy theme) */
 :root {
-  --color-primary: #1a1a1a;
-  --color-primary-hover: #2d2d2d;
-  --color-primary-light: #f5f0ee;
-  --color-accent: #e8a09a;
-  --color-accent-hover: #d98982;
-  --color-accent-soft: #fde8e4;
-  --color-accent-sky: #7bcbd8;
-  --color-accent-gold: #f5a623;
-  --color-earth: #70503b;
-  --color-sage: #bfc4b2;
-  --color-text: #1a1a1a;
-  --color-text-muted: #757575;
-  --color-border: #e5e5e5;
-  --color-bg: #fff8f6;
+  --color-primary: #172344;
+  --color-primary-hover: #1f2f58;
+  --color-primary-light: #e3e9f5;
+  --color-accent: #4865a6;
+  --color-accent-hover: #344e8a;
+  --color-accent-soft: #e3e9f5;
+  --color-accent-sky: #9bb0d8;
+  --color-accent-gold: #6b87c0;
+  --color-earth: #283d70;
+  --color-sage: #c5d1ea;
+  --color-text: #0e162d;
+  --color-text-muted: #5b6b8c;
+  --color-border: #dbe2ef;
+  --color-bg: #f5f7fb;
   --color-bg-card: #ffffff;
   --color-success: #6b8f71;
   --color-discount: #c45c4a;
-  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.04);
-  --shadow-md: 0 8px 24px rgba(26, 26, 26, 0.07);
-  --shadow-lg: 0 16px 40px rgba(26, 26, 26, 0.1);
+  --shadow-sm: 0 2px 8px rgba(14, 22, 45, 0.05);
+  --shadow-md: 0 8px 24px rgba(14, 22, 45, 0.08);
+  --shadow-lg: 0 16px 40px rgba(14, 22, 45, 0.12);
   --radius-card: 24px;
 }
 
@@ -48,7 +63,7 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
 
 /* Hero banner - Flamingo soft wash */
 .hero-banner {
-  background: linear-gradient(165deg, var(--color-accent-soft) 0%, #ffffff 55%, #eef8fa 100%);
+  background: linear-gradient(165deg, var(--color-accent-soft) 0%, #ffffff 55%, #f2f5fb 100%);
   border-bottom: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   padding: 72px 40px;
@@ -483,7 +498,7 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
 
 .search-pill select {
   border-inline-end: 1px solid var(--color-border) !important;
-  background: #fafafa;
+  background: #f2f5fb;
   min-width: 110px;
 }
 
@@ -504,7 +519,7 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
   padding: 4px 10px;
   border-radius: 2px;
   z-index: 2;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(14,22,45,0.1);
 }
 
 .global-discount-badge {
@@ -572,7 +587,7 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #e8e8e8, #f0f0f0);
+  background: linear-gradient(135deg, #e3e9f5, #f2f5fb);
   color: var(--color-text-muted);
   font-size: 13px;
   text-align: center;
@@ -596,13 +611,13 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
 /* Footer */
 .site-footer {
   background: var(--color-text);
-  color: #999;
+  color: #6b87c0;
   padding: 40px 0 24px;
   margin-top: 48px;
 }
 
 .site-footer a {
-  color: #bbb;
+  color: #9bb0d8;
   text-decoration: none;
 }
 
@@ -689,7 +704,7 @@ h1, h2, h3, h4, h5, h6, .hero-title, .section-title, .hero-banner-mic-title {
 
 /* Hero banner - Elegant minimal style */
 .hero-banner-mic {
-  background: linear-gradient(165deg, var(--color-accent-soft) 0%, #ffffff 60%, #eef8fa 100%);
+  background: linear-gradient(165deg, var(--color-accent-soft) 0%, #ffffff 60%, #f2f5fb 100%);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   padding: 40px 36px;

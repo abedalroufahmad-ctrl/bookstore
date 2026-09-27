@@ -85,14 +85,14 @@ export function CategoryList() {
 
     const getColor = (code: string) => {
         const colors = [
-            ['#fff0f2'],
+            ['#f2f5fb'],
+            ['#e3e9f5'],
             ['#eff6ff'],
-            ['#ecfdf5'],
-            ['#fdf2f8'],
             ['#eef2ff'],
-            ['#fefce8'],
-            ['#faf5ff'],
-            ['#fff7ed'],
+            ['#f1f5f9'],
+            ['#dbeafe'],
+            ['#e0e7ff'],
+            ['#f8fafc'],
         ]
         let hash = 0
         for (let i = 0; i < code.length; i++) hash = code.charCodeAt(i) + ((hash << 5) - hash)

@@ -123,7 +123,7 @@ export function BookDetail() {
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
               {hasOriginal && (
-                <p className="text-xs text-stone-500 mt-1 text-center">{t('bookDetail.clickToViewOriginal')}</p>
+                <p className="text-xs text-slate-500 mt-1 text-center">{t('bookDetail.clickToViewOriginal')}</p>
               )}
             </button>
           </div>
@@ -136,7 +136,7 @@ export function BookDetail() {
             {userType === 'employee' && (
               <Link
                 to={`/admin/books/${book._id}/edit`}
-                className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg border border-stone-300 transition-colors flex-shrink-0"
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 transition-colors flex-shrink-0"
               >
                 ✏️ {t('admin.edit', 'Edit')}
               </Link>
@@ -264,7 +264,7 @@ export function BookDetail() {
               }
             />
           </div>
-          {book.description && <p className="text-stone-600 mb-4">{book.description}</p>}
+          {book.description && <p className="text-slate-600 mb-4">{book.description}</p>}
           {book.is_sold && (
             <p className="mb-4 text-sm font-semibold" style={{ color: 'var(--color-discount)' }}>
               {t('bookDetail.sold')}

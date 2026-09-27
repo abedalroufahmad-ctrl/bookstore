@@ -131,11 +131,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
   Color _getCategoryColor(String? deweyCode) {
     final colors = [
-      const Color(0xFFFEF3C7),
+      const Color(0xFFE3E9F5),
+      const Color(0xFFC5D1EA),
       const Color(0xFFDBEAFE),
-      const Color(0xFFD1FAE5),
-      const Color(0xFFFCE7F3),
       const Color(0xFFE0E7FF),
+      const Color(0xFFF1F5F9),
     ];
     if (deweyCode == null) return colors[0];
     return colors[deweyCode.hashCode % colors.length];

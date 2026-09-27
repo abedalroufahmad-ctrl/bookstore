@@ -148,7 +148,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   Text(
                     '\$${price.toStringAsFixed(2)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           decoration: TextDecoration.lineThrough,
                         ),
                   ),
@@ -335,7 +335,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -357,7 +357,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -394,7 +394,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -404,7 +404,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       for (int i = 0; i < authors.length; i++) ...[
-                        if (i > 0) Text('، ', style: TextStyle(color: Colors.grey.shade700)),
+                        if (i > 0) Text('، ', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         InkWell(
                           onTap: () => Navigator.pushNamed(
                             context,
@@ -445,7 +445,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -455,7 +455,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       for (int i = 0; i < publishers.length; i++) ...[
-                        if (i > 0) Text('، ', style: TextStyle(color: Colors.grey.shade700)),
+                        if (i > 0) Text('، ', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         publishers[i].id.isNotEmpty
                             ? InkWell(
                                 onTap: () => Navigator.pushNamed(
@@ -502,7 +502,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               '$label:',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),

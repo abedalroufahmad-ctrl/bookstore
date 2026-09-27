@@ -54,10 +54,10 @@ export function AdminAuthors() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.authors')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.authors')}</h1>
         <Link
           to="/admin/authors/new"
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
+          className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 shrink-0 self-start"
         >
           {t('admin.addAuthor')}
         </Link>
@@ -72,9 +72,9 @@ export function AdminAuthors() {
         onCommit={commitSearch}
         className="mb-6"
       />
-      <div className="bg-white rounded-lg border border-stone-200 overflow-x-auto">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
         <table className="w-full min-w-[700px]">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-4 py-2 text-left">{t('admin.photo')}</th>
               <th className="px-4 py-2 text-left">{t('admin.name')}</th>
@@ -86,7 +86,7 @@ export function AdminAuthors() {
           </thead>
           <tbody>
             {items.map((a) => (
-              <tr key={a._id} className="border-t border-stone-200">
+              <tr key={a._id} className="border-t border-slate-200">
                 <td className="px-4 py-2">
                   {a.photo ? (
                     <img
@@ -97,14 +97,14 @@ export function AdminAuthors() {
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 text-sm">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm">
                       {a.name?.charAt(0) || '?'}
                     </div>
                   )}
                 </td>
                 <td className="px-4 py-2 font-medium">{a.name}</td>
                 <td className="px-4 py-2 max-w-[200px]">
-                  <span className="text-sm text-stone-600 line-clamp-2">
+                  <span className="text-sm text-slate-600 line-clamp-2">
                     {a.biography || '-'}
                   </span>
                 </td>
@@ -113,7 +113,7 @@ export function AdminAuthors() {
                 <td className="px-4 py-2 text-right">
                   <Link
                     to={`/admin/authors/${a._id}/edit`}
-                    className="text-amber-700 hover:underline text-sm mr-3"
+                    className="text-navy-700 hover:underline text-sm mr-3"
                   >
                     {t('admin.edit')}
                   </Link>
@@ -133,7 +133,7 @@ export function AdminAuthors() {
         </table>
       </div>
       {items.length === 0 && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noAuthors')}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noAuthors')}</p>
       )}
       {meta && (
         <Pagination

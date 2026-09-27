@@ -133,7 +133,7 @@ export function PublisherSettings() {
 
   if (!targetId) {
     return (
-      <div className="text-center py-12 text-stone-500">
+      <div className="text-center py-12 text-slate-500">
         {t('admin.noPublisherSelected')}
       </div>
     )
@@ -146,12 +146,12 @@ export function PublisherSettings() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link to={isPublisherManager ? "/admin" : "/admin/publishers"} className="text-amber-700 hover:underline text-sm">
+        <Link to={isPublisherManager ? "/admin" : "/admin/publishers"} className="text-navy-700 hover:underline text-sm">
           ← {isPublisherManager ? t('admin.dashboard') : t('admin.publishers')}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">
+      <h1 className="text-2xl font-bold text-navy-900 mb-6">
         {t('admin.publisherSettings', 'Publisher Settings')}
       </h1>
 
@@ -166,37 +166,37 @@ export function PublisherSettings() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 space-y-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 {t('admin.supportEmail', 'Support Email')}
               </label>
               <input
                 type="email"
                 value={form.support_email}
                 onChange={(e) => setForm({ ...form, support_email: e.target.value })}
-                className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 {t('admin.supportPhone', 'Support Phone')}
               </label>
               <input
                 type="text"
                 value={form.support_phone}
                 onChange={(e) => setForm({ ...form, support_phone: e.target.value })}
-                className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               {t('admin.defaultDiscount', 'Default Discount (%)')}
             </label>
             <input
@@ -205,19 +205,19 @@ export function PublisherSettings() {
               max="100"
               value={form.default_discount}
               onChange={(e) => setForm({ ...form, default_discount: Number(e.target.value) })}
-              className="w-full max-w-[200px] px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
             />
-            <p className="text-sm text-stone-500 mt-1">
+            <p className="text-sm text-slate-500 mt-1">
               {t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')}
             </p>
           </div>
 
-          <div className="border-t border-stone-200 pt-6 space-y-6">
+          <div className="border-t border-slate-200 pt-6 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-amber-900">
+              <h2 className="text-lg font-semibold text-navy-900">
                 {t('admin.payoutAccounts', 'Payout accounts')}
               </h2>
-              <p className="text-sm text-stone-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 {t(
                   'admin.payoutAccountsHint',
                   'Customers pay this publishing house directly when an account is set. Project management keeps the agreed percentage of book revenue.',
@@ -227,28 +227,28 @@ export function PublisherSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   {t('admin.paypalEmail', 'PayPal email')}
                 </label>
                 <input
                   type="email"
                   value={form.paypal_email}
                   onChange={(e) => setForm({ ...form, paypal_email: e.target.value })}
-                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
                   placeholder="publisher@paypal.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   {t('admin.paypalMerchantId', 'PayPal merchant ID')}
                 </label>
                 <input
                   type="text"
                   value={form.paypal_merchant_id}
                   onChange={(e) => setForm({ ...form, paypal_merchant_id: e.target.value })}
-                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
                 />
-                <p className="text-sm text-stone-500 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   {t('admin.paypalMerchantIdHint', 'Optional. Use if PayPal provided a merchant ID for this house.')}
                 </p>
               </div>
@@ -256,18 +256,18 @@ export function PublisherSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   {t('admin.bankName', 'Bank name')}
                 </label>
                 <input
                   type="text"
                   value={form.bank_name}
                   onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   {t('admin.bankAccountNumber', 'Bank account number')}
                 </label>
                 <input
@@ -275,13 +275,13 @@ export function PublisherSettings() {
                   value={form.bank_account_number}
                   onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })}
                   autoComplete="off"
-                  className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 {t('admin.platformCommissionPercent', 'Project management commission (%)')}
               </label>
               <input
@@ -292,9 +292,9 @@ export function PublisherSettings() {
                 value={form.platform_commission_percent}
                 onChange={(e) => setForm({ ...form, platform_commission_percent: Number(e.target.value) })}
                 disabled={!isManager}
-                className="w-full max-w-[200px] px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-70"
+                className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
               />
-              <p className="text-sm text-stone-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 {isManager
                   ? t(
                       'admin.platformCommissionPercentHint',
@@ -309,24 +309,24 @@ export function PublisherSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               {t('admin.returnPolicy', 'Return Policy')}
             </label>
             <textarea
               rows={4}
               value={form.return_policy}
               onChange={(e) => setForm({ ...form, return_policy: e.target.value })}
-              className="w-full px-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
               placeholder={t('admin.returnPolicyPlaceholder', 'Describe your return policy...')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-3">
+            <label className="block text-sm font-medium text-slate-700 mb-3">
               {t('admin.paymentMethods', 'Payment Methods')}
             </label>
             {globalPaymentMethods.length > 0 ? (
-              <div className="space-y-2 border border-stone-200 rounded-lg p-4 bg-stone-50">
+              <div className="space-y-2 border border-slate-200 rounded-lg p-4 bg-slate-50">
                 {globalPaymentMethods.filter(m => m.enabled).map((method) => (
                   <label key={method.id} className="flex items-center gap-3">
                     <input
@@ -343,32 +343,32 @@ export function PublisherSettings() {
                           }
                         })
                       }}
-                      className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+                      className="w-4 h-4 text-navy-600 rounded border-slate-300 focus:ring-navy-500"
                     />
-                    <span className="text-stone-800">{method.name}</span>
+                    <span className="text-slate-800">{method.name}</span>
                   </label>
                 ))}
                 {globalPaymentMethods.filter(m => m.enabled).length === 0 && (
-                  <p className="text-stone-500 text-sm">
+                  <p className="text-slate-500 text-sm">
                     {t('admin.noGlobalPaymentMethods', 'No payment methods are globally enabled.')}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-stone-500">{t('admin.noGlobalPaymentMethods', 'No payment methods are globally enabled.')}</p>
+              <p className="text-sm text-slate-500">{t('admin.noGlobalPaymentMethods', 'No payment methods are globally enabled.')}</p>
             )}
-            <p className="text-sm text-stone-500 mt-2">
+            <p className="text-sm text-slate-500 mt-2">
               {t('admin.publisherPaymentMethodsHint', 'Select which global payment methods you want to accept for your orders.')}
             </p>
           </div>
 
         </div>
         
-        <div className="bg-stone-50 px-6 py-4 border-t border-stone-200 flex justify-end">
+        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-end">
           <button
             type="submit"
             disabled={updateMutation.isPending}
-            className="px-6 py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 bg-navy-600 text-white font-medium rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50"
           >
             {updateMutation.isPending ? t('common.saving', 'Saving...') : t('common.save', 'Save Changes')}
           </button>

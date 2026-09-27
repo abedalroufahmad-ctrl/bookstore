@@ -199,7 +199,7 @@ export function AdminCustomers() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.customers')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.customers')}</h1>
       </div>
       <AdminListSearchBar
         value={searchInput}
@@ -214,35 +214,35 @@ export function AdminCustomers() {
       />
 
       {editingId && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.editCustomer')}</h2>
           <form onSubmit={submitEdit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder={t('admin.name')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input type="email" value={editForm.email} onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))} placeholder={t('admin.email')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input value={editForm.phone} onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))} placeholder={t('admin.phone')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input value={editForm.address} onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))} placeholder={t('admin.address')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input value={editForm.city} onChange={(e) => setEditForm((p) => ({ ...p, city: e.target.value }))} placeholder={t('admin.city')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input value={editForm.country} onChange={(e) => setEditForm((p) => ({ ...p, country: e.target.value }))} placeholder={t('admin.country')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input value={editForm.postal_code} onChange={(e) => setEditForm((p) => ({ ...p, postal_code: e.target.value }))} placeholder={t('admin.postalCode')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input type="password" value={editForm.password} onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))} placeholder={t('admin.newPasswordOptional')} className="px-4 py-2 border border-stone-300 rounded-lg" />
-            <input type="password" value={editForm.password_confirmation} onChange={(e) => setEditForm((p) => ({ ...p, password_confirmation: e.target.value }))} placeholder={t('admin.confirmNewPassword')} className="px-4 py-2 border border-stone-300 rounded-lg" />
+            <input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder={t('admin.name')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input type="email" value={editForm.email} onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))} placeholder={t('admin.email')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input value={editForm.phone} onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))} placeholder={t('admin.phone')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input value={editForm.address} onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))} placeholder={t('admin.address')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input value={editForm.city} onChange={(e) => setEditForm((p) => ({ ...p, city: e.target.value }))} placeholder={t('admin.city')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input value={editForm.country} onChange={(e) => setEditForm((p) => ({ ...p, country: e.target.value }))} placeholder={t('admin.country')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input value={editForm.postal_code} onChange={(e) => setEditForm((p) => ({ ...p, postal_code: e.target.value }))} placeholder={t('admin.postalCode')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input type="password" value={editForm.password} onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))} placeholder={t('admin.newPasswordOptional')} className="px-4 py-2 border border-slate-300 rounded-lg" />
+            <input type="password" value={editForm.password_confirmation} onChange={(e) => setEditForm((p) => ({ ...p, password_confirmation: e.target.value }))} placeholder={t('admin.confirmNewPassword')} className="px-4 py-2 border border-slate-300 rounded-lg" />
             <div className="md:col-span-2 flex gap-2">
-              <button type="submit" disabled={updateMutation.isPending} className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50">{t('admin.update')}</button>
-              <button type="button" onClick={() => setEditingId(null)} className="px-4 py-2 border border-stone-300 rounded-lg">{t('admin.cancel')}</button>
+              <button type="submit" disabled={updateMutation.isPending} className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50">{t('admin.update')}</button>
+              <button type="button" onClick={() => setEditingId(null)} className="px-4 py-2 border border-slate-300 rounded-lg">{t('admin.cancel')}</button>
             </div>
           </form>
         </div>
       )}
 
       {convertingId && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.convertCustomerToEmployee')}</h2>
-          <p className="text-sm text-stone-600 mb-4 max-w-3xl">{t('admin.convertKeepsCustomerPassword')}</p>
+          <p className="text-sm text-slate-600 mb-4 max-w-3xl">{t('admin.convertKeepsCustomerPassword')}</p>
           <form onSubmit={submitConvert} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
             <select
               value={convertForm.role}
               onChange={(e) => setConvertForm((p) => ({ ...p, role: e.target.value }))}
-              className="px-4 py-2 border border-stone-300 rounded-lg"
+              className="px-4 py-2 border border-slate-300 rounded-lg"
             >
               {EMPLOYEE_ROLES.map((r) => (
                 <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
@@ -251,7 +251,7 @@ export function AdminCustomers() {
             <select
               value={convertForm.warehouse_id}
               onChange={(e) => setConvertForm((p) => ({ ...p, warehouse_id: e.target.value }))}
-              className="px-4 py-2 border border-stone-300 rounded-lg"
+              className="px-4 py-2 border border-slate-300 rounded-lg"
             >
               <option value="">{t('admin.selectWarehouse')}</option>
               {warehouses.map((w) => (
@@ -259,8 +259,8 @@ export function AdminCustomers() {
               ))}
             </select>
             <div className="md:col-span-2 flex gap-2">
-              <button type="submit" disabled={convertMutation.isPending} className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50">{t('admin.convert')}</button>
-              <button type="button" onClick={() => setConvertingId(null)} className="px-4 py-2 border border-stone-300 rounded-lg">{t('admin.cancel')}</button>
+              <button type="submit" disabled={convertMutation.isPending} className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50">{t('admin.convert')}</button>
+              <button type="button" onClick={() => setConvertingId(null)} className="px-4 py-2 border border-slate-300 rounded-lg">{t('admin.cancel')}</button>
             </div>
           </form>
         </div>
@@ -268,9 +268,9 @@ export function AdminCustomers() {
 
       {error && <p className="mb-4 text-red-600 text-sm">{error}</p>}
 
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-4 py-2 text-left">{t('admin.name')}</th>
               <th className="px-4 py-2 text-left">{t('admin.email')}</th>
@@ -281,13 +281,13 @@ export function AdminCustomers() {
           </thead>
           <tbody>
             {items.map((c) => (
-              <tr key={c._id} className="border-t border-stone-200">
+              <tr key={c._id} className="border-t border-slate-200">
                 <td className="px-4 py-2">{c.name}</td>
                 <td className="px-4 py-2">{c.email}</td>
                 <td className="px-4 py-2">{c.phone ?? '-'}</td>
                 <td className="px-4 py-2">{[c.city, c.country].filter(Boolean).join(', ') || '-'}</td>
                 <td className="px-4 py-2 text-right space-x-3">
-                  <button type="button" onClick={() => startEdit(c)} className="text-amber-700 hover:underline text-sm">{t('admin.edit')}</button>
+                  <button type="button" onClick={() => startEdit(c)} className="text-navy-700 hover:underline text-sm">{t('admin.edit')}</button>
                   <button type="button" onClick={() => startConvert(c._id)} className="text-blue-700 hover:underline text-sm">{t('admin.convert')}</button>
                   <button
                     type="button"
@@ -307,7 +307,7 @@ export function AdminCustomers() {
         </table>
       </div>
 
-      {items.length === 0 && <p className="text-center text-stone-500 py-8">{t('admin.noCustomers')}</p>}
+      {items.length === 0 && <p className="text-center text-slate-500 py-8">{t('admin.noCustomers')}</p>}
 
       {(() => {
         const paginated = customersData?.data

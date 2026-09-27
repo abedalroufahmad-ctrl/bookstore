@@ -235,7 +235,7 @@ export function CustomerAccount() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                  {t('account.password')} <span className="text-stone-400">({t('account.optional')})</span>
+                  {t('account.password')} <span className="text-slate-400">({t('account.optional')})</span>
                 </label>
                 <input
                   type="password"
@@ -244,7 +244,7 @@ export function CustomerAccount() {
                   className={inputClass}
                   style={inputStyle('password')}
                 />
-                <p className="mt-1 text-xs text-stone-500">{t('account.passwordHint')}</p>
+                <p className="mt-1 text-xs text-slate-500">{t('account.passwordHint')}</p>
                 {getError('password') && <p className="mt-1 text-sm text-red-600">{getError('password')}</p>}
               </div>
               <div>

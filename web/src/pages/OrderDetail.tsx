@@ -70,7 +70,7 @@ export function OrderDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">{t('orders.notFound')}</p>
-        <Link to="/orders" className="mt-4 inline-block text-amber-700 hover:underline">
+        <Link to="/orders" className="mt-4 inline-block text-navy-700 hover:underline">
           {t('orders.backToList')}
         </Link>
       </div>
@@ -87,31 +87,31 @@ export function OrderDetail() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <Link to="/orders" className="text-amber-700 hover:underline text-sm">
+        <Link to="/orders" className="text-navy-700 hover:underline text-sm">
           ← {t('orders.backToList')}
         </Link>
       </div>
       <h1 className="font-mono font-bold text-[var(--color-text)] mb-6 break-all text-xl sm:text-2xl">
         {t('orders.order')} #{order._id}
       </h1>
-      <div className="bg-white rounded-lg border border-stone-200 p-6 space-y-4">
+      <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
         <div>
-          <span className="text-sm font-medium text-stone-600">{t('admin.status')}:</span>{' '}
-          <span className="text-stone-800">
+          <span className="text-sm font-medium text-slate-600">{t('admin.status')}:</span>{' '}
+          <span className="text-slate-800">
             {t(`admin.orderStatus.${order.status}`, order.status)}
           </span>
         </div>
         {order.warehouse && (
           <>
             <div>
-              <span className="text-sm font-medium text-stone-600">{t('admin.publisher', 'Publisher')}:</span>{' '}
-              <span className="text-stone-800">
+              <span className="text-sm font-medium text-slate-600">{t('admin.publisher', 'Publisher')}:</span>{' '}
+              <span className="text-slate-800">
                 {order.warehouse.publisher?.name ?? '-'}
               </span>
             </div>
             <div>
-              <span className="text-sm font-medium text-stone-600">{t('admin.warehouse', 'Warehouse')}:</span>{' '}
-              <span className="text-stone-800">
+              <span className="text-sm font-medium text-slate-600">{t('admin.warehouse', 'Warehouse')}:</span>{' '}
+              <span className="text-slate-800">
                 {order.warehouse.name}
               </span>
             </div>
@@ -120,39 +120,39 @@ export function OrderDetail() {
         <div className="space-y-1">
           {(order.books_subtotal != null || order.shipping_fee != null) && (
             <>
-              <div className="text-sm text-stone-600 flex justify-between">
+              <div className="text-sm text-slate-600 flex justify-between">
                 <span>{t('orders.booksSubtotal', 'Books subtotal')}</span>
                 <span>${(order.books_subtotal ?? 0).toFixed(2)}</span>
               </div>
-              <div className="text-sm text-stone-600 flex justify-between">
+              <div className="text-sm text-slate-600 flex justify-between">
                 <span>{t('orders.shippingFee', 'Shipping fee')}</span>
                 <span>${(order.shipping_fee ?? 0).toFixed(2)}</span>
               </div>
             </>
           )}
           <div>
-            <span className="text-sm font-medium text-stone-600">{t('orders.total')}:</span>{' '}
-            <span className="text-stone-800">${order.total?.toFixed(2)}</span>
+            <span className="text-sm font-medium text-slate-600">{t('orders.total')}:</span>{' '}
+            <span className="text-slate-800">${order.total?.toFixed(2)}</span>
           </div>
         </div>
         {order.shipping_method ? (
           <div>
-            <span className="text-sm font-medium text-stone-600">
+            <span className="text-sm font-medium text-slate-600">
               {t('orders.shippingMethod', 'Shipping method')}:
             </span>{' '}
-            <span className="text-stone-800">{order.shipping_method}</span>
+            <span className="text-slate-800">{order.shipping_method}</span>
           </div>
         ) : null}
         <div>
-          <span className="text-sm font-medium text-stone-600">{t('checkout.paymentMethod')}:</span>{' '}
-          <span className="text-stone-800">{order.payment_method ?? '-'}</span>
+          <span className="text-sm font-medium text-slate-600">{t('checkout.paymentMethod')}:</span>{' '}
+          <span className="text-slate-800">{order.payment_method ?? '-'}</span>
         </div>
         <div>
-          <span className="text-sm font-medium text-stone-600">{t('orders.paymentStatus')}:</span>{' '}
-          <span className="text-stone-800">{order.payment_status ?? '-'}</span>
+          <span className="text-sm font-medium text-slate-600">{t('orders.paymentStatus')}:</span>{' '}
+          <span className="text-slate-800">{order.payment_status ?? '-'}</span>
         </div>
         {order.status === 'awaiting_customer_confirmation' && (
-          <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p className="text-sm text-navy-900 bg-navy-50 border border-navy-200 rounded-lg p-3">
             {t(
               'orders.awaitingConfirmationHint',
               'The warehouse finalized this quote. Confirm to send it back for fulfillment, or pay with PayPal if that is your selected method.'
@@ -161,8 +161,8 @@ export function OrderDetail() {
         )}
         {order.shipping_address && (
           <div>
-            <span className="text-sm font-medium text-stone-600">{t('checkout.shippingAddress')}:</span>
-            <p className="mt-1 text-stone-700">
+            <span className="text-sm font-medium text-slate-600">{t('checkout.shippingAddress')}:</span>
+            <p className="mt-1 text-slate-700">
               {[
                 order.shipping_address.address,
                 order.shipping_address.city,
@@ -175,20 +175,20 @@ export function OrderDetail() {
           </div>
         )}
         <div>
-          <span className="text-sm font-medium text-stone-600">{t('admin.items')}:</span>
-          <div className="mt-2 overflow-x-auto rounded-lg border border-stone-200">
+          <span className="text-sm font-medium text-slate-600">{t('admin.items')}:</span>
+          <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full table-fixed border-collapse text-sm">
               <thead>
-                <tr className="bg-stone-100 border-b border-stone-200">
+                <tr className="bg-slate-100 border-b border-slate-200">
                   <th
                     scope="col"
-                    className="min-w-0 w-[62%] px-3 py-2 font-medium text-stone-700 align-top text-start"
+                    className="min-w-0 w-[62%] px-3 py-2 font-medium text-slate-700 align-top text-start"
                   >
                     {t('orders.itemTitleCol')}
                   </th>
                   <th
                     scope="col"
-                    className="w-[38%] px-3 py-2 font-medium text-stone-700 align-top text-end whitespace-nowrap"
+                    className="w-[38%] px-3 py-2 font-medium text-slate-700 align-top text-end whitespace-nowrap"
                   >
                     {t('orders.itemPriceCol')}
                   </th>
@@ -203,7 +203,7 @@ export function OrderDetail() {
                   return (
                     <tr
                       key={i}
-                      className={`text-stone-800 align-top border-b border-stone-100 ${i % 2 === 1 ? 'bg-stone-50/80' : 'bg-white'}`}
+                      className={`text-slate-800 align-top border-b border-slate-100 ${i % 2 === 1 ? 'bg-slate-50/80' : 'bg-white'}`}
                     >
                       <td className="min-w-0 px-3 py-2 break-words whitespace-normal align-top font-medium">
                         {title}
@@ -222,7 +222,7 @@ export function OrderDetail() {
         </div>
 
         {(canConfirmCod || canPayPal) && (
-          <div className="pt-4 border-t border-stone-200 space-y-2">
+          <div className="pt-4 border-t border-slate-200 space-y-2">
             {canConfirmCod && (
               <button
                 type="button"

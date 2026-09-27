@@ -83,12 +83,12 @@ export function AdminPosReports() {
       <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex flex-wrap gap-2 mb-3">
-            <Link to="/admin/pos" className="px-4 py-2 rounded-lg text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
+            <Link to="/admin/pos" className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">
               {t('admin.posTerminal')}
             </Link>
-            <span className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-900 text-white">{t('admin.posReports')}</span>
+            <span className="px-4 py-2 rounded-lg text-sm font-medium bg-navy-900 text-white">{t('admin.posReports')}</span>
           </div>
-          <h1 className="text-2xl font-bold text-amber-900">{t('admin.posReports')}</h1>
+          <h1 className="text-2xl font-bold text-navy-900">{t('admin.posReports')}</h1>
         </div>
 
         <select
@@ -97,7 +97,7 @@ export function AdminPosReports() {
             setWarehouseFilter(e.target.value)
             setPage(1)
           }}
-          className="px-4 py-2 border border-stone-300 rounded-lg max-w-xs"
+          className="px-4 py-2 border border-slate-300 rounded-lg max-w-xs"
         >
           <option value="">{t('admin.allWarehouses')}</option>
           {warehouses.map((w: any) => (
@@ -108,23 +108,23 @@ export function AdminPosReports() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {summaryCards.map((card) => (
-          <div key={card.key} className="bg-white p-4 rounded-lg border border-stone-200 text-center">
-            <div className="text-sm text-stone-500 mb-1">{card.label}</div>
-            <div className="text-xl font-bold text-amber-900">${Number(card.data?.total ?? 0).toFixed(2)}</div>
-            <div className="text-xs text-stone-400 mt-1">
+          <div key={card.key} className="bg-white p-4 rounded-lg border border-slate-200 text-center">
+            <div className="text-sm text-slate-500 mb-1">{card.label}</div>
+            <div className="text-xl font-bold text-navy-900">${Number(card.data?.total ?? 0).toFixed(2)}</div>
+            <div className="text-xs text-slate-400 mt-1">
               {t('admin.invoicesCount', { count: card.data?.count ?? 0 })}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-lg border border-stone-200 p-6 print:hidden">
-        <div className="flex gap-2 mb-6 border-b border-stone-200 pb-4">
+      <div className="bg-white rounded-lg border border-slate-200 p-6 print:hidden">
+        <div className="flex gap-2 mb-6 border-b border-slate-200 pb-4">
           {['daily', 'monthly', 'yearly'].map((type) => (
             <button
               key={type}
               onClick={() => setReportType(type)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${reportType === type ? 'bg-amber-900 text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${reportType === type ? 'bg-navy-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
             >
               {t(`admin.report${type.charAt(0).toUpperCase() + type.slice(1)}`)}
             </button>
@@ -134,33 +134,33 @@ export function AdminPosReports() {
         {reportsLoading ? (
           <div className="text-center py-8">{t('common.loading')}</div>
         ) : periods.length === 0 ? (
-          <div className="text-center py-8 text-stone-500">{t('admin.noReports')}</div>
+          <div className="text-center py-8 text-slate-500">{t('admin.noReports')}</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {periods.map((r) => (
-              <div key={r.period} className="bg-stone-50 p-4 rounded-lg border border-stone-200 text-center">
-                <div className="text-sm text-stone-500 font-mono mb-1">{r.period}</div>
-                <div className="text-xl font-bold text-amber-900">${Number(r.total).toFixed(2)}</div>
-                <div className="text-xs text-stone-400">{t('admin.invoicesCount', { count: r.count ?? 0 })}</div>
+              <div key={r.period} className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                <div className="text-sm text-slate-500 font-mono mb-1">{r.period}</div>
+                <div className="text-xl font-bold text-navy-900">${Number(r.total).toFixed(2)}</div>
+                <div className="text-xs text-slate-400">{t('admin.invoicesCount', { count: r.count ?? 0 })}</div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden print:hidden">
-        <div className="p-4 border-b border-stone-200 bg-stone-50">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden print:hidden">
+        <div className="p-4 border-b border-slate-200 bg-slate-50">
           <h2 className="font-bold text-lg">{t('admin.recentInvoices')}</h2>
         </div>
 
         {invoicesLoading ? (
           <div className="text-center py-8">{t('common.loading')}</div>
         ) : invoicesList.length === 0 ? (
-          <div className="text-center py-8 text-stone-500">{t('admin.noInvoices')}</div>
+          <div className="text-center py-8 text-slate-500">{t('admin.noInvoices')}</div>
         ) : (
           <>
             <table className="w-full text-sm">
-              <thead className="bg-stone-50 text-stone-700">
+              <thead className="bg-slate-50 text-slate-700">
                 <tr>
                   <th className="px-4 py-2 text-start">{t('admin.invoiceId')}</th>
                   <th className="px-4 py-2 text-start">{t('admin.date')}</th>
@@ -170,18 +170,18 @@ export function AdminPosReports() {
                   <th className="px-4 py-2 text-end print:hidden">{t('admin.openInvoice')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-200">
+              <tbody className="divide-y divide-slate-200">
                 {invoicesList.map((inv: any, i: number) => {
                   const invoiceId = String(inv._id ?? inv.id ?? '')
                   return (
                   <tr
                     key={invoiceId || `inv-${i}`}
-                    className="hover:bg-amber-50/70 cursor-pointer"
+                    className="hover:bg-navy-50/70 cursor-pointer"
                     onClick={() => {
                       if (invoiceId) navigate(`/admin/pos/invoices/${invoiceId}`)
                     }}
                   >
-                    <td className="px-4 py-2 font-mono text-xs text-stone-500">{invoiceId}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-slate-500">{invoiceId}</td>
                     <td className="px-4 py-2">{inv.created_at ? formatDateTime(inv.created_at) : '-'}</td>
                     <td className="px-4 py-2">{inv.customer_name || t('admin.walkInCustomer')}</td>
                     <td className="px-4 py-2">{warehouses.find((w: any) => String(w._id) === String(inv.warehouse_id))?.name || inv.warehouse_id}</td>
@@ -189,7 +189,7 @@ export function AdminPosReports() {
                     <td className="px-4 py-2 text-end print:hidden">
                       <Link
                         to={`/admin/pos/invoices/${invoiceId}`}
-                        className="inline-block px-3 py-1 rounded bg-amber-900 text-white text-xs font-medium hover:bg-amber-800"
+                        className="inline-block px-3 py-1 rounded bg-navy-900 text-white text-xs font-medium hover:bg-navy-800"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {t('admin.openInvoice')}
@@ -202,7 +202,7 @@ export function AdminPosReports() {
             </table>
 
             {invoicesMeta && (
-              <div className="p-4 border-t border-stone-200 flex justify-center">
+              <div className="p-4 border-t border-slate-200 flex justify-center">
                 <Pagination
                   currentPage={Number(invoicesMeta.current_page) || 1}
                   lastPage={Number(invoicesMeta.last_page) || 1}

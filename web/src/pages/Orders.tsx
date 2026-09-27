@@ -36,29 +36,29 @@ export function Orders() {
           <Link
             key={order._id}
             to={`/orders/${order._id}`}
-            className="block bg-white p-4 rounded-lg border border-stone-200 hover:border-amber-300 transition-colors"
+            className="block bg-white p-4 rounded-lg border border-slate-200 hover:border-navy-300 transition-colors"
           >
             <div className="flex justify-between items-center">
               <div>
                 <p className="font-medium font-mono text-sm break-all">
                   Order #{order._id}
                 </p>
-                <p className="text-sm text-stone-500">
+                <p className="text-sm text-slate-500">
                   ${order.total?.toFixed(2)} · {t(`admin.orderStatus.${order.status}`, order.status)}
                   {order.payment_status && (
-                    <span className="ml-2 text-stone-600">
+                    <span className="ml-2 text-slate-600">
                       · Payment: {order.payment_status}
                     </span>
                   )}
                 </p>
               </div>
-              <span className="text-stone-400">→</span>
+              <span className="text-slate-400">→</span>
             </div>
           </Link>
         ))}
       </div>
       {items.length === 0 && (
-        <p className="text-center text-stone-500 py-12">{t('orders.noOrders')}</p>
+        <p className="text-center text-slate-500 py-12">{t('orders.noOrders')}</p>
       )}
       {meta && (
         <Pagination

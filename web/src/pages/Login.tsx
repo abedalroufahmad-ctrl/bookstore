@@ -38,43 +38,43 @@ export function Login() {
       <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">{t('auth.loginTitle')}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.loginAs')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.loginAs')}</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as 'customer' | 'employee')}
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
           >
             <option value="customer">{t('auth.customer')}</option>
             <option value="employee">{t('auth.employee')}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.email')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">{t('auth.password')}</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)]"
           />
         </div>
         {type === 'customer' && (
-          <label className="flex items-center gap-2 text-sm text-stone-700">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-stone-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+              className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
             />
             {t('auth.rememberMe')}
           </label>
@@ -94,7 +94,7 @@ export function Login() {
         </button>
       </form>
       {type === 'customer' && (
-        <p className="mt-4 text-center text-sm text-stone-600">
+        <p className="mt-4 text-center text-sm text-slate-600">
           {t('auth.noAccount')} <Link to="/register" className="text-[var(--color-primary)] font-medium">{t('auth.registerLink')}</Link>
         </p>
       )}

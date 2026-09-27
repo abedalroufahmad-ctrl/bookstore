@@ -1,44 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Flamingo palette (matches web shop tokens).
-class FlamingoColors {
-  static const primary = Color(0xFF1A1A1A);
-  static const primaryHover = Color(0xFF2D2D2D);
-  static const primaryLight = Color(0xFFF5F0EE);
-  static const accent = Color(0xFFE8A09A);
-  static const accentHover = Color(0xFFD98982);
-  static const accentSoft = Color(0xFFFDE8E4);
-  static const accentSky = Color(0xFF7BCBD8);
-  static const accentGold = Color(0xFFF5A623);
-  static const earth = Color(0xFF70503B);
-  static const sage = Color(0xFFBFC4B2);
-  static const text = Color(0xFF1A1A1A);
-  static const textMuted = Color(0xFF757575);
-  static const border = Color(0xFFE5E5E5);
-  static const bg = Color(0xFFFFF8F6);
+/// Navy palette (matches the web `--color-navy-*` tokens in `web/src/index.css`).
+class AppColors {
+  static const navy50 = Color(0xFFF2F5FB);
+  static const navy100 = Color(0xFFE3E9F5);
+  static const navy200 = Color(0xFFC5D1EA);
+  static const navy300 = Color(0xFF9BB0D8);
+  static const navy400 = Color(0xFF6B87C0);
+  static const navy500 = Color(0xFF4865A6);
+  static const navy600 = Color(0xFF344E8A);
+  static const navy700 = Color(0xFF283D70);
+  static const navy800 = Color(0xFF1F2F58);
+  static const navy900 = Color(0xFF172344);
+  static const navy950 = Color(0xFF0E162D);
+
+  static const primary = navy900;
+  static const primaryHover = navy800;
+  static const primaryLight = navy100;
+  static const accent = navy500;
+  static const accentHover = navy600;
+  static const accentSoft = navy100;
+  static const text = navy950;
+  static const textMuted = Color(0xFF5B6B8C);
+  static const border = Color(0xFFDBE2EF);
+  static const bg = Color(0xFFF5F7FB);
   static const bgCard = Color(0xFFFFFFFF);
-  static const success = Color(0xFF6B8F71);
-  static const discount = Color(0xFFC45C4A);
+  static const success = Color(0xFF15803D);
+  static const discount = Color(0xFFDC2626);
+  static const sold = Color(0xFF7F1D1D);
 
   /// Dark-mode companions.
-  static const darkBg = Color(0xFF1C1918);
-  static const darkBgCard = Color(0xFF2A2524);
-  static const darkText = Color(0xFFF5F0EE);
-  static const darkTextMuted = Color(0xFFB0A8A4);
-  static const darkBorder = Color(0xFF3D3634);
-  static const darkAccent = Color(0xFFE8A09A);
+  static const darkBg = Color(0xFF0B1224);
+  static const darkBgCard = Color(0xFF141E38);
+  static const darkSurfaceHigh = Color(0xFF1C2A4D);
+  static const darkText = navy100;
+  static const darkTextMuted = navy300;
+  static const darkBorder = Color(0xFF26365E);
+  static const darkAccent = navy300;
 }
 
-ThemeData buildFlamingoLightTheme() {
-  const bg = FlamingoColors.bg;
-  const card = FlamingoColors.bgCard;
-  const primary = FlamingoColors.primary;
-  const secondary = FlamingoColors.accent;
-  const onSurface = FlamingoColors.text;
-  const muted = FlamingoColors.textMuted;
-  const outline = FlamingoColors.border;
-  const error = FlamingoColors.discount;
+ThemeData buildLightTheme() {
+  const bg = AppColors.bg;
+  const card = AppColors.bgCard;
+  const primary = AppColors.primary;
+  const secondary = AppColors.accent;
+  const onSurface = AppColors.text;
+  const muted = AppColors.textMuted;
+  const outline = AppColors.border;
+  const error = AppColors.discount;
 
   final baseText = GoogleFonts.cairoTextTheme();
 
@@ -48,13 +58,18 @@ ThemeData buildFlamingoLightTheme() {
     colorScheme: const ColorScheme.light(
       primary: primary,
       onPrimary: Colors.white,
+      primaryContainer: AppColors.navy100,
+      onPrimaryContainer: AppColors.navy900,
       secondary: secondary,
-      onSecondary: primary,
-      tertiary: FlamingoColors.accentSky,
-      onTertiary: primary,
+      onSecondary: Colors.white,
+      secondaryContainer: AppColors.navy200,
+      onSecondaryContainer: AppColors.navy900,
+      tertiary: AppColors.navy400,
+      onTertiary: Colors.white,
       surface: card,
       onSurface: onSurface,
-      surfaceContainerHighest: FlamingoColors.accentSoft,
+      onSurfaceVariant: muted,
+      surfaceContainerHighest: AppColors.accentSoft,
       outline: outline,
       error: error,
       onError: Colors.white,
@@ -65,7 +80,7 @@ ThemeData buildFlamingoLightTheme() {
     cardTheme: CardThemeData(
       color: card,
       elevation: 0,
-      shadowColor: Colors.black.withValues(alpha: 0.08),
+      shadowColor: AppColors.navy950.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
         side: const BorderSide(color: outline),
@@ -142,6 +157,9 @@ ThemeData buildFlamingoLightTheme() {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       ),
     ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: AppColors.navy600),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
@@ -157,12 +175,13 @@ ThemeData buildFlamingoLightTheme() {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: FlamingoColors.accentSoft,
-      selectedColor: FlamingoColors.accent,
+      backgroundColor: AppColors.accentSoft,
+      selectedColor: AppColors.navy200,
       labelStyle: GoogleFonts.cairo(color: onSurface, fontSize: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       side: BorderSide.none,
     ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: secondary),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: card,
       selectedItemColor: primary,
@@ -179,15 +198,15 @@ ThemeData buildFlamingoLightTheme() {
   );
 }
 
-ThemeData buildFlamingoDarkTheme() {
-  const bg = FlamingoColors.darkBg;
-  const card = FlamingoColors.darkBgCard;
-  const primary = FlamingoColors.darkAccent;
-  const secondary = FlamingoColors.accentSky;
-  const onSurface = FlamingoColors.darkText;
-  const muted = FlamingoColors.darkTextMuted;
-  const outline = FlamingoColors.darkBorder;
-  const error = FlamingoColors.discount;
+ThemeData buildDarkTheme() {
+  const bg = AppColors.darkBg;
+  const card = AppColors.darkBgCard;
+  const primary = AppColors.darkAccent;
+  const secondary = AppColors.navy400;
+  const onSurface = AppColors.darkText;
+  const muted = AppColors.darkTextMuted;
+  const outline = AppColors.darkBorder;
+  const error = Color(0xFFF87171);
 
   final baseText = GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme);
 
@@ -196,17 +215,22 @@ ThemeData buildFlamingoDarkTheme() {
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
       primary: primary,
-      onPrimary: FlamingoColors.primary,
+      onPrimary: AppColors.navy950,
+      primaryContainer: AppColors.navy700,
+      onPrimaryContainer: AppColors.navy100,
       secondary: secondary,
-      onSecondary: FlamingoColors.primary,
-      tertiary: FlamingoColors.accentGold,
-      onTertiary: FlamingoColors.primary,
+      onSecondary: AppColors.navy950,
+      secondaryContainer: AppColors.navy800,
+      onSecondaryContainer: AppColors.navy100,
+      tertiary: AppColors.navy200,
+      onTertiary: AppColors.navy950,
       surface: card,
       onSurface: onSurface,
-      surfaceContainerHighest: Color(0xFF35302E),
+      onSurfaceVariant: muted,
+      surfaceContainerHighest: AppColors.darkSurfaceHigh,
       outline: outline,
       error: error,
-      onError: Colors.white,
+      onError: AppColors.navy950,
     ),
     scaffoldBackgroundColor: bg,
     cardColor: card,
@@ -267,7 +291,7 @@ ThemeData buildFlamingoDarkTheme() {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: primary,
-        foregroundColor: FlamingoColors.primary,
+        foregroundColor: AppColors.navy950,
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         elevation: 0,
@@ -277,7 +301,7 @@ ThemeData buildFlamingoDarkTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: primary,
-        foregroundColor: FlamingoColors.primary,
+        foregroundColor: AppColors.navy950,
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       ),
@@ -289,6 +313,9 @@ ThemeData buildFlamingoDarkTheme() {
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: primary),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -304,6 +331,14 @@ ThemeData buildFlamingoDarkTheme() {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
+    chipTheme: ChipThemeData(
+      backgroundColor: AppColors.darkSurfaceHigh,
+      selectedColor: AppColors.navy700,
+      labelStyle: GoogleFonts.cairo(color: onSurface, fontSize: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide.none,
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: primary),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: card,
       selectedItemColor: primary,
@@ -313,13 +348,9 @@ ThemeData buildFlamingoDarkTheme() {
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: primary,
-      foregroundColor: FlamingoColors.primary,
+      foregroundColor: AppColors.navy950,
       elevation: 2,
       shape: StadiumBorder(),
     ),
   );
 }
-
-/// Back-compat aliases used by older call sites.
-ThemeData buildTokyoNightLightTheme() => buildFlamingoLightTheme();
-ThemeData buildTokyoNightDarkTheme() => buildFlamingoDarkTheme();

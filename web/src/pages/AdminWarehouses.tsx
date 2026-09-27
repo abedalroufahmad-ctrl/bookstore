@@ -182,11 +182,11 @@ export function AdminWarehouses() {
 
   const publisherSelect = (value: string, onChange: (publisherId: string) => void) => (
     <div>
-      <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisher')}</label>
+      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.publisher')}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+        className="w-full px-4 py-2 border border-slate-300 rounded-lg"
       >
         <option value="">{t('admin.selectPublisher')}</option>
         {publishers.map((p) => (
@@ -201,7 +201,7 @@ export function AdminWarehouses() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.warehouses')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.warehouses')}</h1>
         {canManageWarehouses && (
           <button
             type="button"
@@ -211,7 +211,7 @@ export function AdminWarehouses() {
                 : emptyForm)
               setShowForm(true)
             }}
-            className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
+            className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 shrink-0 self-start"
           >
             {t('admin.addWarehouse')}
           </button>
@@ -232,82 +232,82 @@ export function AdminWarehouses() {
         className="mb-6"
       />
       {editingId && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.editWarehouse')}</h2>
           <div className="grid gap-4 max-w-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.name')}</label>
                 <input
                   type="text"
                   value={editingForm.name}
                   onChange={(e) => setEditingForm((p) => ({ ...p, name: e.target.value }))}
                   placeholder={t('admin.warehouseName')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.email')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.email')}</label>
                 <input
                   type="email"
                   value={editingForm.email}
                   onChange={(e) => setEditingForm((p) => ({ ...p, email: e.target.value }))}
                   placeholder="email@example.com"
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.address')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.address')}</label>
               <input
                 type="text"
                 value={editingForm.address}
                 onChange={(e) => setEditingForm((p) => ({ ...p, address: e.target.value }))}
                 placeholder={t('admin.address')}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.city')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.city')}</label>
                 <input
                   type="text"
                   value={editingForm.city}
                   onChange={(e) => setEditingForm((p) => ({ ...p, city: e.target.value }))}
                   placeholder={t('admin.city')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.country')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.country')}</label>
                 <input
                   type="text"
                   value={editingForm.country}
                   onChange={(e) => setEditingForm((p) => ({ ...p, country: e.target.value }))}
                   placeholder={t('admin.country')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.phone')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.phone')} ({t('admin.optional')})</label>
               <input
                 type="text"
                 value={editingForm.phone ?? ''}
                 onChange={(e) => setEditingForm((p) => ({ ...p, phone: e.target.value }))}
                 placeholder={t('admin.phone')}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             {!isPublisherManager && publisherSelect(editingForm.publisher_id, (publisher_id) =>
               setEditingForm((p) => ({ ...p, publisher_id }))
             )}
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.manager')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.manager')} ({t('admin.optional')})</label>
               <select
                 value={editingForm.manager_id ?? ''}
                 onChange={(e) => setEditingForm((p) => ({ ...p, manager_id: e.target.value || null }))}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               >
                 {managerOptions.map((opt) => (
                   <option key={opt.value || 'none'} value={opt.value}>
@@ -317,8 +317,8 @@ export function AdminWarehouses() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.employees')} ({t('admin.optional')})</label>
-              <p className="text-stone-500 text-sm mb-1">{t('admin.selectEmployeesForWarehouse')}</p>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.employees')} ({t('admin.optional')})</label>
+              <p className="text-slate-500 text-sm mb-1">{t('admin.selectEmployeesForWarehouse')}</p>
               <select
                 multiple
                 value={editingForm.employee_ids ?? []}
@@ -326,7 +326,7 @@ export function AdminWarehouses() {
                   const selected = Array.from(e.target.selectedOptions, (o) => o.value)
                   setEditingForm((p) => ({ ...p, employee_ids: selected }))
                 }}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg min-h-[120px]"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg min-h-[120px]"
               >
                 {employees.map((e) => (
                   <option key={e._id} value={e._id}>
@@ -341,11 +341,11 @@ export function AdminWarehouses() {
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={updateMutation.isPending || !isValidForm(editingForm)}
-                className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
               >
                 {updateMutation.isPending ? t('common.saving') : t('admin.update')}
               </button>
-              <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-stone-300 rounded-lg">
+              <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-slate-300 rounded-lg">
                 {t('admin.cancel')}
               </button>
             </div>
@@ -353,82 +353,82 @@ export function AdminWarehouses() {
         </div>
       )}
       {showForm && canManageWarehouses && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.newWarehouse')}</h2>
           <div className="grid gap-4 max-w-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.name')}</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   placeholder={t('admin.warehouseName')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.email')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.email')}</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   placeholder="email@example.com"
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.address')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.address')}</label>
               <input
                 type="text"
                 value={form.address}
                 onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
                 placeholder={t('admin.address')}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.city')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.city')}</label>
                 <input
                   type="text"
                   value={form.city}
                   onChange={(e) => setForm((p) => ({ ...p, city: e.target.value }))}
                   placeholder={t('admin.city')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.country')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.country')}</label>
                 <input
                   type="text"
                   value={form.country}
                   onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))}
                   placeholder={t('admin.country')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.phone')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.phone')} ({t('admin.optional')})</label>
               <input
                 type="text"
                 value={form.phone ?? ''}
                 onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                 placeholder={t('admin.phone')}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             {!isPublisherManager && publisherSelect(form.publisher_id, (publisher_id) =>
               setForm((p) => ({ ...p, publisher_id }))
             )}
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.manager')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.manager')} ({t('admin.optional')})</label>
               <select
                 value={form.manager_id ?? ''}
                 onChange={(e) => setForm((p) => ({ ...p, manager_id: e.target.value || null }))}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               >
                 {managerOptions.map((opt) => (
                   <option key={opt.value || 'none'} value={opt.value}>
@@ -438,8 +438,8 @@ export function AdminWarehouses() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.employees')} ({t('admin.optional')})</label>
-              <p className="text-stone-500 text-sm mb-1">{t('admin.selectEmployeesForWarehouse')}</p>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.employees')} ({t('admin.optional')})</label>
+              <p className="text-slate-500 text-sm mb-1">{t('admin.selectEmployeesForWarehouse')}</p>
               <select
                 multiple
                 value={form.employee_ids ?? []}
@@ -447,7 +447,7 @@ export function AdminWarehouses() {
                   const selected = Array.from(e.target.selectedOptions, (o) => o.value)
                   setForm((p) => ({ ...p, employee_ids: selected }))
                 }}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg min-h-[120px]"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg min-h-[120px]"
               >
                 {employees.map((e) => (
                   <option key={e._id} value={e._id}>
@@ -462,7 +462,7 @@ export function AdminWarehouses() {
                 type="button"
                 onClick={handleCreate}
                 disabled={createMutation.isPending || !isValidForm(form)}
-                className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
               >
                 {createMutation.isPending ? t('common.saving') : t('admin.create')}
               </button>
@@ -473,7 +473,7 @@ export function AdminWarehouses() {
                   setForm(emptyForm)
                   setError('')
                 }}
-                className="px-4 py-2 border border-stone-300 rounded-lg"
+                className="px-4 py-2 border border-slate-300 rounded-lg"
               >
                 {t('admin.cancel')}
               </button>
@@ -481,9 +481,9 @@ export function AdminWarehouses() {
           </div>
         </div>
       )}
-      <div className="bg-white rounded-lg border border-stone-200 overflow-x-auto">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
         <table className="w-full min-w-[600px]">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-4 py-2 text-left">{t('admin.publisher')}</th>
               <th className="px-4 py-2 text-left">{t('admin.name')}</th>
@@ -497,7 +497,7 @@ export function AdminWarehouses() {
           </thead>
           <tbody>
             {items.map((w) => (
-              <tr key={w._id} className="border-t border-stone-200">
+              <tr key={w._id} className="border-t border-slate-200">
                 <td className="px-4 py-2">{w.publisher?.name ?? publishers.find((p) => p._id === w.publisher_id)?.name ?? '—'}</td>
                 <td className="px-4 py-2">{w.name}</td>
                 <td className="px-4 py-2">{w.address ?? '-'}</td>
@@ -509,7 +509,7 @@ export function AdminWarehouses() {
                   <button
                     type="button"
                     onClick={() => handleStartEdit(w)}
-                    className="text-amber-700 hover:underline text-sm mr-3"
+                    className="text-navy-700 hover:underline text-sm mr-3"
                   >
                     {t('admin.edit')}
                   </button>
@@ -532,7 +532,7 @@ export function AdminWarehouses() {
         </table>
       </div>
       {items.length === 0 && !showForm && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noWarehousesList')}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noWarehousesList')}</p>
       )}
       {meta && (
         <Pagination

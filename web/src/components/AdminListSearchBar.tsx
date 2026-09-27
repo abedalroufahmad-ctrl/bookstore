@@ -54,15 +54,15 @@ export function AdminListSearchBar({
           placeholder={placeholder}
           autoComplete="off"
           aria-label={ariaLabel ?? placeholder}
-          className="w-full pl-4 pr-24 py-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none"
+          className="w-full pl-4 pr-24 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-200 focus:border-navy-400 outline-none"
         />
         {showIndicator && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-amber-800 pointer-events-none">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-navy-800 pointer-events-none">
             {t('admin.searching')}
           </span>
         )}
       </div>
-      {hint ? <p className="text-sm text-stone-500 mt-2">{hint}</p> : null}
+      {hint ? <p className="text-sm text-slate-500 mt-2">{hint}</p> : null}
     </div>
   )
 }

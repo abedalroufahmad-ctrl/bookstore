@@ -71,7 +71,7 @@ export function AdminPosInvoice() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">{t('admin.invoiceNotFound')}</p>
-        <Link to="/admin/pos/reports" className="mt-4 inline-block text-amber-800 hover:underline">
+        <Link to="/admin/pos/reports" className="mt-4 inline-block text-navy-800 hover:underline">
           {t('admin.backToInvoices')}
         </Link>
       </div>
@@ -91,13 +91,13 @@ export function AdminPosInvoice() {
   const totalWeightLabel = totalWeightG > 0 ? formatWeight(totalWeightG, settings.weight_unit) : null
 
   return (
-    <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
+    <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-slate-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold mb-2">{t('admin.invoiceId')}</h1>
-        <p className="text-stone-600 font-mono text-sm">#{data._id}</p>
+        <p className="text-slate-600 font-mono text-sm">#{data._id}</p>
       </div>
 
-      <div className="mb-6 space-y-2 text-sm border-b border-stone-200 pb-6">
+      <div className="mb-6 space-y-2 text-sm border-b border-slate-200 pb-6">
         <p><strong>{t('admin.date')}:</strong> {formatDateTime(data.created_at)}</p>
         <p><strong>{t('admin.warehouse')}:</strong> {warehouseName || '-'}</p>
         {publisherName && (
@@ -111,7 +111,7 @@ export function AdminPosInvoice() {
 
       <table className="w-full text-sm mb-6">
         <thead>
-          <tr className="border-b border-stone-200">
+          <tr className="border-b border-slate-200">
             <th className="text-start py-2">{t('orders.itemTitleCol')}</th>
             <th className="text-end py-2">{t('orders.itemWeightCol')}</th>
             <th className="text-end py-2">{t('orders.itemPriceCol')}</th>
@@ -121,11 +121,11 @@ export function AdminPosInvoice() {
           {items.map((item, i) => {
             const lineW = lineWeightG(item)
             return (
-              <tr key={i} className="border-b border-stone-100">
+              <tr key={i} className="border-b border-slate-100">
                 <td className="py-2">
-                  {item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span>
+                  {item.book_title || item.book_id} <span className="text-slate-500">x{item.quantity}</span>
                 </td>
-                <td className="py-2 text-end text-stone-600">
+                <td className="py-2 text-end text-slate-600">
                   {lineW > 0 ? formatWeight(lineW, settings.weight_unit) : '—'}
                 </td>
                 <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
@@ -134,13 +134,13 @@ export function AdminPosInvoice() {
           })}
         </tbody>
         <tfoot>
-          <tr className="text-stone-600">
+          <tr className="text-slate-600">
             <td className="text-start py-2" colSpan={2}>{t('orders.booksSubtotal', 'Books subtotal')}</td>
             <td className="text-end py-2">
               ${(Number(data.books_subtotal ?? items.reduce((s, i) => s + Number(i.price) * Number(i.quantity ?? 0), 0))).toFixed(2)}
             </td>
           </tr>
-          <tr className="text-stone-600">
+          <tr className="text-slate-600">
             <td className="text-start py-2" colSpan={2}>{t('orders.shippingFee', 'Shipping fee')}</td>
             <td className="text-end py-2">${Number(data.shipping_fee ?? 0).toFixed(2)}</td>
           </tr>
@@ -149,7 +149,7 @@ export function AdminPosInvoice() {
             <th className="text-end py-4 text-lg">${Number(data.total ?? 0).toFixed(2)}</th>
           </tr>
           {totalWeightLabel && (
-            <tr className="text-stone-600">
+            <tr className="text-slate-600">
               <td className="text-start py-2" colSpan={2}>{t('orders.totalWeight')}</td>
               <td className="text-end py-2 font-medium">{totalWeightLabel}</td>
             </tr>
@@ -158,10 +158,10 @@ export function AdminPosInvoice() {
       </table>
 
       <div className="flex gap-4 print:hidden">
-        <button onClick={() => window.print()} className="flex-1 bg-stone-800 text-white py-2 rounded">
+        <button onClick={() => window.print()} className="flex-1 bg-slate-800 text-white py-2 rounded">
           {t('admin.print')}
         </button>
-        <Link to="/admin/pos/reports" className="flex-1 border border-stone-300 py-2 rounded text-center">
+        <Link to="/admin/pos/reports" className="flex-1 border border-slate-300 py-2 rounded text-center">
           {t('admin.backToInvoices')}
         </Link>
       </div>

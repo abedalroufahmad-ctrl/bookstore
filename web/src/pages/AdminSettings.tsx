@@ -136,7 +136,7 @@ export function AdminSettings() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-amber-900 mb-6">{t('admin.settings.title') || 'Admin Settings'}</h1>
+      <h1 className="text-2xl font-bold text-navy-900 mb-6">{t('admin.settings.title') || 'Admin Settings'}</h1>
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -149,9 +149,9 @@ export function AdminSettings() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             {t('admin.settings.globalDiscount') || 'Global Discount (%)'}
           </label>
           <div className="flex items-center gap-4">
@@ -161,17 +161,17 @@ export function AdminSettings() {
               max="100"
               value={globalDiscount}
               onChange={(e) => setGlobalDiscount(parseFloat(e.target.value) || 0)}
-              className="w-32 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-32 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
-            <span className="text-stone-500">%</span>
+            <span className="text-slate-500">%</span>
           </div>
-          <p className="mt-2 text-xs text-stone-500">
+          <p className="mt-2 text-xs text-slate-500">
             {t('admin.settings.globalDiscountHint') || 'This discount applies to all books that do not have a special discount set.'}
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             {t('admin.settings.invoiceShippingFee') || 'Invoice shipping fee ($)'}
           </label>
           <div className="flex items-center gap-4">
@@ -181,17 +181,17 @@ export function AdminSettings() {
               step="0.01"
               value={invoiceShippingFee}
               onChange={(e) => setInvoiceShippingFee(Math.max(0, parseFloat(e.target.value) || 0))}
-              className="w-32 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-32 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
-            <span className="text-stone-500">USD</span>
+            <span className="text-slate-500">USD</span>
           </div>
-          <p className="mt-2 text-xs text-stone-500">
+          <p className="mt-2 text-xs text-slate-500">
             {t('admin.settings.invoiceShippingFeeHint') || 'Added to every POS invoice and new online order total.'}
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             {t('admin.settings.catalogItemsPerPage') || 'Catalog items per page'}
           </label>
           <div className="flex items-center gap-4">
@@ -201,38 +201,38 @@ export function AdminSettings() {
               max={100}
               value={catalogItemsPerPage}
               onChange={(e) => setCatalogItemsPerPage(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 25)))}
-              className="w-32 px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+              className="w-32 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </div>
-          <p className="mt-2 text-xs text-stone-500">
+          <p className="mt-2 text-xs text-slate-500">
             {t('admin.settings.catalogItemsPerPageHint') || 'Number of books, categories, or authors per page on the public books list, category list, author list, and home page.'}
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             {t('admin.settings.weightUnit') || 'Weight unit'}
           </label>
           <select
             value={weightUnit}
             onChange={(e) => setWeightUnit(e.target.value as WeightUnit)}
-            className="px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             <option value="kg">{t('admin.settings.weightKg') || 'Kilograms (kg)'}</option>
             <option value="g">{t('admin.settings.weightG') || 'Grams (g)'}</option>
             <option value="lb">{t('admin.settings.weightLb') || 'Pounds (lb)'}</option>
             <option value="oz">{t('admin.settings.weightOz') || 'Ounces (oz)'}</option>
           </select>
-          <p className="mt-2 text-xs text-stone-500">
+          <p className="mt-2 text-xs text-slate-500">
             {t('admin.settings.weightUnitHint') || 'Book weights are stored in kg and displayed in this unit across the site.'}
           </p>
         </div>
 
-        <div className="border border-stone-200 rounded-lg p-4 bg-stone-50/50">
-          <h2 className="text-lg font-semibold text-amber-900 mb-1">
+        <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+          <h2 className="text-lg font-semibold text-navy-900 mb-1">
             {t('admin.settings.managePaymentMethods') || 'Manage payment methods'}
           </h2>
-          <p className="text-sm text-stone-500 mb-4">
+          <p className="text-sm text-slate-500 mb-4">
             {t('admin.settings.paymentMethodsHint') || 'Add, edit or remove payment options. Customers see only enabled methods at checkout.'}
           </p>
 
@@ -240,7 +240,7 @@ export function AdminSettings() {
             {paymentMethods.map((method, index) => (
               <li
                 key={method.id}
-                className="flex items-center gap-3 p-3 rounded-lg bg-white border border-stone-200"
+                className="flex items-center gap-3 p-3 rounded-lg bg-white border border-slate-200"
               >
                 {editingIndex === index ? (
                   <>
@@ -248,7 +248,7 @@ export function AdminSettings() {
                       type="text"
                       value={method.name}
                       onChange={(e) => updateMethod(index, { name: e.target.value })}
-                      className="flex-1 px-3 py-1.5 border border-stone-300 rounded text-sm"
+                      className="flex-1 px-3 py-1.5 border border-slate-300 rounded text-sm"
                       placeholder={t('admin.settings.name') || 'Display name'}
                     />
                     <label className="flex items-center gap-1.5 text-sm whitespace-nowrap">
@@ -256,14 +256,14 @@ export function AdminSettings() {
                         type="checkbox"
                         checked={method.enabled}
                         onChange={(e) => updateMethod(index, { enabled: e.target.checked })}
-                        className="rounded border-stone-300 text-amber-900"
+                        className="rounded border-slate-300 text-navy-900"
                       />
                       {t('admin.settings.enabled') || 'Enabled'}
                     </label>
                     <button
                       type="button"
                       onClick={() => setEditingIndex(null)}
-                      className="text-sm text-stone-600 hover:text-stone-800"
+                      className="text-sm text-slate-600 hover:text-slate-800"
                     >
                       {t('admin.close') || 'Done'}
                     </button>
@@ -271,7 +271,7 @@ export function AdminSettings() {
                 ) : (
                   <>
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium text-stone-800">
+                      <span className="font-medium text-slate-800">
                         {method.id === 'cod'
                           ? t('checkout.paymentCOD')
                           : method.id === 'stripe' || method.id === 'card'
@@ -280,15 +280,15 @@ export function AdminSettings() {
                               ? t('checkout.paymentPayPal')
                               : method.name}
                       </span>
-                      <span className="ml-2 text-xs text-stone-500 font-mono">({method.id})</span>
+                      <span className="ml-2 text-xs text-slate-500 font-mono">({method.id})</span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded ${method.enabled ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-600'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded ${method.enabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
                       {method.enabled ? t('admin.settings.enabled') || 'Enabled' : t('admin.settings.disabled') || 'Disabled'}
                     </span>
                     <button
                       type="button"
                       onClick={() => setEditingIndex(index)}
-                      className="text-amber-700 hover:underline text-sm"
+                      className="text-navy-700 hover:underline text-sm"
                     >
                       {t('admin.edit') || 'Edit'}
                     </button>
@@ -306,26 +306,26 @@ export function AdminSettings() {
           </ul>
 
           {showAddForm ? (
-            <div className="p-3 rounded-lg bg-white border border-amber-200 space-y-2">
+            <div className="p-3 rounded-lg bg-white border border-navy-200 space-y-2">
               <input
                 type="text"
                 value={newMethodId}
                 onChange={(e) => setNewMethodId(e.target.value)}
                 placeholder={t('admin.settings.paymentMethodIdPlaceholder') || 'Method ID (e.g. bank_transfer)'}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
               />
               <input
                 type="text"
                 value={newMethodName}
                 onChange={(e) => setNewMethodName(e.target.value)}
                 placeholder={t('admin.settings.paymentMethodNamePlaceholder') || 'Display name (e.g. Bank Transfer)'}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
               />
               <div className="flex gap-2">
-                <button type="button" onClick={addMethod} className="px-3 py-1.5 bg-amber-900 text-amber-50 rounded-lg text-sm">
+                <button type="button" onClick={addMethod} className="px-3 py-1.5 bg-navy-900 text-navy-50 rounded-lg text-sm">
                   {t('admin.add') || 'Add'}
                 </button>
-                <button type="button" onClick={() => { setShowAddForm(false); setNewMethodId(''); setNewMethodName(''); setError(''); }} className="px-3 py-1.5 border border-stone-300 rounded-lg text-sm">
+                <button type="button" onClick={() => { setShowAddForm(false); setNewMethodId(''); setNewMethodName(''); setError(''); }} className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm">
                   {t('admin.cancel') || 'Cancel'}
                 </button>
               </div>
@@ -334,14 +334,14 @@ export function AdminSettings() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="text-sm text-amber-700 hover:underline"
+              className="text-sm text-navy-700 hover:underline"
             >
               + {t('admin.settings.addPaymentMethod') || 'Add payment method'}
             </button>
           )}
 
           {paymentMethods.length > 0 && !paymentMethods.some((m) => m.enabled) && (
-            <p className="mt-3 text-amber-700 text-sm">
+            <p className="mt-3 text-navy-700 text-sm">
               {t('admin.settings.atLeastOnePaymentMethod') || 'Enable at least one payment method so customers can checkout.'}
             </p>
           )}
@@ -351,7 +351,7 @@ export function AdminSettings() {
           <button
             type="submit"
             disabled={updateMutation.isPending}
-            className="px-6 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+            className="px-6 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
           >
             {updateMutation.isPending ? t('common.saving') : t('common.save')}
           </button>

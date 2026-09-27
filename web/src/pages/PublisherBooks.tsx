@@ -59,7 +59,7 @@ export function PublisherBooks() {
 
   if (isLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+      <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
         {t('common.loading')}
       </div>
     )
@@ -67,8 +67,8 @@ export function PublisherBooks() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24, fontSize: 14, color: '#78716c' }}>
-        <Link to="/" style={{ color: '#92400e', textDecoration: 'none' }}>
+      <div style={{ marginBottom: 24, fontSize: 14, color: '#64748b' }}>
+        <Link to="/" style={{ color: '#1f2f58', textDecoration: 'none' }}>
           {t('nav.bookStore')}
         </Link>{' '}
         /{' '}
@@ -87,7 +87,7 @@ export function PublisherBooks() {
             padding: '24px 28px',
             background: '#fff',
             borderRadius: 12,
-            border: '1px solid #e7e5e4',
+            border: '1px solid #e2e8f0',
           }}
         >
           <div
@@ -95,7 +95,7 @@ export function PublisherBooks() {
               width: 72,
               height: 72,
               borderRadius: 16,
-              background: '#fef3c7',
+              background: '#e3e9f5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -106,8 +106,8 @@ export function PublisherBooks() {
             🏢
           </div>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#292524', margin: 0 }}>{publisher.name}</h1>
-            <p style={{ fontSize: 13, color: '#a8a29e', marginTop: 8 }}>{meta?.total ?? bookItems.length}</p>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', margin: 0 }}>{publisher.name}</h1>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 8 }}>{meta?.total ?? bookItems.length}</p>
           </div>
         </div>
       )}
@@ -144,7 +144,7 @@ export function PublisherBooks() {
           ))}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: '#78716c' }}>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
           <p style={{ fontSize: 16 }}>{t('publishers.noBooks', 'No books for this publisher')}</p>
         </div>
       )}

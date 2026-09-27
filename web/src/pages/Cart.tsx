@@ -54,7 +54,7 @@ export function CartPage() {
   if (items.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-stone-600 mb-4">{t('cart.empty')}</p>
+        <p className="text-slate-600 mb-4">{t('cart.empty')}</p>
         <Link to="/books" className="text-[var(--color-primary)] font-medium">{t('cart.browseBooks')}</Link>
       </div>
     )
@@ -81,9 +81,9 @@ export function CartPage() {
 
       <div className="space-y-8">
         {Object.entries(groupedItems).map(([warehouseId, group]) => (
-          <div key={warehouseId} className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-            <div className="bg-stone-50 px-4 py-3 border-b border-stone-200 flex justify-between items-center">
-              <h2 className="font-semibold text-stone-800 flex items-center gap-2">
+          <div key={warehouseId} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+              <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                 <span>🏭</span> {group.name}
               </h2>
               <span className="text-sm font-bold text-[var(--color-primary)]">
@@ -95,12 +95,12 @@ export function CartPage() {
               {group.items.map((item: CartItem) => (
                 <div
                   key={item.book_id}
-                  className="flex items-center justify-between pb-4 border-b border-stone-100 last:border-0 last:pb-0"
+                  className="flex items-center justify-between pb-4 border-b border-slate-100 last:border-0 last:pb-0"
                 >
                   <div>
                     <p className="font-medium">{item.book?.title ?? t('common.book')}</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-stone-500">${item.price?.toFixed(2)} × {item.quantity}</p>
+                      <p className="text-sm text-slate-500">${item.price?.toFixed(2)} × {item.quantity}</p>
                       {item.book?.discount_percent && item.book.discount_percent > 0 ? (
                         <span className="text-[10px] bg-[var(--color-primary-light)] text-[var(--color-primary)] px-1 rounded font-bold">
                           {t('discount.special', { percent: item.book.discount_percent })}
@@ -112,14 +112,14 @@ export function CartPage() {
                     <button
                       onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity - 1 })}
                       disabled={item.quantity <= 1}
-                      className="w-8 h-8 rounded bg-stone-200 hover:bg-stone-300 disabled:opacity-50 flex items-center justify-center"
+                      className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center"
                     >
                       −
                     </button>
                     <span className="w-6 text-center">{item.quantity}</span>
                     <button
                       onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity + 1 })}
-                      className="w-8 h-8 rounded bg-stone-200 hover:bg-stone-300 flex items-center justify-center"
+                      className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center"
                     >
                       +
                     </button>
@@ -136,9 +136,9 @@ export function CartPage() {
           </div>
         ))}
       </div>
-      <div className="mt-8 flex justify-between items-center bg-stone-50 p-6 rounded-xl border border-stone-200">
+      <div className="mt-8 flex justify-between items-center bg-slate-50 p-6 rounded-xl border border-slate-200">
         <div>
-          <p className="text-sm text-stone-500 mb-1">{t('cart.grandTotal', 'Total across all warehouses')}</p>
+          <p className="text-sm text-slate-500 mb-1">{t('cart.grandTotal', 'Total across all warehouses')}</p>
           <p className="text-2xl font-bold text-[var(--color-text)]">${total.toFixed(2)}</p>
         </div>
         <Link

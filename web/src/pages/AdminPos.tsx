@@ -186,18 +186,18 @@ export function AdminPos() {
     return (
       <div className="space-y-4">
       <div className="flex flex-wrap gap-2 print:hidden">
-        <span className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-900 text-white">{t('admin.posTerminal')}</span>
-        <Link to="/admin/pos/reports" className="px-4 py-2 rounded-lg text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
+        <span className="px-4 py-2 rounded-lg text-sm font-medium bg-navy-900 text-white">{t('admin.posTerminal')}</span>
+        <Link to="/admin/pos/reports" className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">
           {t('admin.posReports')}
         </Link>
       </div>
-      <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-stone-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
+      <div className="pos-invoice-sheet max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-slate-200 print:max-w-none print:mx-0 print:shadow-none print:border-0 print:rounded-none">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold mb-2">{t('admin.invoiceCreated', 'Invoice Created')}</h1>
-          <p className="text-stone-600">#{createdInvoice._id}</p>
+          <p className="text-slate-600">#{createdInvoice._id}</p>
         </div>
         
-        <div className="mb-6 space-y-2 text-sm border-b border-stone-200 pb-6">
+        <div className="mb-6 space-y-2 text-sm border-b border-slate-200 pb-6">
           <p><strong>{t('admin.date')}:</strong> {createdAt}</p>
           <p><strong>{t('admin.warehouse')}:</strong> {createdWarehouse?.name ?? createdInvoice.warehouse_id}</p>
           {createdPublisherName && (
@@ -213,7 +213,7 @@ export function AdminPos() {
 
         <table className="w-full text-sm mb-6">
           <thead>
-            <tr className="border-b border-stone-200">
+            <tr className="border-b border-slate-200">
               <th className="text-start py-2">{t('orders.itemTitleCol')}</th>
               <th className="text-end py-2">{t('orders.itemWeightCol')}</th>
               <th className="text-end py-2">{t('orders.itemPriceCol')}</th>
@@ -223,9 +223,9 @@ export function AdminPos() {
             {invoiceItems.map((item: { book_title?: string; book_id?: string; quantity?: number; price?: number; weight?: number }, i: number) => {
               const lineW = Number(item.weight) > 0 ? Number(item.weight) * Number(item.quantity ?? 0) : 0
               return (
-                <tr key={i} className="border-b border-stone-100">
-                  <td className="py-2">{item.book_title || item.book_id} <span className="text-stone-500">x{item.quantity}</span></td>
-                  <td className="py-2 text-end text-stone-600">
+                <tr key={i} className="border-b border-slate-100">
+                  <td className="py-2">{item.book_title || item.book_id} <span className="text-slate-500">x{item.quantity}</span></td>
+                  <td className="py-2 text-end text-slate-600">
                     {lineW > 0 ? formatWeight(lineW, settings.weight_unit) : '—'}
                   </td>
                   <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
@@ -234,11 +234,11 @@ export function AdminPos() {
             })}
           </tbody>
           <tfoot>
-            <tr className="text-stone-600">
+            <tr className="text-slate-600">
               <td className="text-start py-2" colSpan={2}>{t('orders.booksSubtotal', 'Books subtotal')}</td>
               <td className="text-end py-2">${invoiceBooksSubtotal.toFixed(2)}</td>
             </tr>
-            <tr className="text-stone-600">
+            <tr className="text-slate-600">
               <td className="text-start py-2" colSpan={2}>{t('orders.shippingFee', 'Shipping fee')}</td>
               <td className="text-end py-2">${invoiceShippingFee.toFixed(2)}</td>
             </tr>
@@ -247,7 +247,7 @@ export function AdminPos() {
               <th className="text-end py-4 text-lg">${invoiceTotal.toFixed(2)}</th>
             </tr>
             {invoiceTotalWeightLabel && (
-              <tr className="text-stone-600">
+              <tr className="text-slate-600">
                 <td className="text-start py-2" colSpan={2}>{t('orders.totalWeight')}</td>
                 <td className="text-end py-2 font-medium">{invoiceTotalWeightLabel}</td>
               </tr>
@@ -256,10 +256,10 @@ export function AdminPos() {
         </table>
 
         <div className="flex gap-4 print:hidden">
-          <button onClick={() => window.print()} className="flex-1 bg-stone-800 text-white py-2 rounded">
+          <button onClick={() => window.print()} className="flex-1 bg-slate-800 text-white py-2 rounded">
             {t('admin.print', 'Print')}
           </button>
-          <button onClick={() => setCreatedInvoice(null)} className="flex-1 border border-stone-300 py-2 rounded">
+          <button onClick={() => setCreatedInvoice(null)} className="flex-1 border border-slate-300 py-2 rounded">
             {t('admin.newSale', 'New Sale')}
           </button>
         </div>
@@ -275,24 +275,24 @@ export function AdminPos() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 print:hidden">
-        <span className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-900 text-white">{t('admin.posTerminal')}</span>
-        <Link to="/admin/pos/reports" className="px-4 py-2 rounded-lg text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
+        <span className="px-4 py-2 rounded-lg text-sm font-medium bg-navy-900 text-white">{t('admin.posTerminal')}</span>
+        <Link to="/admin/pos/reports" className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200">
           {t('admin.posReports')}
         </Link>
       </div>
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
       {/* Products Left Side */}
-      <div className="flex-1 flex flex-col bg-white rounded-lg border border-stone-200 overflow-hidden">
-        <div className="p-4 border-b border-stone-200 flex flex-wrap gap-4 items-center bg-stone-50">
+      <div className="flex-1 flex flex-col bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex flex-wrap gap-4 items-center bg-slate-50">
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && commitSearch(searchInput)}
             placeholder={t('search.placeholder')}
-            className="flex-1 min-w-[200px] px-3 py-2 border border-stone-300 rounded focus:ring-2 focus:ring-amber-500"
+            className="flex-1 min-w-[200px] px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-navy-500"
           />
-          <button onClick={() => commitSearch(searchInput)} className="px-4 py-2 bg-stone-200 rounded hover:bg-stone-300">
+          <button onClick={() => commitSearch(searchInput)} className="px-4 py-2 bg-slate-200 rounded hover:bg-slate-300">
             {t('search.search')}
           </button>
           
@@ -312,7 +312,7 @@ export function AdminPos() {
                 setWarehouseFilter(own?._id ? String(own._id) : String(list[0]?._id ?? ''))
               }
             }}
-            className="px-3 py-2 border border-stone-300 rounded max-w-xs"
+            className="px-3 py-2 border border-slate-300 rounded max-w-xs"
           >
             <option value="">{t('admin.allPublishers')}</option>
             {publishers.map((p: any) => (
@@ -327,16 +327,16 @@ export function AdminPos() {
               setCart([])
               setPage(1)
             }}
-            className="px-3 py-2 border border-stone-300 rounded max-w-xs"
+            className="px-3 py-2 border border-slate-300 rounded max-w-xs"
           >
             {filteredWarehouses.map((w: any) => (
               <option key={String(w._id)} value={String(w._id)}>{w.name}{w.publisher?.name ? ` — ${w.publisher.name}` : ''}</option>
             ))}
           </select>
         </div>
-        <p className="px-4 py-2 text-xs text-stone-500 border-b border-stone-200">{t('admin.ownWarehouseDefault')}</p>
+        <p className="px-4 py-2 text-xs text-slate-500 border-b border-slate-200">{t('admin.ownWarehouseDefault')}</p>
 
-        <div className="flex-1 overflow-y-auto p-4 bg-stone-50/50">
+        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
           {isLoading ? (
             <div className="text-center py-8">{t('common.loading')}</div>
           ) : (
@@ -345,24 +345,24 @@ export function AdminPos() {
                 <div 
                   key={book._id || `book-${i}`} 
                   onClick={() => addToCart(book)}
-                  className={`bg-white p-3 rounded border border-stone-200 cursor-pointer hover:border-amber-400 hover:shadow-sm transition ${(book.stock_quantity ?? 0) <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`bg-white p-3 rounded border border-slate-200 cursor-pointer hover:border-navy-400 hover:shadow-sm transition ${(book.stock_quantity ?? 0) <= 0 ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  <div className="aspect-[3/4] bg-stone-100 rounded mb-2 overflow-hidden flex items-center justify-center">
+                  <div className="aspect-[3/4] bg-slate-100 rounded mb-2 overflow-hidden flex items-center justify-center">
                     {hasCover(book) ? (
                       <img loading="lazy" decoding="async" src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)} alt="" className="object-cover w-full h-full" />
                     ) : (
-                      <span className="text-stone-300 font-serif">BOOK</span>
+                      <span className="text-slate-300 font-serif">BOOK</span>
                     )}
                   </div>
                   <h3 className="text-sm font-medium line-clamp-2 leading-tight">{book.title}</h3>
                   {book.weight != null && Number(book.weight) > 0 && (
-                    <p className="text-xs text-stone-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       {t('bookDetail.weight')}: {formatWeight(book.weight, settings.weight_unit)}
                     </p>
                   )}
                   <div className="mt-2 flex justify-between items-center">
-                    <span className="font-semibold text-amber-900">${discountedPrice(book).toFixed(2)}</span>
-                    <span className="text-xs text-stone-500">Qty: {book.stock_quantity}</span>
+                    <span className="font-semibold text-navy-900">${discountedPrice(book).toFixed(2)}</span>
+                    <span className="text-xs text-slate-500">Qty: {book.stock_quantity}</span>
                   </div>
                 </div>
               ))}
@@ -383,14 +383,14 @@ export function AdminPos() {
       </div>
 
       {/* Cart Right Side */}
-      <div className="w-full lg:w-96 bg-white rounded-lg border border-stone-200 flex flex-col h-full shrink-0">
-        <div className="p-4 border-b border-stone-200 bg-amber-900 text-amber-50 rounded-t-lg">
+      <div className="w-full lg:w-96 bg-white rounded-lg border border-slate-200 flex flex-col h-full shrink-0">
+        <div className="p-4 border-b border-slate-200 bg-navy-900 text-navy-50 rounded-t-lg">
           <h2 className="font-bold text-lg">{t('admin.currentSale', 'Current Sale')}</h2>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2">
           {cart.length === 0 ? (
-            <div className="text-center py-12 text-stone-400">
+            <div className="text-center py-12 text-slate-400">
               {t('admin.cartEmpty', 'Cart is empty')}
             </div>
           ) : (
@@ -398,18 +398,18 @@ export function AdminPos() {
               {cart.map(item => {
                 const finalPrice = discountedPrice(item.book)
                 return (
-                  <div key={item.book._id} className="flex gap-2 items-center p-2 hover:bg-stone-50 border border-transparent hover:border-stone-200 rounded">
+                  <div key={item.book._id} className="flex gap-2 items-center p-2 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.book.title}</p>
-                      <p className="text-xs text-stone-500">${finalPrice.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500">${finalPrice.toFixed(2)}</p>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0 bg-stone-100 rounded">
-                      <button onClick={() => updateQuantity(item.book._id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center font-bold text-stone-600">-</button>
+                    <div className="flex items-center gap-1 shrink-0 bg-slate-100 rounded">
+                      <button onClick={() => updateQuantity(item.book._id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center font-bold text-slate-600">-</button>
                       <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
                       <button 
                         onClick={() => updateQuantity(item.book._id, item.quantity + 1)} 
                         disabled={item.quantity >= (item.book.stock_quantity ?? 0)}
-                        className="w-7 h-7 flex items-center justify-center font-bold text-stone-600 disabled:opacity-30"
+                        className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 disabled:opacity-30"
                       >+</button>
                     </div>
                     <div className="w-16 text-end font-semibold text-sm shrink-0">
@@ -422,19 +422,19 @@ export function AdminPos() {
           )}
         </div>
 
-        <div className="p-4 border-t border-stone-200 bg-stone-50 rounded-b-lg space-y-4">
+        <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-b-lg space-y-4">
           <div>
-            <label className="text-xs font-medium text-stone-600 mb-1 block">{t('admin.customerNameOptional', 'Customer Name (Optional)')}</label>
+            <label className="text-xs font-medium text-slate-600 mb-1 block">{t('admin.customerNameOptional', 'Customer Name (Optional)')}</label>
             <input 
               type="text" 
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-300 rounded"
+              className="w-full px-3 py-2 border border-slate-300 rounded"
               placeholder={t('admin.walkInCustomer', 'Walk-in Customer')}
             />
           </div>
           
-          <div className="space-y-1 text-sm text-stone-600">
+          <div className="space-y-1 text-sm text-slate-600">
             <div className="flex justify-between">
               <span>{t('orders.booksSubtotal', 'Books subtotal')}</span>
               <span>${booksSubtotal.toFixed(2)}</span>
@@ -443,16 +443,16 @@ export function AdminPos() {
               <span>{t('orders.shippingFee', 'Shipping fee')}</span>
               <span>${shippingFee.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center text-lg font-bold text-stone-900 pt-1">
+            <div className="flex justify-between items-center text-lg font-bold text-slate-900 pt-1">
               <span>{t('orders.total')}</span>
-              <span className="text-amber-900">${cartTotal.toFixed(2)}</span>
+              <span className="text-navy-900">${cartTotal.toFixed(2)}</span>
             </div>
           </div>
 
           <button
             onClick={() => checkoutMut.mutate()}
             disabled={cart.length === 0 || !warehouseFilter || checkoutMut.isPending}
-            className="w-full py-3 bg-amber-900 text-amber-50 font-bold rounded hover:bg-amber-800 disabled:opacity-50"
+            className="w-full py-3 bg-navy-900 text-navy-50 font-bold rounded hover:bg-navy-800 disabled:opacity-50"
           >
             {checkoutMut.isPending ? t('common.loading') : t('admin.completeSale')}
           </button>

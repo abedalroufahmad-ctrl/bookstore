@@ -128,15 +128,15 @@ export function AdminWarehouseBooksAdmin() {
   return (
     <div>
       <div className="mb-4">
-        <Link to="/admin/warehouse-books" className="text-amber-700 hover:underline text-sm">
+        <Link to="/admin/warehouse-books" className="text-navy-700 hover:underline text-sm">
           ← {t('admin.backToWarehouses')}
         </Link>
       </div>
-      <h1 className="text-2xl font-bold text-amber-900 mb-1">
+      <h1 className="text-2xl font-bold text-navy-900 mb-1">
         {warehouse?.name ?? t('admin.warehouseBooksTitle')}
       </h1>
       {warehouse && (
-        <p className="text-stone-600 mb-4">{[warehouse.city, warehouse.country].filter(Boolean).join(', ')}</p>
+        <p className="text-slate-600 mb-4">{[warehouse.city, warehouse.country].filter(Boolean).join(', ')}</p>
       )}
       {queryErrorMessage && (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
@@ -156,12 +156,12 @@ export function AdminWarehouseBooksAdmin() {
             {bulkDeleteMutation.isPending ? t('admin.deleting') : t('admin.deleteSelected')}
             {selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
           </button>
-          {isFetching && <span className="text-sm text-stone-500">{t('common.loading')}</span>}
+          {isFetching && <span className="text-sm text-slate-500">{t('common.loading')}</span>}
         </div>
       )}
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-2 py-2 w-10 text-center">
                 <input
@@ -182,7 +182,7 @@ export function AdminWarehouseBooksAdmin() {
           </thead>
           <tbody>
             {items.map((book) => (
-              <tr key={book._id} className="border-t border-stone-200">
+              <tr key={book._id} className="border-t border-slate-200">
                 <td className="px-2 py-2 text-center">
                   <input
                     type="checkbox"
@@ -203,7 +203,7 @@ export function AdminWarehouseBooksAdmin() {
                 <td className="px-4 py-2 text-right">
                   <Link
                     to={`/admin/books/${book._id}/edit`}
-                    className="text-amber-700 hover:underline mr-3"
+                    className="text-navy-700 hover:underline mr-3"
                   >
                     {t('admin.edit')}
                   </Link>
@@ -224,7 +224,7 @@ export function AdminWarehouseBooksAdmin() {
         </table>
       </div>
       {items.length === 0 && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noBooks')}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noBooks')}</p>
       )}
       {meta && (
         <Pagination

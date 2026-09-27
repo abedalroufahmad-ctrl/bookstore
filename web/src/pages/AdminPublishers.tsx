@@ -150,11 +150,11 @@ export function AdminPublishers() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-amber-900">{t('admin.publishers') ?? 'Publishers'}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('admin.publishers') ?? 'Publishers'}</h1>
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 shrink-0 self-start"
+          className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 shrink-0 self-start"
         >
           {t('admin.addPublisher') ?? 'Add Publisher'}
         </button>
@@ -170,7 +170,7 @@ export function AdminPublishers() {
         className="mb-6"
       />
       {showForm && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-2">{t('admin.newPublisher') ?? 'New Publisher'}</h2>
           <div className="flex gap-2 flex-wrap">
             <input
@@ -178,14 +178,14 @@ export function AdminPublishers() {
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               placeholder={t('admin.publisherName') ?? 'Name'}
-              className="flex-1 min-w-[200px] px-4 py-2 border border-stone-300 rounded-lg"
+              className="flex-1 min-w-[200px] px-4 py-2 border border-slate-300 rounded-lg"
             />
             <input
               type="text"
               value={form.address}
               onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
               placeholder={t('admin.publisherAddress') ?? 'Address'}
-              className="flex-1 min-w-[200px] px-4 py-2 border border-stone-300 rounded-lg"
+              className="flex-1 min-w-[200px] px-4 py-2 border border-slate-300 rounded-lg"
             />
             <button
               type="button"
@@ -197,7 +197,7 @@ export function AdminPublishers() {
                 createMutation.isPending ||
                 !form.name
               }
-              className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+              className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
             >
               {t('admin.create')}
             </button>
@@ -208,7 +208,7 @@ export function AdminPublishers() {
                 setForm({ name: '', address: '', website: '' })
                 setError('')
               }}
-              className="px-4 py-2 border border-stone-300 rounded-lg"
+              className="px-4 py-2 border border-slate-300 rounded-lg"
             >
               {t('admin.cancel')}
             </button>
@@ -217,26 +217,26 @@ export function AdminPublishers() {
         </div>
       )}
       {editingId && (
-        <div className="mb-6 p-4 bg-stone-50 rounded-lg border border-stone-200">
+        <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h2 className="font-semibold mb-4">{t('admin.edit')} — {editingForm.name}</h2>
           <div className="grid gap-4 max-w-2xl mb-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisherName')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.publisherName')}</label>
                 <input
                   type="text"
                   value={editingForm.name}
                   onChange={(e) => setEditingForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.publisherAddress')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.publisherAddress')}</label>
                 <input
                   type="text"
                   value={editingForm.address}
                   onChange={(e) => setEditingForm((prev) => ({ ...prev, address: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
@@ -245,16 +245,16 @@ export function AdminPublishers() {
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={updateMutation.isPending || !editingForm.name.trim()}
-                className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50"
+                className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50"
               >
                 {updateMutation.isPending ? t('common.saving') : t('admin.update')}
               </button>
-              <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-stone-300 rounded-lg">
+              <button type="button" onClick={handleCancelEdit} className="px-4 py-2 border border-slate-300 rounded-lg">
                 {t('admin.cancel')}
               </button>
               <Link 
                 to={`/admin/publishers/${editingId}/settings`} 
-                className="px-4 py-2 bg-stone-100 text-stone-700 border border-stone-300 rounded-lg hover:bg-stone-200 ml-auto"
+                className="px-4 py-2 bg-slate-100 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-200 ml-auto"
               >
                 ⚙️ {t('admin.publisherSettings', 'Settings')}
               </Link>
@@ -264,7 +264,7 @@ export function AdminPublishers() {
 
           <h3 className="font-semibold mb-2">{t('admin.publisherWarehouses')}</h3>
           {editingWarehouses.length > 0 ? (
-            <ul className="mb-4 list-disc list-inside text-stone-700">
+            <ul className="mb-4 list-disc list-inside text-slate-700">
               {editingWarehouses.map((w) => (
                 <li key={w._id}>
                   {w.name} — {w.city}, {w.country}
@@ -272,75 +272,75 @@ export function AdminPublishers() {
               ))}
             </ul>
           ) : (
-            <p className="mb-4 text-stone-500 text-sm">{t('admin.noWarehousesList')}</p>
+            <p className="mb-4 text-slate-500 text-sm">{t('admin.noWarehousesList')}</p>
           )}
 
           <h3 className="font-semibold mb-2">{t('admin.addWarehouseForPublisher')}</h3>
           <div className="grid gap-4 max-w-2xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.name')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.name')}</label>
                 <input
                   type="text"
                   value={warehouseForm.name}
                   onChange={(e) => setWarehouseForm((p) => ({ ...p, name: e.target.value }))}
                   placeholder={t('admin.warehouseName')}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.email')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.email')}</label>
                 <input
                   type="email"
                   value={warehouseForm.email}
                   onChange={(e) => setWarehouseForm((p) => ({ ...p, email: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.address')}</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.address')}</label>
               <input
                 type="text"
                 value={warehouseForm.address}
                 onChange={(e) => setWarehouseForm((p) => ({ ...p, address: e.target.value }))}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.city')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.city')}</label>
                 <input
                   type="text"
                   value={warehouseForm.city}
                   onChange={(e) => setWarehouseForm((p) => ({ ...p, city: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.country')}</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.country')}</label>
                 <input
                   type="text"
                   value={warehouseForm.country}
                   onChange={(e) => setWarehouseForm((p) => ({ ...p, country: e.target.value }))}
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">{t('admin.phone')} ({t('admin.optional')})</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.phone')} ({t('admin.optional')})</label>
               <input
                 type="text"
                 value={warehouseForm.phone ?? ''}
                 onChange={(e) => setWarehouseForm((p) => ({ ...p, phone: e.target.value }))}
-                className="w-full px-4 py-2 border border-stone-300 rounded-lg"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg"
               />
             </div>
             <button
               type="button"
               onClick={handleAddWarehouse}
               disabled={createWarehouseMutation.isPending || !isValidWarehouseForm(warehouseForm)}
-              className="px-4 py-2 bg-amber-900 text-amber-50 rounded-lg hover:bg-amber-800 disabled:opacity-50 self-start"
+              className="px-4 py-2 bg-navy-900 text-navy-50 rounded-lg hover:bg-navy-800 disabled:opacity-50 self-start"
             >
               {createWarehouseMutation.isPending ? t('common.saving') : t('admin.addWarehouse')}
             </button>
@@ -348,9 +348,9 @@ export function AdminPublishers() {
           </div>
         </div>
       )}
-      <div className="bg-white rounded-lg border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-stone-100">
+          <thead className="bg-slate-100">
             <tr>
               <th className="px-4 py-2 text-left">{t('admin.publisherName') ?? 'Name'}</th>
               <th className="px-4 py-2 text-left">{t('admin.publisherAddress') ?? 'Address'}</th>
@@ -360,7 +360,7 @@ export function AdminPublishers() {
           </thead>
           <tbody>
             {items.map((p) => (
-              <tr key={p._id} className="border-t border-stone-200">
+              <tr key={p._id} className="border-t border-slate-200">
                 <td className="px-4 py-2">{p.name}</td>
                 <td className="px-4 py-2">{p.address || '—'}</td>
                 <td className="px-4 py-2">{p.warehouses_count ?? 0}</td>
@@ -368,7 +368,7 @@ export function AdminPublishers() {
                   <button
                     type="button"
                     onClick={() => handleStartEdit(p)}
-                    className="text-amber-700 hover:underline text-sm mr-3"
+                    className="text-navy-700 hover:underline text-sm mr-3"
                   >
                     {t('admin.edit')}
                   </button>
@@ -389,7 +389,7 @@ export function AdminPublishers() {
         </table>
       </div>
       {items.length === 0 && !showForm && (
-        <p className="text-center text-stone-500 py-8">{t('admin.noPublishers') ?? 'No publishers found.'}</p>
+        <p className="text-center text-slate-500 py-8">{t('admin.noPublishers') ?? 'No publishers found.'}</p>
       )}
       {meta && (
         <Pagination
