@@ -10,6 +10,7 @@
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
         "mongodb/laravel-mongodb": "^4.0",
+        "mongodb/mongodb": "^1.21.4",
         "phpoffice/phpspreadsheet": "^5.5",
         "tymon/jwt-auth": "^2.0"
     },

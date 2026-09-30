@@ -13,7 +13,14 @@ class AdminSettingsScreen extends StatefulWidget {
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   final _discountCtrl = TextEditingController();
   final _shippingCtrl = TextEditingController();
-  final _perPageCtrl = TextEditingController();
+  final _booksPerPageCtrl = TextEditingController();
+  final _booksPerRowCtrl = TextEditingController();
+  final _authorsPerPageCtrl = TextEditingController();
+  final _authorsPerRowCtrl = TextEditingController();
+  final _categoriesPerPageCtrl = TextEditingController();
+  final _categoriesPerRowCtrl = TextEditingController();
+  final _warehousesPerPageCtrl = TextEditingController();
+  final _warehousesPerRowCtrl = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -29,7 +36,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   void dispose() {
     _discountCtrl.dispose();
     _shippingCtrl.dispose();
-    _perPageCtrl.dispose();
+    _booksPerPageCtrl.dispose();
+    _booksPerRowCtrl.dispose();
+    _authorsPerPageCtrl.dispose();
+    _authorsPerRowCtrl.dispose();
+    _categoriesPerPageCtrl.dispose();
+    _categoriesPerRowCtrl.dispose();
+    _warehousesPerPageCtrl.dispose();
+    _warehousesPerRowCtrl.dispose();
     super.dispose();
   }
 
@@ -46,7 +60,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _settings = Map<String, dynamic>.from(res.data!);
         _discountCtrl.text = '${_settings['global_discount'] ?? ''}';
         _shippingCtrl.text = '${_settings['invoice_shipping_fee'] ?? ''}';
-        _perPageCtrl.text = '${_settings['catalog_items_per_page'] ?? ''}';
+        _booksPerPageCtrl.text = '${_settings['books_per_page'] ?? _settings['catalog_items_per_page'] ?? ''}';
+        _booksPerRowCtrl.text = '${_settings['books_per_row'] ?? ''}';
+        _authorsPerPageCtrl.text = '${_settings['authors_per_page'] ?? ''}';
+        _authorsPerRowCtrl.text = '${_settings['authors_per_row'] ?? ''}';
+        _categoriesPerPageCtrl.text = '${_settings['categories_per_page'] ?? ''}';
+        _categoriesPerRowCtrl.text = '${_settings['categories_per_row'] ?? ''}';
+        _warehousesPerPageCtrl.text = '${_settings['warehouses_per_page'] ?? ''}';
+        _warehousesPerRowCtrl.text = '${_settings['warehouses_per_row'] ?? ''}';
       } else {
         _error = res.message;
       }
@@ -85,16 +106,28 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       'invoice_shipping_fee': shipping,
     };
 
-    final perPageRaw = _perPageCtrl.text.trim();
-    if (perPageRaw.isNotEmpty) {
-      final perPage = int.tryParse(perPageRaw);
-      if (perPage == null || perPage < 1) {
+    final layoutFields = <String, TextEditingController>{
+      'books_per_page': _booksPerPageCtrl,
+      'books_per_row': _booksPerRowCtrl,
+      'authors_per_page': _authorsPerPageCtrl,
+      'authors_per_row': _authorsPerRowCtrl,
+      'categories_per_page': _categoriesPerPageCtrl,
+      'categories_per_row': _categoriesPerRowCtrl,
+      'warehouses_per_page': _warehousesPerPageCtrl,
+      'warehouses_per_row': _warehousesPerRowCtrl,
+    };
+    for (final entry in layoutFields.entries) {
+      final raw = entry.value.text.trim();
+      if (raw.isEmpty) continue;
+      final parsed = int.tryParse(raw);
+      final isRow = entry.key.endsWith('_row');
+      if (parsed == null || parsed < 1 || (isRow ? parsed > 8 : parsed > 100)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(t.invalidNumber)),
         );
         return;
       }
-      body['catalog_items_per_page'] = perPage;
+      body[entry.key] = parsed;
     }
 
     setState(() => _saving = true);
@@ -114,6 +147,43 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         ),
       );
     }
+  }
+
+  Widget _layoutPair(
+    String title,
+    TextEditingController perPage,
+    TextEditingController perRow,
+    AppLocalizations t,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: perPage,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: t.adminItemsPerPage),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: perRow,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: t.adminItemsPerRow),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -169,14 +239,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                         helperText: t.adminInvoiceShippingFeeHint,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _perPageCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: t.adminCatalogItemsPerPage,
-                      ),
-                    ),
+                    const SizedBox(height: 24),
+                    Text(t.adminCatalogLayout, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    _layoutPair(t.navBooks, _booksPerPageCtrl, _booksPerRowCtrl, t),
+                    _layoutPair(t.navAuthors, _authorsPerPageCtrl, _authorsPerRowCtrl, t),
+                    _layoutPair(t.navCategories, _categoriesPerPageCtrl, _categoriesPerRowCtrl, t),
+                    _layoutPair(t.navWarehouses, _warehousesPerPageCtrl, _warehousesPerRowCtrl, t),
                     const SizedBox(height: 24),
                     FilledButton(
                       onPressed: _saving ? null : _save,

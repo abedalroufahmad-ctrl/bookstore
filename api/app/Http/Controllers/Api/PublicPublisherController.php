@@ -18,7 +18,7 @@ class PublicPublisherController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $filters = $request->filled('search') ? ['search' => $request->get('search')] : [];
-        $perPage = min((int) $request->get('per_page', 32), 100);
+        $perPage = min((int) $request->get('per_page', 33), 100);
 
         $publishers = $this->publisherService->getAll($filters, $perPage);
 

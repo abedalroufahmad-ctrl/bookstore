@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/book_grid.dart';
 
 class CategoryListScreen extends StatefulWidget {
   const CategoryListScreen({super.key});
@@ -20,6 +21,8 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   Timer? _searchDebounce;
   String? _lastSearchQuery;
   int _page = 1;
+  int _perPage = 28;
+  int _perRow = 3;
   bool _hasMore = true;
   bool _loading = true;
   bool _loadingMore = false;
@@ -41,9 +44,20 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadFirst();
+    _start();
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _start() async {
+    final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final layout = catalogLayoutFromSettings(res.data, 'categories');
+      _perPage = layout.perPage;
+      _perRow = layout.perRow;
+    }
+    await _loadFirst();
   }
 
   @override
@@ -82,7 +96,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
       _hasMore = true;
       _lastSearchQuery = search;
     });
-    final res = await ApiService.instance.getCategoriesPaginated(1, search: search);
+    final res = await ApiService.instance.getCategoriesPaginated(1, perPage: _perPage, search: search);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -100,7 +114,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
     if (!_hasMore || _loadingMore) return;
     setState(() => _loadingMore = true);
     final nextPage = _page + 1;
-    final res = await ApiService.instance.getCategoriesPaginated(nextPage, search: _lastSearchQuery);
+    final res = await ApiService.instance.getCategoriesPaginated(nextPage, perPage: _perPage, search: _lastSearchQuery);
     if (!mounted) return;
     setState(() {
       _loadingMore = false;
@@ -259,11 +273,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                         GridView.builder(
                                           shrinkWrap: true,
                                           physics: const NeverScrollableScrollPhysics(),
-                                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
-                                            mainAxisSpacing: 16,
-                                            crossAxisSpacing: 16,
+                                          gridDelegate: catalogGridDelegate(
+                                            width: MediaQuery.sizeOf(context).width,
+                                            perRow: _perRow,
                                             childAspectRatio: 1.2,
+                                            spacing: 16,
                                           ),
                                           itemCount: cats.length,
                                           itemBuilder: (context, j) {

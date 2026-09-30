@@ -390,6 +390,9 @@ class AppLocalizations {
       );
   String get adminCatalogItemsPerPage =>
       _s('عناصر الكتالوج لكل صفحة', 'Catalog items per page');
+  String get adminCatalogLayout => _s('تخطيط الكتالوج', 'Catalog layout');
+  String get adminItemsPerPage => _s('عدد العناصر في الصفحة', 'Items per page');
+  String get adminItemsPerRow => _s('عدد العناصر في الصف', 'Items per row');
   String get adminSettingsSaved => _s('تم حفظ الإعدادات', 'Settings saved');
   String get adminPublisherSettingsBody => _s(
         'قم بتهيئة سياسة الإرجاع والخصومات من لوحة الإدارة على الويب حالياً',

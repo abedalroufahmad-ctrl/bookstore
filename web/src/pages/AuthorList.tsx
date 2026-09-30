@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { authors as authorsApi } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
 import { Pagination } from '../components/Pagination'
-import { useSettings } from '../contexts/SettingsContext'
+import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
 import type { Author } from '../lib/api'
 
 export function AuthorList() {
@@ -19,9 +19,9 @@ export function AuthorList() {
         setSearchParams(params)
     }
     const { data, isLoading, error } = useQuery({
-        queryKey: ['authors', page, search, settings.catalog_items_per_page],
+        queryKey: ['authors', page, search, settings.authors.per_page],
         queryFn: async () => {
-            const queryParams: Record<string, string | number> = { page, per_page: settings.catalog_items_per_page }
+            const queryParams: Record<string, string | number> = { page, per_page: settings.authors.per_page }
             if (search) queryParams.search = search
             const res = await authorsApi.list(queryParams)
             return res.data
@@ -89,7 +89,8 @@ export function AuthorList() {
 
             {/* Authors Grid */}
             <div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                className="catalog-grid"
+                style={catalogGridStyle(settings.authors.per_row)}
             >
                 {items.map((author) => (
                     <Link

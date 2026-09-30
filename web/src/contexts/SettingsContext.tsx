@@ -4,11 +4,22 @@ import { settings as settingsApi } from '../lib/api'
 
 export type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
 
+export type CatalogKind = 'books' | 'authors' | 'categories' | 'warehouses'
+
+export interface CatalogLayout {
+    per_page: number
+    per_row: number
+}
+
 interface Settings {
     global_discount: number
     invoice_shipping_fee: number
     weight_unit: WeightUnit
     catalog_items_per_page: number
+    books: CatalogLayout
+    authors: CatalogLayout
+    categories: CatalogLayout
+    warehouses: CatalogLayout
 }
 
 interface SettingsContextType {
@@ -66,14 +77,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         staleTime: 1000 * 60 * 5,
     })
 
-    const raw = data?.data
+    const raw = data?.data as Record<string, unknown> | undefined
+    const books = parseCatalogLayout(raw, 'books', 27, 5)
     const settings: Settings = {
         global_discount: typeof raw?.global_discount === 'number' ? raw.global_discount : 0,
         invoice_shipping_fee: typeof raw?.invoice_shipping_fee === 'number' ? Math.max(0, raw.invoice_shipping_fee) : 0,
         weight_unit: (raw?.weight_unit as WeightUnit) || 'kg',
-        catalog_items_per_page: typeof raw?.catalog_items_per_page === 'number' && raw.catalog_items_per_page >= 1
-            ? Math.min(100, Math.round(raw.catalog_items_per_page))
-            : 25,
+        catalog_items_per_page: books.per_page,
+        books,
+        authors: parseCatalogLayout(raw, 'authors', 28, 4),
+        categories: parseCatalogLayout(raw, 'categories', 28, 3),
+        warehouses: parseCatalogLayout(raw, 'warehouses', 28, 3),
     }
 
     return (
@@ -81,6 +95,44 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             {children}
         </SettingsContext.Provider>
     )
+}
+
+function clampInt(value: unknown, fallback: number, min: number, max: number): number {
+    const n = typeof value === 'number' ? value : Number(value)
+    if (!Number.isFinite(n)) return fallback
+    return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+function parseCatalogLayout(
+    raw: Record<string, unknown> | undefined,
+    kind: CatalogKind,
+    defaultPage: number,
+    defaultRow: number
+): CatalogLayout {
+    let perPage: unknown
+    let perRow: unknown
+    if (kind === 'books') {
+        perPage = raw?.books_per_page ?? raw?.catalog_items_per_page
+        perRow = raw?.books_per_row
+    } else if (kind === 'authors') {
+        perPage = raw?.authors_per_page
+        perRow = raw?.authors_per_row
+    } else if (kind === 'categories') {
+        perPage = raw?.categories_per_page
+        perRow = raw?.categories_per_row
+    } else {
+        perPage = raw?.warehouses_per_page
+        perRow = raw?.warehouses_per_row
+    }
+    return {
+        per_page: clampInt(perPage, defaultPage, 1, 100),
+        per_row: clampInt(perRow, defaultRow, 1, 8),
+    }
+}
+
+/** CSS custom property used by `.catalog-grid` / `.books-grid`. */
+export function catalogGridStyle(perRow: number): React.CSSProperties {
+    return { ['--catalog-cols' as string]: String(clampInt(perRow, 3, 1, 8)) }
 }
 
 export function useSettings() {

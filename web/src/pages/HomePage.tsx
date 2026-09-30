@@ -11,9 +11,9 @@ export function HomePage() {
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
     const { data, isLoading, error } = useQuery({
-        queryKey: ['books', settings.catalog_items_per_page],
+        queryKey: ['books', settings.books.per_page],
         queryFn: async () => {
-            const res = await booksApi.list({ per_page: settings.catalog_items_per_page })
+            const res = await booksApi.list({ per_page: settings.books.per_page })
             return res.data
         },
         staleTime: 60_000,

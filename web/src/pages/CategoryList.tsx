@@ -3,11 +3,13 @@ import { Link, useSearchParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { categories as categoriesApi } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
 import { useEffect } from 'react'
 import type { Category } from '../lib/api'
 
 export function CategoryList() {
     const { t, i18n } = useTranslation()
+    const { settings } = useSettings()
     const [searchParams, setSearchParams] = useSearchParams()
     const location = useLocation()
     const search = searchParams.get('search') ?? ''
@@ -19,9 +21,9 @@ export function CategoryList() {
         setSearchParams(params)
     }
     const { data, isLoading, error } = useQuery({
-        queryKey: ['categories', page, search],
+        queryKey: ['categories', page, search, settings.categories.per_page],
         queryFn: async () => {
-            const queryParams: Record<string, string | number> = { page, per_page: 200 }
+            const queryParams: Record<string, string | number> = { page, per_page: settings.categories.per_page }
             if (search) queryParams.search = search
             const res = await categoriesApi.list(queryParams)
             return res.data
@@ -137,8 +139,8 @@ export function CategoryList() {
                                 {topic.code !== 'Other' ? `${topic.code} - ` : ''}{topic.name}
                             </h2>
                             <div
-                                className="grid gap-4"
-                                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
+                                className="catalog-grid"
+                                style={catalogGridStyle(settings.categories.per_row)}
                             >
                                 {topicCategories.map((cat) => {
                                     const [bgColor] = getColor(cat.dewey_code)

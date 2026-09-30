@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { warehousesPublic as warehousesApi } from '../lib/api'
 import { Pagination } from '../components/Pagination'
-import { useSettings } from '../contexts/SettingsContext'
+import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
 import type { Warehouse } from '../lib/api'
 
 export function WarehouseList() {
@@ -19,11 +19,11 @@ export function WarehouseList() {
   }
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['warehouses', page, search, settings.catalog_items_per_page],
+    queryKey: ['warehouses', page, search, settings.warehouses.per_page],
     queryFn: async () => {
       const queryParams: Record<string, string | number> = {
         page,
-        per_page: settings.catalog_items_per_page,
+        per_page: settings.warehouses.per_page,
       }
       if (search) queryParams.search = search
       const res = await warehousesApi.list(queryParams)
@@ -69,8 +69,8 @@ export function WarehouseList() {
       </div>
 
       <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
+        className="catalog-grid"
+        style={catalogGridStyle(settings.warehouses.per_row)}
       >
         {items.map((w) => (
           <Link

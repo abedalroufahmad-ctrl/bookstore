@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { warehousesPublic as warehousesApi, books as booksApi } from '../lib/api'
 import { getPublisherEntries, getWarehouseId } from '../lib/utils'
 import { BookCard } from '../components/BookCard'
-import { useSettings } from '../contexts/SettingsContext'
+import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
 import { Pagination } from '../components/Pagination'
 import { useAddToCart } from '../hooks/useAddToCart'
 import type { Book, Warehouse } from '../lib/api'
@@ -24,6 +24,7 @@ export function WarehouseBooks() {
 
   const { t } = useTranslation()
   const { settings } = useSettings()
+  const perPage = settings.books.per_page
 
   const { data: warehouseData, isLoading: warehouseLoading } = useQuery({
     queryKey: ['warehouse', id],
@@ -35,12 +36,12 @@ export function WarehouseBooks() {
   })
 
   const { data: booksData, isLoading: booksLoading } = useQuery({
-    queryKey: ['books', 'warehouse', id, page, search, settings.catalog_items_per_page],
+    queryKey: ['books', 'warehouse', id, page, search, perPage],
     queryFn: async () => {
       const params: Record<string, string | number> = {
         warehouse_id: id!,
         page,
-        per_page: settings.catalog_items_per_page,
+        per_page: perPage,
       }
       if (search) params.search = search
       const res = await booksApi.list(params)
@@ -127,13 +128,7 @@ export function WarehouseBooks() {
       )}
 
       {bookItems.length > 0 ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
-            gap: 24,
-          }}
-        >
+        <div className="books-grid" style={catalogGridStyle(settings.books.per_row)}>
           {bookItems.map((book) => (
             <BookCard
               key={book._id}
@@ -151,6 +146,8 @@ export function WarehouseBooks() {
                             categoryName={(book.category && (book.category.subject_title_en || book.category.subject_title_ar || book.category.dewey_code)) || undefined}
               discountPercent={book.discount_percent ?? 0}
               globalDiscount={settings.global_discount ?? 0}
+              condition={book.condition}
+              isSold={book.is_sold}
               onAddToCart={handleAddToCart}
               isAddingToCart={isAddingToCart(book._id)}
               isInCart={isInCart(book._id)}

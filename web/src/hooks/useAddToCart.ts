@@ -26,7 +26,11 @@ export function useAddToCart() {
 
   const cartBookIds = (cartData?.data?.items ?? []).map((item: { book_id: string }) => item.book_id)
 
-  const handleAddToCart = userType === 'customer' ? (bookId: string) => {
+  const handleAddToCart = userType === 'employee' ? undefined : (bookId: string) => {
+    if (userType !== 'customer') {
+      navigate('/login')
+      return
+    }
     addToCartMutation.mutate(bookId, {
       onError: (err: any) => {
         if (err?.response?.status === 401) {
@@ -37,7 +41,7 @@ export function useAddToCart() {
         alert(message)
       },
     })
-  } : undefined
+  }
 
   return {
     handleAddToCart,

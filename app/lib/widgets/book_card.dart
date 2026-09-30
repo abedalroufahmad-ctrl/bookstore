@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../api/api_service.dart';
 import '../config.dart';
+import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../providers/auth_provider.dart';
 import '../theme.dart';
 import '../utils/weight_format.dart';
 import 'decode_size.dart';
@@ -223,6 +227,12 @@ class BookCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                if (!book.isSold &&
+                    context.watch<AuthProvider>().userType != UserType.employee)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _AddToCartButton(bookId: book.id),
+                  ),
                 if (book.displayPublishers.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -312,6 +322,59 @@ class BookCard extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _AddToCartButton extends StatefulWidget {
+  final String bookId;
+
+  const _AddToCartButton({required this.bookId});
+
+  @override
+  State<_AddToCartButton> createState() => _AddToCartButtonState();
+}
+
+class _AddToCartButtonState extends State<_AddToCartButton> {
+  bool _adding = false;
+
+  Future<void> _add() async {
+    if (context.read<AuthProvider>().userType != UserType.customer) {
+      Navigator.pushNamed(context, '/login');
+      return;
+    }
+    final t = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _adding = true);
+    final res = await ApiService.instance.addToCart(widget.bookId);
+    if (!mounted) return;
+    setState(() => _adding = false);
+    messenger.showSnackBar(
+      SnackBar(content: Text(res.success ? t.addToCart : res.message)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return SizedBox(
+      width: double.infinity,
+      height: 34,
+      child: FilledButton.icon(
+        onPressed: _adding ? null : _add,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        icon: _adding
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.add_shopping_cart, size: 16),
+        label: Text(t.addToCart, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }

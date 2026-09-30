@@ -548,6 +548,10 @@
       "disabled": "Disabled",
       "catalogItemsPerPage": "Catalog items per page",
       "catalogItemsPerPageHint": "Number of books, categories, or authors per page on the public books list, category list, author list, and home page.",
+      "catalogLayout": "Catalog layout",
+      "catalogLayoutHint": "Set how many items appear on each page and how many show in each row. Narrow screens automatically use fewer columns.",
+      "itemsPerPage": "Items per page",
+      "itemsPerRow": "Items per row",
       "paymentCardStripe": "Credit/Debit Card (Stripe)"
     },
     "weightWithUnit": "Weight ({{unit}})",

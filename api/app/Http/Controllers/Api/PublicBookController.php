@@ -53,7 +53,7 @@ class PublicBookController extends BaseApiController
         // Deep OFFSET is slow at 1M+ docs — clamp public offset navigation.
         $filters['max_page'] = max(1, (int) config('catalog.max_offset_page', 200));
 
-        $perPage = min((int) $request->get('per_page', 32), 100);
+        $perPage = min((int) $request->get('per_page', 33), 100);
 
         $books = $this->catalogService->getCachedBooks($filters, $perPage);
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/book_grid.dart';
 
 class WarehouseListScreen extends StatefulWidget {
   const WarehouseListScreen({super.key});
@@ -20,6 +21,8 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
   Timer? _searchDebounce;
   String? _lastSearchQuery;
   int _page = 1;
+  int _perPage = 28;
+  int _perRow = 3;
   bool _hasMore = true;
   bool _loading = true;
   bool _loadingMore = false;
@@ -30,9 +33,20 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadFirst();
+    _start();
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _start() async {
+    final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final layout = catalogLayoutFromSettings(res.data, 'warehouses');
+      _perPage = layout.perPage;
+      _perRow = layout.perRow;
+    }
+    await _loadFirst();
   }
 
   @override
@@ -71,7 +85,7 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
       _hasMore = true;
       _lastSearchQuery = search;
     });
-    final res = await ApiService.instance.getWarehousesPaginated(1, search: search);
+    final res = await ApiService.instance.getWarehousesPaginated(1, perPage: _perPage, search: search);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -88,7 +102,7 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
     if (!_hasMore || _loadingMore) return;
     setState(() => _loadingMore = true);
     final next = _page + 1;
-    final res = await ApiService.instance.getWarehousesPaginated(next, search: _lastSearchQuery);
+    final res = await ApiService.instance.getWarehousesPaginated(next, perPage: _perPage, search: _lastSearchQuery);
     if (!mounted) return;
     setState(() {
       _loadingMore = false;
@@ -171,11 +185,11 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
                             child: GridView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.all(16),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
+                              gridDelegate: catalogGridDelegate(
+                                width: MediaQuery.sizeOf(context).width,
+                                perRow: _perRow,
                                 childAspectRatio: 1.2,
+                                spacing: 16,
                               ),
                               itemCount: _items.length + (_hasMore ? 1 : 0),
                               itemBuilder: (context, i) {

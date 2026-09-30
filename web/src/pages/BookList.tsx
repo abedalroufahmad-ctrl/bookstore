@@ -14,7 +14,7 @@ import {
 import { BookCard } from '../components/BookCard'
 import { type BookConditionFilterValue } from '../components/BookConditionFilter'
 import { Pagination } from '../components/Pagination'
-import { useSettings } from '../contexts/SettingsContext'
+import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
 import { useAddToCart } from '../hooks/useAddToCart'
 import { getPublisherEntries, getWarehouseId } from '../lib/utils'
 
@@ -62,6 +62,7 @@ export function BookList() {
   const { settings } = useSettings()
   const [searchParams, setSearchParams] = useSearchParams()
   const { handleAddToCart, isAddingToCart, isInCart } = useAddToCart()
+  const perPage = settings.books.per_page
 
   const search = searchParams.get('search') ?? ''
   const condition = parseCondition(searchParams.get('condition'))
@@ -141,12 +142,12 @@ export function BookList() {
       categoryId,
       warehouseId,
       publisherId,
-      settings.catalog_items_per_page,
+      perPage,
     ],
     queryFn: async () => {
       const params: Record<string, string | number> = {
         page,
-        per_page: settings.catalog_items_per_page,
+        per_page: perPage,
       }
       if (search) params.search = search
       if (condition) params.condition = condition
@@ -160,25 +161,11 @@ export function BookList() {
     staleTime: 60_000,
   })
 
-  if (isLoading && !data) {
-    return (
-      <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>
-        {t('common.loading')}
-      </div>
-    )
-  }
-  if (error) {
-    return (
-      <div className="text-center py-12" style={{ color: 'var(--color-discount)' }}>
-        {t('books.failedToLoad')}
-      </div>
-    )
-  }
-
   const paginated = data?.data
   const items = paginated?.data ?? []
   const meta = paginated && 'current_page' in paginated ? paginated : null
   const hasActiveFilters = Boolean(condition || categoryId || warehouseId || publisherId)
+  const showInitialLoading = isLoading && !data
 
   const toggleCategory = (id: string) => {
     setDraft((prev) => ({
@@ -306,6 +293,18 @@ export function BookList() {
       </aside>
 
       <div>
+        {showInitialLoading && (
+          <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>
+            {t('common.loading')}
+          </div>
+        )}
+        {error && (
+          <div className="text-center py-12" style={{ color: 'var(--color-discount)' }}>
+            {t('books.failedToLoad')}
+          </div>
+        )}
+        {!showInitialLoading && !error && (
+        <>
         <div className="shop-toolbar">
           <h1 className="shop-toolbar-title">{t('books.title')}</h1>
           {hasActiveFilters && (
@@ -329,7 +328,7 @@ export function BookList() {
           )}
         </div>
 
-        <div className="books-grid">
+        <div className="books-grid" style={catalogGridStyle(settings.books.per_row)}>
           {items.map((book: any) => (
             <BookCard
               key={book._id}
@@ -349,7 +348,7 @@ export function BookList() {
               globalDiscount={settings.global_discount}
               condition={book.condition}
               isSold={book.is_sold}
-              onAddToCart={book.is_sold ? undefined : handleAddToCart}
+              onAddToCart={handleAddToCart}
               isAddingToCart={isAddingToCart(book._id)}
               isInCart={isInCart(book._id)}
             />
@@ -373,6 +372,8 @@ export function BookList() {
                 : 200
             }
           />
+        )}
+        </>
         )}
       </div>
     </div>

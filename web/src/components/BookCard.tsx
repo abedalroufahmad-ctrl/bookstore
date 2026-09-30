@@ -206,7 +206,7 @@ export function BookCard({
         </div>
       )}
 
-      {onAddToCart && (
+      {onAddToCart && !isSold ? (
         <button
           type="button"
           className={`book-card-cart-btn${isInCart ? ' is-in-cart' : ''}`}
@@ -220,7 +220,7 @@ export function BookCard({
         >
           {isAddingToCart ? t('common.loading') : t('bookDetail.addToCart')}
         </button>
-      )}
+      ) : null}
 
       {(authors?.length || authorName) && (
         <div className="book-card-authors">

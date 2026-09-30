@@ -38,7 +38,14 @@ export function AdminSettings() {
   const [globalDiscount, setGlobalDiscount] = useState<number>(0)
   const [invoiceShippingFee, setInvoiceShippingFee] = useState<number>(0)
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg')
-  const [catalogItemsPerPage, setCatalogItemsPerPage] = useState<number>(25)
+  const [booksPerPage, setBooksPerPage] = useState<number>(27)
+  const [booksPerRow, setBooksPerRow] = useState<number>(5)
+  const [authorsPerPage, setAuthorsPerPage] = useState<number>(28)
+  const [authorsPerRow, setAuthorsPerRow] = useState<number>(4)
+  const [categoriesPerPage, setCategoriesPerPage] = useState<number>(28)
+  const [categoriesPerRow, setCategoriesPerRow] = useState<number>(3)
+  const [warehousesPerPage, setWarehousesPerPage] = useState<number>(28)
+  const [warehousesPerRow, setWarehousesPerRow] = useState<number>(3)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>(DEFAULT_PAYMENT_METHODS)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -63,8 +70,18 @@ export function AdminSettings() {
       const shipping = Number(d.invoice_shipping_fee)
       setInvoiceShippingFee(Number.isNaN(shipping) ? 0 : Math.max(0, shipping))
       setWeightUnit((d.weight_unit as WeightUnit) || 'kg')
-      const perPage = Number(d.catalog_items_per_page)
-      setCatalogItemsPerPage(perPage >= 1 && perPage <= 100 ? Math.round(perPage) : 25)
+      const clamp = (value: unknown, fallback: number, min: number, max: number) => {
+        const n = Number(value)
+        return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback
+      }
+      setBooksPerPage(clamp(d.books_per_page ?? d.catalog_items_per_page, 27, 1, 100))
+      setBooksPerRow(clamp(d.books_per_row, 5, 1, 8))
+      setAuthorsPerPage(clamp(d.authors_per_page, 28, 1, 100))
+      setAuthorsPerRow(clamp(d.authors_per_row, 4, 1, 8))
+      setCategoriesPerPage(clamp(d.categories_per_page, 28, 1, 100))
+      setCategoriesPerRow(clamp(d.categories_per_row, 3, 1, 8))
+      setWarehousesPerPage(clamp(d.warehouses_per_page, 28, 1, 100))
+      setWarehousesPerRow(clamp(d.warehouses_per_row, 3, 1, 8))
       setPaymentMethods(normalizePaymentMethods(d.payment_methods))
     }
   }, [data])
@@ -74,7 +91,14 @@ export function AdminSettings() {
       global_discount?: number
       invoice_shipping_fee?: number
       weight_unit?: WeightUnit
-      catalog_items_per_page?: number
+      books_per_page?: number
+      books_per_row?: number
+      authors_per_page?: number
+      authors_per_row?: number
+      categories_per_page?: number
+      categories_per_row?: number
+      warehouses_per_page?: number
+      warehouses_per_row?: number
       payment_methods?: PaymentMethodItem[]
     }) => admin.settings.update(payload),
     onSuccess: () => {
@@ -98,7 +122,14 @@ export function AdminSettings() {
       global_discount: globalDiscount,
       invoice_shipping_fee: invoiceShippingFee,
       weight_unit: weightUnit,
-      catalog_items_per_page: catalogItemsPerPage,
+      books_per_page: booksPerPage,
+      books_per_row: booksPerRow,
+      authors_per_page: authorsPerPage,
+      authors_per_row: authorsPerRow,
+      categories_per_page: categoriesPerPage,
+      categories_per_row: categoriesPerRow,
+      warehouses_per_page: warehousesPerPage,
+      warehouses_per_row: warehousesPerRow,
       payment_methods: paymentMethods,
     })
   }
@@ -190,23 +221,51 @@ export function AdminSettings() {
           </p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            {t('admin.settings.catalogItemsPerPage') || 'Catalog items per page'}
-          </label>
-          <div className="flex items-center gap-4">
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={catalogItemsPerPage}
-              onChange={(e) => setCatalogItemsPerPage(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 25)))}
-              className="w-32 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
-            />
+        <div className="border border-slate-200 rounded-lg p-4 space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-navy-900">
+              {t('admin.settings.catalogLayout') || 'Catalog layout'}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {t('admin.settings.catalogLayoutHint') || 'Set how many items appear on each page and how many show in each row. Narrow screens automatically use fewer columns.'}
+            </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
-            {t('admin.settings.catalogItemsPerPageHint') || 'Number of books, categories, or authors per page on the public books list, category list, author list, and home page.'}
-          </p>
+          <LayoutFields
+            title={t('nav.books')}
+            perPage={booksPerPage}
+            perRow={booksPerRow}
+            onPerPage={setBooksPerPage}
+            onPerRow={setBooksPerRow}
+            perPageLabel={t('admin.settings.itemsPerPage') || 'Items per page'}
+            perRowLabel={t('admin.settings.itemsPerRow') || 'Items per row'}
+          />
+          <LayoutFields
+            title={t('nav.authors')}
+            perPage={authorsPerPage}
+            perRow={authorsPerRow}
+            onPerPage={setAuthorsPerPage}
+            onPerRow={setAuthorsPerRow}
+            perPageLabel={t('admin.settings.itemsPerPage') || 'Items per page'}
+            perRowLabel={t('admin.settings.itemsPerRow') || 'Items per row'}
+          />
+          <LayoutFields
+            title={t('nav.categories')}
+            perPage={categoriesPerPage}
+            perRow={categoriesPerRow}
+            onPerPage={setCategoriesPerPage}
+            onPerRow={setCategoriesPerRow}
+            perPageLabel={t('admin.settings.itemsPerPage') || 'Items per page'}
+            perRowLabel={t('admin.settings.itemsPerRow') || 'Items per row'}
+          />
+          <LayoutFields
+            title={t('nav.warehouses')}
+            perPage={warehousesPerPage}
+            perRow={warehousesPerRow}
+            onPerPage={setWarehousesPerPage}
+            onPerRow={setWarehousesPerRow}
+            perPageLabel={t('admin.settings.itemsPerPage') || 'Items per page'}
+            perRowLabel={t('admin.settings.itemsPerRow') || 'Items per row'}
+          />
         </div>
 
         <div>
@@ -357,6 +416,54 @@ export function AdminSettings() {
           </button>
         </div>
       </form>
+    </div>
+  )
+}
+
+function LayoutFields({
+  title,
+  perPage,
+  perRow,
+  onPerPage,
+  onPerRow,
+  perPageLabel,
+  perRowLabel,
+}: {
+  title: string
+  perPage: number
+  perRow: number
+  onPerPage: (value: number) => void
+  onPerRow: (value: number) => void
+  perPageLabel: string
+  perRowLabel: string
+}) {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-slate-800 mb-2">{title}</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label className="block text-sm text-slate-700">
+          {perPageLabel}
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={perPage}
+            onChange={(e) => onPerPage(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+            className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+          />
+        </label>
+        <label className="block text-sm text-slate-700">
+          {perRowLabel}
+          <input
+            type="number"
+            min={1}
+            max={8}
+            value={perRow}
+            onChange={(e) => onPerRow(Math.min(8, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+            className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+          />
+        </label>
+      </div>
     </div>
   )
 }

@@ -77,7 +77,7 @@ Roles: `manager`, `publisher_manager`, `warehouse_manager`, `shipping`, `account
 | Customers / employees | Admin management; filter employees by role, publisher and warehouse; convert customer → employee; warehouse managers, shipping and direct-sales staff can have multiple warehouses |
 | **Direct sales (POS)** | Walk-in invoices with optional customer name (no customer login). Staff pick books, create and print the invoice. Default catalog is the employee's own warehouse. Managers, publisher managers, warehouse managers and direct-sales staff (own invoices only) can review invoices. Reports show **today**, **this month**, **this year** and **all time** totals plus a day/month/year breakdown in the viewer's timezone. |
 | Orders | List, assign, status, warehouse quote, bulk delete; shipping staff see fulfillment statuses; accounting sees all statuses |
-| Settings | Global site options, payment methods, catalog items per page (default **24**) |
+| Settings | Global site options, payment methods, catalog items per page (default **27**) |
 | Countries / reports | Country/city sync; books-without-cover report; browse books by warehouse |
 
 ### Payments

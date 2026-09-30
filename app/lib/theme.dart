@@ -50,7 +50,7 @@ ThemeData buildLightTheme() {
   const outline = AppColors.border;
   const error = AppColors.discount;
 
-  final baseText = GoogleFonts.cairoTextTheme();
+  final baseText = _cairoTextTheme(ThemeData.light().textTheme);
 
   return ThemeData(
     useMaterial3: true,
@@ -208,7 +208,7 @@ ThemeData buildDarkTheme() {
   const outline = AppColors.darkBorder;
   const error = Color(0xFFF87171);
 
-  final baseText = GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme);
+  final baseText = _cairoTextTheme(ThemeData.dark().textTheme);
 
   return ThemeData(
     useMaterial3: true,
@@ -352,5 +352,27 @@ ThemeData buildDarkTheme() {
       elevation: 2,
       shape: StadiumBorder(),
     ),
+  );
+}
+
+/// google_fonts 9 returns `material_ui` [TextTheme], a different type than
+/// `package:flutter/material.dart`. Apply Cairo per style instead.
+TextTheme _cairoTextTheme(TextTheme base) {
+  return TextTheme(
+    displayLarge: GoogleFonts.cairo(textStyle: base.displayLarge),
+    displayMedium: GoogleFonts.cairo(textStyle: base.displayMedium),
+    displaySmall: GoogleFonts.cairo(textStyle: base.displaySmall),
+    headlineLarge: GoogleFonts.cairo(textStyle: base.headlineLarge),
+    headlineMedium: GoogleFonts.cairo(textStyle: base.headlineMedium),
+    headlineSmall: GoogleFonts.cairo(textStyle: base.headlineSmall),
+    titleLarge: GoogleFonts.cairo(textStyle: base.titleLarge),
+    titleMedium: GoogleFonts.cairo(textStyle: base.titleMedium),
+    titleSmall: GoogleFonts.cairo(textStyle: base.titleSmall),
+    bodyLarge: GoogleFonts.cairo(textStyle: base.bodyLarge),
+    bodyMedium: GoogleFonts.cairo(textStyle: base.bodyMedium),
+    bodySmall: GoogleFonts.cairo(textStyle: base.bodySmall),
+    labelLarge: GoogleFonts.cairo(textStyle: base.labelLarge),
+    labelMedium: GoogleFonts.cairo(textStyle: base.labelMedium),
+    labelSmall: GoogleFonts.cairo(textStyle: base.labelSmall),
   );
 }

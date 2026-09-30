@@ -3,7 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { authors as authorsApi, books as booksApi } from '../lib/api'
 import { resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
-import { useSettings } from '../contexts/SettingsContext'
+import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
 import { useAuth } from '../contexts/AuthContext'
 import { BookCard } from '../components/BookCard'
 import { Pagination } from '../components/Pagination'
@@ -26,6 +26,7 @@ export function AuthorBooks() {
 
     const { t } = useTranslation()
     const { settings } = useSettings()
+    const perPage = settings.books.per_page
 
     const { data: authorData, isLoading: authorLoading } = useQuery({
         queryKey: ['author', id],
@@ -38,9 +39,9 @@ export function AuthorBooks() {
     })
 
     const { data: booksData, isLoading: booksLoading } = useQuery({
-        queryKey: ['books', 'author', id, page, search, settings.catalog_items_per_page],
+        queryKey: ['books', 'author', id, page, search, perPage],
         queryFn: async () => {
-            const params: Record<string, string | number> = { author_id: id!, page, per_page: settings.catalog_items_per_page }
+            const params: Record<string, string | number> = { author_id: id!, page, per_page: perPage }
             if (search) params.search = search
             const res = await booksApi.list(params)
             return res.data
@@ -215,13 +216,7 @@ export function AuthorBooks() {
 
             {/* Books Grid */}
             {bookItems.length > 0 ? (
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
-                        gap: 24,
-                    }}
-                >
+                <div className="books-grid" style={catalogGridStyle(settings.books.per_row)}>
                     {bookItems.map((book) => (
                         <BookCard
                             key={book._id}
@@ -239,6 +234,8 @@ export function AuthorBooks() {
                             categoryName={(book.category && (book.category.subject_title_en || book.category.subject_title_ar || book.category.dewey_code)) || undefined}
                             discountPercent={book.discount_percent ?? 0}
                             globalDiscount={settings.global_discount ?? 0}
+                            condition={book.condition}
+                            isSold={book.is_sold}
                             onAddToCart={handleAddToCart}
                             isAddingToCart={isAddingToCart(book._id)}
                             isInCart={isInCart(book._id)}

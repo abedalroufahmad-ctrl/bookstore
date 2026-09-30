@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/book_grid.dart';
 import '../widgets/book_card.dart';
 
 class BookListScreen extends StatefulWidget {
@@ -36,6 +37,8 @@ class _BookListScreenState extends State<BookListScreen> {
   List<Publisher> _publishers = [];
 
   int _page = 1;
+  int _perPage = 27;
+  int _perRow = 5;
   bool _hasMore = true;
   bool _loading = true;
   bool _loadingMore = false;
@@ -47,9 +50,20 @@ class _BookListScreenState extends State<BookListScreen> {
   void initState() {
     super.initState();
     _loadFilterOptions();
-    _loadFirst();
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
+    _start();
+  }
+
+  Future<void> _start() async {
+    final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      final layout = catalogLayoutFromSettings(res.data, 'books');
+      _perPage = layout.perPage;
+      _perRow = layout.perRow;
+    }
+    await _loadFirst();
   }
 
   @override
@@ -157,6 +171,7 @@ class _BookListScreenState extends State<BookListScreen> {
     });
     final res = await ApiService.instance.getBooksPaginated(
       1,
+      perPage: _perPage,
       search: search,
       condition: _condition,
       categoryId: _categoryId,
@@ -182,6 +197,7 @@ class _BookListScreenState extends State<BookListScreen> {
     final nextPage = _page + 1;
     final res = await ApiService.instance.getBooksPaginated(
       nextPage,
+      perPage: _perPage,
       search: _lastSearchQuery,
       condition: _condition,
       categoryId: _categoryId,
@@ -400,11 +416,9 @@ class _BookListScreenState extends State<BookListScreen> {
                             child: GridView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.all(12),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
-                                childAspectRatio: 0.64,
+                              gridDelegate: catalogGridDelegate(
+                                width: MediaQuery.sizeOf(context).width,
+                                perRow: _perRow,
                               ),
                               itemCount: _books.length + (_hasMore ? 1 : 0),
                               itemBuilder: (context, i) {

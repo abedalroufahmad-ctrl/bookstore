@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/book_grid.dart';
 import '../widgets/book_card.dart';
 
 class AuthorBooksScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _AuthorBooksScreenState extends State<AuthorBooksScreen> {
   List<Book> _books = [];
   bool _loading = true;
   String? _error;
+  int _perRow = 5;
 
   @override
   void initState() {
@@ -35,7 +37,13 @@ class _AuthorBooksScreenState extends State<AuthorBooksScreen> {
       _loading = true;
       _error = null;
     });
-    final res = await ApiService.instance.getBooks(params: {'author_id': widget.authorId});
+    final settingsRes = await ApiService.instance.getSettings();
+    final layout = catalogLayoutFromSettings(settingsRes.data, 'books');
+    _perRow = layout.perRow;
+    final res = await ApiService.instance.getBooks(params: {
+      'author_id': widget.authorId,
+      'per_page': '${layout.perPage}',
+    });
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -69,11 +77,9 @@ class _AuthorBooksScreenState extends State<AuthorBooksScreen> {
                   ? Center(child: Text(t.noBooksForAuthor))
                   : GridView.builder(
                       padding: const EdgeInsets.all(16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 0.6,
+                      gridDelegate: catalogGridDelegate(
+                        width: MediaQuery.sizeOf(context).width,
+                        perRow: _perRow,
                       ),
                       itemCount: _books.length,
                       itemBuilder: (context, i) {

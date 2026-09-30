@@ -29,6 +29,16 @@ export function isTrustedPayPalUrl(raw: string): boolean {
   }
 }
 
+/** Constant-time string equality, so comparing secrets does not leak how many leading characters match. */
+export function secureEquals(a: string, b: string): boolean {
+  const length = Math.max(a.length, b.length)
+  let diff = a.length ^ b.length
+  for (let i = 0; i < length; i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0)
+  }
+  return diff === 0
+}
+
 /** True when the book has at least one cover image URL (thumb or full). */
 export function hasCover(book: { cover_image?: string; cover_image_thumb?: string }): boolean {
   return (

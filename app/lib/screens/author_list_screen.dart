@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/book_grid.dart';
 
 class AuthorListScreen extends StatefulWidget {
   const AuthorListScreen({super.key});
@@ -20,6 +21,7 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
   Timer? _searchDebounce;
   String? _lastSearchQuery;
   int _page = 1;
+  int _perPage = 28;
   bool _hasMore = true;
   bool _loading = true;
   bool _loadingMore = false;
@@ -30,9 +32,18 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadFirst();
+    _start();
     _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _start() async {
+    final res = await ApiService.instance.getSettings();
+    if (!mounted) return;
+    if (res.success && res.data != null) {
+      _perPage = catalogLayoutFromSettings(res.data, 'authors').perPage;
+    }
+    await _loadFirst();
   }
 
   @override
@@ -71,7 +82,7 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
       _hasMore = true;
       _lastSearchQuery = search;
     });
-    final res = await ApiService.instance.getAuthorsPaginated(1, search: search);
+    final res = await ApiService.instance.getAuthorsPaginated(1, perPage: _perPage, search: search);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -89,7 +100,7 @@ class _AuthorListScreenState extends State<AuthorListScreen> {
     if (!_hasMore || _loadingMore) return;
     setState(() => _loadingMore = true);
     final nextPage = _page + 1;
-    final res = await ApiService.instance.getAuthorsPaginated(nextPage, search: _lastSearchQuery);
+    final res = await ApiService.instance.getAuthorsPaginated(nextPage, perPage: _perPage, search: _lastSearchQuery);
     if (!mounted) return;
     setState(() {
       _loadingMore = false;

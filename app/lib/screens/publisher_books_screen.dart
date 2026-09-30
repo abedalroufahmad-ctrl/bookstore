@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
+import '../utils/book_grid.dart';
 import '../widgets/book_card.dart';
 
 class PublisherBooksScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _PublisherBooksScreenState extends State<PublisherBooksScreen> {
   List<Book> _books = [];
   bool _loading = true;
   String? _error;
+  int _perRow = 5;
 
   @override
   void initState() {
@@ -36,8 +38,11 @@ class _PublisherBooksScreenState extends State<PublisherBooksScreen> {
       _loading = true;
       _error = null;
     });
+    final settingsRes = await ApiService.instance.getSettings();
+    final layout = catalogLayoutFromSettings(settingsRes.data, 'books');
+    _perRow = layout.perRow;
     final res = await ApiService.instance.getBooks(
-      params: {'publisher_id': widget.publisherId},
+      params: {'publisher_id': widget.publisherId, 'per_page': '${layout.perPage}'},
     );
     if (!mounted) return;
     setState(() {
@@ -78,11 +83,9 @@ class _PublisherBooksScreenState extends State<PublisherBooksScreen> {
                     )
                   : GridView.builder(
                       padding: const EdgeInsets.all(12),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 0.64,
+                      gridDelegate: catalogGridDelegate(
+                        width: MediaQuery.sizeOf(context).width,
+                        perRow: _perRow,
                       ),
                       itemCount: _books.length,
                       itemBuilder: (context, i) {

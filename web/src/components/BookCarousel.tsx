@@ -79,6 +79,8 @@ export function BookCarousel({
                             categoryName={(book.category && (book.category.subject_title_en || book.category.subject_title_ar || book.category.dewey_code)) || undefined}
                             discountPercent={book.discount_percent}
                             globalDiscount={globalDiscount}
+                            condition={book.condition}
+                            isSold={book.is_sold}
                             onAddToCart={handleAddToCart}
                             isAddingToCart={isAddingToCart(book._id)}
                             isInCart={isInCart(book._id)}
