@@ -24,15 +24,21 @@ class _AdminPublisherSettingsScreenState
   final _bankNameCtrl = TextEditingController();
   final _bankAccountCtrl = TextEditingController();
   final _commissionCtrl = TextEditingController();
+  final _settleAmountCtrl = TextEditingController();
+  final _settleReferenceCtrl = TextEditingController();
+  final _settleNoteCtrl = TextEditingController();
 
   bool _loading = true;
   bool _saving = false;
+  bool _settling = false;
   bool _didInit = false;
   bool _isManager = false;
   String? _error;
   String? _publisherId;
   List<Map<String, dynamic>> _globalPaymentMethods = [];
   List<String> _selectedPaymentMethods = [];
+  Map<String, dynamic>? _commissionAccount;
+  List<Map<String, dynamic>> _commissionLedger = [];
 
   @override
   void didChangeDependencies() {
@@ -58,6 +64,9 @@ class _AdminPublisherSettingsScreenState
     _bankNameCtrl.dispose();
     _bankAccountCtrl.dispose();
     _commissionCtrl.dispose();
+    _settleAmountCtrl.dispose();
+    _settleReferenceCtrl.dispose();
+    _settleNoteCtrl.dispose();
     super.dispose();
   }
 
@@ -76,6 +85,8 @@ class _AdminPublisherSettingsScreenState
     });
     final settingsRes = await ApiService.instance.adminPublisherSettingsGet(id);
     final globalRes = await ApiService.instance.adminGetSettings();
+    final commissionRes =
+        await ApiService.instance.adminPublisherCommissionAccount(id);
     if (!mounted) return;
     if (!settingsRes.success || settingsRes.data == null) {
       setState(() {
@@ -99,6 +110,22 @@ class _AdminPublisherSettingsScreenState
         ? methods.map((e) => e.toString()).toList()
         : <String>[];
     _globalPaymentMethods = _parsePaymentMethods(globalRes.data);
+    if (commissionRes.success && commissionRes.data != null) {
+      final account = commissionRes.data!['account'];
+      _commissionAccount =
+          account is Map ? Map<String, dynamic>.from(account) : null;
+      final ledger = commissionRes.data!['ledger'];
+      final ledgerData = ledger is Map ? ledger['data'] : null;
+      _commissionLedger = ledgerData is List
+          ? ledgerData
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList()
+          : <Map<String, dynamic>>[];
+    } else {
+      _commissionAccount = null;
+      _commissionLedger = [];
+    }
     setState(() => _loading = false);
   }
 
@@ -115,6 +142,11 @@ class _AdminPublisherSettingsScreenState
       }).toList();
     }
     return [];
+  }
+
+  double _num(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0;
   }
 
   Future<void> _save() async {
@@ -171,9 +203,51 @@ class _AdminPublisherSettingsScreenState
     }
   }
 
+  Future<void> _recordTransfer() async {
+    final t = AppLocalizations.of(context);
+    final id = _publisherId;
+    if (id == null) return;
+
+    final amount = double.tryParse(
+      _settleAmountCtrl.text.trim().replaceAll(',', '.'),
+    );
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.adminCommissionAmountInvalid)),
+      );
+      return;
+    }
+
+    setState(() => _settling = true);
+    final res = await ApiService.instance.adminPublisherCommissionSettlement(id, {
+      'amount': amount,
+      if (_settleReferenceCtrl.text.trim().isNotEmpty)
+        'reference': _settleReferenceCtrl.text.trim(),
+      if (_settleNoteCtrl.text.trim().isNotEmpty) 'note': _settleNoteCtrl.text.trim(),
+    });
+    if (!mounted) return;
+    setState(() => _settling = false);
+    if (res.success) {
+      _settleAmountCtrl.clear();
+      _settleReferenceCtrl.clear();
+      _settleNoteCtrl.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.adminCommissionTransferRecorded)),
+      );
+      _load();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res.message.isNotEmpty ? res.message : t.adminFailedSave),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final owed = _num(_commissionAccount?['commission_owed']);
     return Scaffold(
       appBar: AppBar(
         title: Text(t.adminPublisherSettings),
@@ -198,6 +272,101 @@ class _AdminPublisherSettingsScreenState
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    Text(
+                      t.adminCommissionAccount,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      t.adminCommissionAccountHint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          children: [
+                            _balanceRow(
+                              t.adminCommissionOwed,
+                              owed,
+                              emphasize: true,
+                            ),
+                            _balanceRow(
+                              t.adminCommissionAccrued,
+                              _num(_commissionAccount?['commission_accrued_total']),
+                            ),
+                            _balanceRow(
+                              t.adminCommissionPaid,
+                              _num(_commissionAccount?['commission_paid_total']),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      t.adminMarkCommissionTransfer,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _settleAmountCtrl,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(labelText: t.adminTransferAmount),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _settleReferenceCtrl,
+                      decoration:
+                          InputDecoration(labelText: t.adminTransferReference),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _settleNoteCtrl,
+                      decoration: InputDecoration(labelText: t.adminTransferNote),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed: (_settling || owed <= 0) ? null : _recordTransfer,
+                      child: _settling
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(t.adminRecordTransfer),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      t.adminCommissionLedger,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    if (_commissionLedger.isEmpty)
+                      Text(t.adminCommissionLedgerEmpty)
+                    else
+                      ..._commissionLedger.map((entry) {
+                        final type = '${entry['type'] ?? ''}';
+                        final amount = _num(entry['amount']);
+                        final label = type == 'settlement'
+                            ? t.adminCommissionTypeSettlement
+                            : t.adminCommissionTypeSale;
+                        final detail = type == 'sale_accrual'
+                            ? '${entry['order_id'] ?? ''}'
+                            : [
+                                entry['reference'],
+                                entry['note'],
+                              ].where((e) => e != null && '$e'.isNotEmpty).join(' · ');
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(label),
+                          subtitle: Text(detail.isEmpty ? '—' : detail),
+                          trailing: Text('\$${amount.toStringAsFixed(2)}'),
+                        );
+                      }),
+                    const Divider(height: 32),
                     TextField(
                       controller: _supportEmailCtrl,
                       keyboardType: TextInputType.emailAddress,
@@ -314,6 +483,23 @@ class _AdminPublisherSettingsScreenState
                     ),
                   ],
                 ),
+    );
+  }
+
+  Widget _balanceRow(String label, double amount, {bool emphasize = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text(
+            '\$${amount.toStringAsFixed(2)}',
+            style: emphasize
+                ? Theme.of(context).textTheme.titleMedium
+                : Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
 }

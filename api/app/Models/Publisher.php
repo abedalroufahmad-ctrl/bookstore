@@ -21,17 +21,29 @@ class Publisher extends Model
         'email',
         'website',
         'settings',
+        'commission_owed',
+        'commission_accrued_total',
+        'commission_paid_total',
     ];
 
     protected $casts = [
         'settings' => 'array',
+        'commission_owed' => 'float',
+        'commission_accrued_total' => 'float',
+        'commission_paid_total' => 'float',
     ];
 
     /**
      * Raw settings hold payout data (bank account, PayPal ids, commission) and must only be
-     * returned by the dedicated admin settings endpoint.
+     * returned by the dedicated admin settings endpoint. Running commission balances are
+     * internal to managers / publisher managers.
      */
-    protected $hidden = ['settings'];
+    protected $hidden = [
+        'settings',
+        'commission_owed',
+        'commission_accrued_total',
+        'commission_paid_total',
+    ];
 
     protected $appends = ['public_settings'];
 

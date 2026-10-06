@@ -33,7 +33,8 @@ class OrderService extends BaseService implements OrderServiceInterface
         protected OrderRepositoryInterface $orderRepository,
         protected StockServiceInterface $stockService,
         protected PaymentRepository $paymentRepository,
-        protected PublisherPayoutService $publisherPayoutService
+        protected PublisherPayoutService $publisherPayoutService,
+        protected PublisherCommissionAccountService $commissionAccountService
     ) {}
 
     public function createPosInvoice(array $items, string $warehouseId, ?string $employeeId = null, ?string $customerName = null): Order
@@ -101,6 +102,7 @@ class OrderService extends BaseService implements OrderServiceInterface
             }
 
             $this->enrichOrderItemsWithBookTitles($order);
+            $this->commissionAccountService->accrueForOrder($order);
             $order->loadMissing(['warehouse.publisher', 'employee']);
 
             return $order;
@@ -319,7 +321,12 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $this->orderRepository->update($order->getKey(), $patch);
 
-        return $order->fresh(['customer', 'employee']);
+        $fresh = $order->fresh(['customer', 'employee']);
+        if ($next === OrderStatus::Completed && $fresh instanceof Order) {
+            $this->commissionAccountService->accrueForOrder($fresh);
+        }
+
+        return $fresh;
     }
 
     private function assertEmployeeWorkflowTransition(OrderStatus $current, OrderStatus $next): void

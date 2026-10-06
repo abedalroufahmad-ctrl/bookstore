@@ -23,22 +23,20 @@ use MongoDB\Exception\InvalidArgumentException;
 use MongoDB\Exception\UnsupportedException;
 use MongoDB\UpdateResult;
 
-use function is_array;
-use function is_object;
 use function MongoDB\is_first_key_operator;
 use function MongoDB\is_pipeline;
 
 /**
  * Operation for updating multiple documents with the update command.
  *
- * @api
  * @see \MongoDB\Collection::updateMany()
  * @see https://mongodb.com/docs/manual/reference/command/update/
+ *
+ * @final extending this class will not be supported in v2.0.0
  */
 class UpdateMany implements Executable, Explainable
 {
-    /** @var Update */
-    private $update;
+    private Update $update;
 
     /**
      * Constructs an update command.
@@ -83,14 +81,10 @@ class UpdateMany implements Executable, Explainable
      * @param array        $options        Command options
      * @throws InvalidArgumentException for parameter/option parsing errors
      */
-    public function __construct(string $databaseName, string $collectionName, $filter, $update, array $options = [])
+    public function __construct(string $databaseName, string $collectionName, array|object $filter, array|object $update, array $options = [])
     {
-        if (! is_array($update) && ! is_object($update)) {
-            throw InvalidArgumentException::invalidType('$update', $update, 'array or object');
-        }
-
         if (! is_first_key_operator($update) && ! is_pipeline($update)) {
-            throw new InvalidArgumentException('Expected an update document with operator as first key or a pipeline');
+            throw new InvalidArgumentException('Expected update operator(s) or non-empty pipeline for $update');
         }
 
         $this->update = new Update(
@@ -98,7 +92,7 @@ class UpdateMany implements Executable, Explainable
             $collectionName,
             $filter,
             $update,
-            ['multi' => true] + $options
+            ['multi' => true] + $options,
         );
     }
 
@@ -121,8 +115,8 @@ class UpdateMany implements Executable, Explainable
      * @see Explainable::getCommandDocument()
      * @return array
      */
-    public function getCommandDocument(Server $server)
+    public function getCommandDocument()
     {
-        return $this->update->getCommandDocument($server);
+        return $this->update->getCommandDocument();
     }
 }

@@ -25,15 +25,10 @@ use MongoDB\Exception\BadMethodCallException;
  */
 class DeleteResult
 {
-    /** @var WriteResult */
-    private $writeResult;
+    private bool $isAcknowledged;
 
-    /** @var boolean */
-    private $isAcknowledged;
-
-    public function __construct(WriteResult $writeResult)
+    public function __construct(private WriteResult $writeResult)
     {
-        $this->writeResult = $writeResult;
         $this->isAcknowledged = $writeResult->isAcknowledged();
     }
 
@@ -44,7 +39,7 @@ class DeleteResult
      *
      * @see DeleteResult::isAcknowledged()
      * @return integer|null
-     * @throws BadMethodCallException is the write result is unacknowledged
+     * @throws BadMethodCallException if the write result is unacknowledged
      */
     public function getDeletedCount()
     {

@@ -26,9 +26,9 @@ use MongoDB\Driver\WriteConcern;
 use MongoDB\Exception\InvalidArgumentException;
 use MongoDB\Exception\UnsupportedException;
 
-use function is_array;
-use function is_object;
 use function is_string;
+use function MongoDB\create_namespace;
+use function MongoDB\is_document;
 use function MongoDB\is_write_concern_acknowledged;
 use function MongoDB\server_supports_feature;
 
@@ -43,23 +43,9 @@ use function MongoDB\server_supports_feature;
  */
 class Delete implements Executable, Explainable
 {
-    /** @var integer */
-    private static $wireVersionForHint = 9;
+    private const WIRE_VERSION_FOR_HINT = 9;
 
-    /** @var string */
-    private $databaseName;
-
-    /** @var string */
-    private $collectionName;
-
-    /** @var array|object */
-    private $filter;
-
-    /** @var integer */
-    private $limit;
-
-    /** @var array */
-    private $options;
+    private string $namespace;
 
     /**
      * Constructs a delete command.
@@ -97,45 +83,41 @@ class Delete implements Executable, Explainable
      * @param array        $options        Command options
      * @throws InvalidArgumentException for parameter/option parsing errors
      */
-    public function __construct(string $databaseName, string $collectionName, $filter, int $limit, array $options = [])
+    public function __construct(string $databaseName, private string $collectionName, private array|object $filter, private int $limit, private array $options = [])
     {
-        if (! is_array($filter) && ! is_object($filter)) {
-            throw InvalidArgumentException::invalidType('$filter', $filter, 'array or object');
+        $this->namespace = create_namespace($databaseName, $collectionName);
+
+        if (! is_document($filter)) {
+            throw InvalidArgumentException::expectedDocumentType('$filter', $filter);
         }
 
         if ($limit !== 0 && $limit !== 1) {
             throw new InvalidArgumentException('$limit must be 0 or 1');
         }
 
-        if (isset($options['collation']) && ! is_array($options['collation']) && ! is_object($options['collation'])) {
-            throw InvalidArgumentException::invalidType('"collation" option', $options['collation'], 'array or object');
+        if (isset($this->options['collation']) && ! is_document($this->options['collation'])) {
+            throw InvalidArgumentException::expectedDocumentType('"collation" option', $this->options['collation']);
         }
 
-        if (isset($options['hint']) && ! is_string($options['hint']) && ! is_array($options['hint']) && ! is_object($options['hint'])) {
-            throw InvalidArgumentException::invalidType('"hint" option', $options['hint'], ['string', 'array', 'object']);
+        if (isset($this->options['hint']) && ! is_string($this->options['hint']) && ! is_document($this->options['hint'])) {
+            throw InvalidArgumentException::expectedDocumentOrStringType('"hint" option', $this->options['hint']);
         }
 
-        if (isset($options['session']) && ! $options['session'] instanceof Session) {
-            throw InvalidArgumentException::invalidType('"session" option', $options['session'], Session::class);
+        if (isset($this->options['session']) && ! $this->options['session'] instanceof Session) {
+            throw InvalidArgumentException::invalidType('"session" option', $this->options['session'], Session::class);
         }
 
-        if (isset($options['writeConcern']) && ! $options['writeConcern'] instanceof WriteConcern) {
-            throw InvalidArgumentException::invalidType('"writeConcern" option', $options['writeConcern'], WriteConcern::class);
+        if (isset($this->options['writeConcern']) && ! $this->options['writeConcern'] instanceof WriteConcern) {
+            throw InvalidArgumentException::invalidType('"writeConcern" option', $this->options['writeConcern'], WriteConcern::class);
         }
 
-        if (isset($options['let']) && ! is_array($options['let']) && ! is_object($options['let'])) {
-            throw InvalidArgumentException::invalidType('"let" option', $options['let'], 'array or object');
+        if (isset($this->options['let']) && ! is_document($this->options['let'])) {
+            throw InvalidArgumentException::expectedDocumentType('"let" option', $this->options['let']);
         }
 
-        if (isset($options['writeConcern']) && $options['writeConcern']->isDefault()) {
-            unset($options['writeConcern']);
+        if (isset($this->options['writeConcern']) && $this->options['writeConcern']->isDefault()) {
+            unset($this->options['writeConcern']);
         }
-
-        $this->databaseName = $databaseName;
-        $this->collectionName = $collectionName;
-        $this->filter = $filter;
-        $this->limit = $limit;
-        $this->options = $options;
     }
 
     /**
@@ -152,7 +134,7 @@ class Delete implements Executable, Explainable
          * unacknowledged write concern on an unsupported server. */
         if (
             isset($this->options['writeConcern']) && ! is_write_concern_acknowledged($this->options['writeConcern']) &&
-            isset($this->options['hint']) && ! server_supports_feature($server, self::$wireVersionForHint)
+            isset($this->options['hint']) && ! server_supports_feature($server, self::WIRE_VERSION_FOR_HINT)
         ) {
             throw UnsupportedException::hintNotSupported();
         }
@@ -165,7 +147,7 @@ class Delete implements Executable, Explainable
         $bulk = new Bulk($this->createBulkWriteOptions());
         $bulk->delete($this->filter, $this->createDeleteOptions());
 
-        $writeResult = $server->executeBulkWrite($this->databaseName . '.' . $this->collectionName, $bulk, $this->createExecuteOptions());
+        $writeResult = $server->executeBulkWrite($this->namespace, $bulk, $this->createExecuteOptions());
 
         return new DeleteResult($writeResult);
     }
@@ -176,12 +158,16 @@ class Delete implements Executable, Explainable
      * @see Explainable::getCommandDocument()
      * @return array
      */
-    public function getCommandDocument(Server $server)
+    public function getCommandDocument()
     {
         $cmd = ['delete' => $this->collectionName, 'deletes' => [['q' => $this->filter] + $this->createDeleteOptions()]];
 
-        if (isset($this->options['writeConcern'])) {
-            $cmd['writeConcern'] = $this->options['writeConcern'];
+        if (isset($this->options['comment'])) {
+            $cmd['comment'] = $this->options['comment'];
+        }
+
+        if (isset($this->options['let'])) {
+            $cmd['let'] = (object) $this->options['let'];
         }
 
         return $cmd;

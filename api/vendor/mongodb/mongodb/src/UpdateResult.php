@@ -25,15 +25,10 @@ use MongoDB\Exception\BadMethodCallException;
  */
 class UpdateResult
 {
-    /** @var WriteResult */
-    private $writeResult;
+    private bool $isAcknowledged;
 
-    /** @var boolean */
-    private $isAcknowledged;
-
-    public function __construct(WriteResult $writeResult)
+    public function __construct(private WriteResult $writeResult)
     {
-        $this->writeResult = $writeResult;
         $this->isAcknowledged = $writeResult->isAcknowledged();
     }
 
@@ -44,7 +39,7 @@ class UpdateResult
      *
      * @see UpdateResult::isAcknowledged()
      * @return integer|null
-     * @throws BadMethodCallException is the write result is unacknowledged
+     * @throws BadMethodCallException if the write result is unacknowledged
      */
     public function getMatchedCount()
     {
@@ -65,7 +60,7 @@ class UpdateResult
      *
      * @see UpdateResult::isAcknowledged()
      * @return integer|null
-     * @throws BadMethodCallException is the write result is unacknowledged
+     * @throws BadMethodCallException if the write result is unacknowledged
      */
     public function getModifiedCount()
     {
@@ -83,7 +78,7 @@ class UpdateResult
      *
      * @see UpdateResult::isAcknowledged()
      * @return integer|null
-     * @throws BadMethodCallException is the write result is unacknowledged
+     * @throws BadMethodCallException if the write result is unacknowledged
      */
     public function getUpsertedCount()
     {
@@ -107,7 +102,7 @@ class UpdateResult
      *
      * @see UpdateResult::isAcknowledged()
      * @return mixed|null
-     * @throws BadMethodCallException is the write result is unacknowledged
+     * @throws BadMethodCallException if the write result is unacknowledged
      */
     public function getUpsertedId()
     {

@@ -30,21 +30,15 @@ use function array_key_exists;
  * command or, for legacy servers, queries on the "system.namespaces"
  * collection. It provides methods to access options for the collection.
  *
- * @api
  * @see \MongoDB\Database::listCollections()
  * @see https://github.com/mongodb/specifications/blob/master/source/enumerate-collections.rst
+ * @template-implements ArrayAccess<string, mixed>
  */
 class CollectionInfo implements ArrayAccess
 {
-    /** @var array */
-    private $info;
-
-    /**
-     * @param array $info Collection info
-     */
-    public function __construct(array $info)
+    /** @param array $info Collection info */
+    public function __construct(private array $info)
     {
-        $this->info = $info;
     }
 
     /**
@@ -68,7 +62,7 @@ class CollectionInfo implements ArrayAccess
     public function getCappedMax()
     {
         /* The MongoDB server might return this number as an integer or float */
-        return isset($this->info['options']['max']) ? (integer) $this->info['options']['max'] : null;
+        return isset($this->info['options']['max']) ? (int) $this->info['options']['max'] : null;
     }
 
     /**
@@ -81,7 +75,7 @@ class CollectionInfo implements ArrayAccess
     public function getCappedSize()
     {
         /* The MongoDB server might return this number as an integer or float */
-        return isset($this->info['options']['size']) ? (integer) $this->info['options']['size'] : null;
+        return isset($this->info['options']['size']) ? (int) $this->info['options']['size'] : null;
     }
 
     /**
@@ -150,39 +144,37 @@ class CollectionInfo implements ArrayAccess
      * Check whether a field exists in the collection information.
      *
      * @see https://php.net/arrayaccess.offsetexists
-     * @param mixed $key
      * @return boolean
+     * @psalm-param array-key $offset
      */
     #[ReturnTypeWillChange]
-    public function offsetExists($key)
+    public function offsetExists(mixed $offset)
     {
-        return array_key_exists($key, $this->info);
+        return array_key_exists($offset, $this->info);
     }
 
     /**
      * Return the field's value from the collection information.
      *
      * @see https://php.net/arrayaccess.offsetget
-     * @param mixed $key
      * @return mixed
+     * @psalm-param array-key $offset
      */
     #[ReturnTypeWillChange]
-    public function offsetGet($key)
+    public function offsetGet(mixed $offset)
     {
-        return $this->info[$key];
+        return $this->info[$offset];
     }
 
     /**
      * Not supported.
      *
      * @see https://php.net/arrayaccess.offsetset
-     * @param mixed $key
-     * @param mixed $value
      * @throws BadMethodCallException
      * @return void
      */
     #[ReturnTypeWillChange]
-    public function offsetSet($key, $value)
+    public function offsetSet(mixed $offset, mixed $value)
     {
         throw BadMethodCallException::classIsImmutable(self::class);
     }
@@ -191,12 +183,11 @@ class CollectionInfo implements ArrayAccess
      * Not supported.
      *
      * @see https://php.net/arrayaccess.offsetunset
-     * @param mixed $key
      * @throws BadMethodCallException
      * @return void
      */
     #[ReturnTypeWillChange]
-    public function offsetUnset($key)
+    public function offsetUnset(mixed $offset)
     {
         throw BadMethodCallException::classIsImmutable(self::class);
     }

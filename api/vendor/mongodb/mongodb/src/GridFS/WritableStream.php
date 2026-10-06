@@ -28,11 +28,10 @@ use function array_intersect_key;
 use function hash_final;
 use function hash_init;
 use function hash_update;
-use function is_array;
 use function is_bool;
 use function is_integer;
-use function is_object;
 use function is_string;
+use function MongoDB\is_document;
 use function MongoDB\is_string_array;
 use function sprintf;
 use function strlen;
@@ -45,35 +44,23 @@ use function substr;
  */
 class WritableStream
 {
-    /** @var integer */
-    private static $defaultChunkSizeBytes = 261120;
+    private const DEFAULT_CHUNK_SIZE_BYTES = 261120;
 
-    /** @var string */
-    private $buffer = '';
+    private string $buffer = '';
 
-    /** @var integer */
-    private $chunkOffset = 0;
+    private int $chunkOffset = 0;
 
-    /** @var integer */
-    private $chunkSize;
+    private int $chunkSize;
 
-    /** @var boolean */
-    private $disableMD5;
+    private bool $disableMD5;
 
-    /** @var CollectionWrapper */
-    private $collectionWrapper;
+    private array $file;
 
-    /** @var array */
-    private $file;
+    private ?HashContext $hashCtx = null;
 
-    /** @var HashContext|null */
-    private $hashCtx;
+    private bool $isClosed = false;
 
-    /** @var boolean */
-    private $isClosed = false;
-
-    /** @var integer */
-    private $length = 0;
+    private int $length = 0;
 
     /**
      * Constructs a writable GridFS stream.
@@ -103,11 +90,11 @@ class WritableStream
      * @param array             $options           Upload options
      * @throws InvalidArgumentException
      */
-    public function __construct(CollectionWrapper $collectionWrapper, string $filename, array $options = [])
+    public function __construct(private CollectionWrapper $collectionWrapper, string $filename, array $options = [])
     {
         $options += [
             '_id' => new ObjectId(),
-            'chunkSizeBytes' => self::$defaultChunkSizeBytes,
+            'chunkSizeBytes' => self::DEFAULT_CHUNK_SIZE_BYTES,
             'disableMD5' => false,
         ];
 
@@ -131,12 +118,11 @@ class WritableStream
             throw InvalidArgumentException::invalidType('"contentType" option', $options['contentType'], 'string');
         }
 
-        if (isset($options['metadata']) && ! is_array($options['metadata']) && ! is_object($options['metadata'])) {
-            throw InvalidArgumentException::invalidType('"metadata" option', $options['metadata'], 'array or object');
+        if (isset($options['metadata']) && ! is_document($options['metadata'])) {
+            throw InvalidArgumentException::expectedDocumentType('"metadata" option', $options['metadata']);
         }
 
         $this->chunkSize = $options['chunkSizeBytes'];
-        $this->collectionWrapper = $collectionWrapper;
         $this->disableMD5 = $options['disableMD5'];
 
         if (! $this->disableMD5) {
@@ -147,6 +133,8 @@ class WritableStream
             '_id' => $options['_id'],
             'chunkSize' => $this->chunkSize,
             'filename' => $filename,
+            'length' => null,
+            'uploadDate' => null,
         ] + array_intersect_key($options, ['aliases' => 1, 'contentType' => 1, 'metadata' => 1]);
     }
 
@@ -248,17 +236,14 @@ class WritableStream
     {
         try {
             $this->collectionWrapper->deleteChunksByFilesId($this->file['_id']);
-        } catch (DriverRuntimeException $e) {
+        } catch (DriverRuntimeException) {
             // We are already handling an error if abort() is called, so suppress this
         }
 
         $this->isClosed = true;
     }
 
-    /**
-     * @return mixed
-     */
-    private function fileCollectionInsert()
+    private function fileCollectionInsert(): void
     {
         $this->file['length'] = $this->length;
         $this->file['uploadDate'] = new UTCDateTime();
@@ -274,8 +259,6 @@ class WritableStream
 
             throw $e;
         }
-
-        return $this->file['_id'];
     }
 
     private function insertChunkFromBuffer(): void
@@ -290,7 +273,7 @@ class WritableStream
         $chunk = [
             'files_id' => $this->file['_id'],
             'n' => $this->chunkOffset,
-            'data' => new Binary($data, Binary::TYPE_GENERIC),
+            'data' => new Binary($data),
         ];
 
         if (! $this->disableMD5 && $this->hashCtx) {

@@ -15,6 +15,7 @@ abstract class MongoFeatureTestCase extends TestCase
     private const COLLECTIONS = [
         'books', 'orders', 'payments', 'carts', 'customers', 'employees',
         'warehouses', 'publishers', 'categories', 'authors',
+        'publisher_commission_entries',
     ];
 
     protected function setUp(): void

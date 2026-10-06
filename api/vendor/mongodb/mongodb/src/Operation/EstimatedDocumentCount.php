@@ -32,26 +32,14 @@ use function is_integer;
 /**
  * Operation for obtaining an estimated count of documents in a collection
  *
- * @api
  * @see \MongoDB\Collection::estimatedDocumentCount()
  * @see https://mongodb.com/docs/manual/reference/command/count/
+ *
+ * @final extending this class will not be supported in v2.0.0
  */
 class EstimatedDocumentCount implements Executable, Explainable
 {
-    /** @var string */
-    private $databaseName;
-
-    /** @var string */
-    private $collectionName;
-
-    /** @var array */
-    private $options;
-
-    /** @var int */
-    private static $errorCodeCollectionNotFound = 26;
-
-    /** @var int */
-    private static $wireVersionForCollStats = 12;
+    private array $options;
 
     /**
      * Constructs a command to get the estimated number of documents in a
@@ -77,11 +65,8 @@ class EstimatedDocumentCount implements Executable, Explainable
      * @param array  $options        Command options
      * @throws InvalidArgumentException for parameter/option parsing errors
      */
-    public function __construct(string $databaseName, string $collectionName, array $options = [])
+    public function __construct(private string $databaseName, private string $collectionName, array $options = [])
     {
-        $this->databaseName = $databaseName;
-        $this->collectionName = $collectionName;
-
         if (isset($options['maxTimeMS']) && ! is_integer($options['maxTimeMS'])) {
             throw InvalidArgumentException::invalidType('"maxTimeMS" option', $options['maxTimeMS'], 'integer');
         }
@@ -121,9 +106,9 @@ class EstimatedDocumentCount implements Executable, Explainable
      * @see Explainable::getCommandDocument()
      * @return array
      */
-    public function getCommandDocument(Server $server)
+    public function getCommandDocument()
     {
-        return $this->createCount()->getCommandDocument($server);
+        return $this->createCount()->getCommandDocument();
     }
 
     private function createCount(): Count

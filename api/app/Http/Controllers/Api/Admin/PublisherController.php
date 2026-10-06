@@ -4,17 +4,20 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Domain\Auth\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Admin\CommissionSettlementStoreRequest;
 use App\Http\Requests\Admin\PublisherSettingsUpdateRequest;
 use App\Http\Requests\Admin\PublisherStoreRequest;
 use App\Http\Requests\Admin\PublisherUpdateRequest;
 use App\Infrastructure\Services\PublisherService;
+use App\Services\PublisherCommissionAccountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PublisherController extends BaseApiController
 {
     public function __construct(
-        protected PublisherService $publisherService
+        protected PublisherService $publisherService,
+        protected PublisherCommissionAccountService $commissionAccountService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -76,7 +79,7 @@ class PublisherController extends BaseApiController
             return $this->errorResponse('Publisher not found', 404);
         }
 
-        return $this->successResponse($publisher->settings ?? (object)[]);
+        return $this->successResponse($publisher->settings ?? (object) []);
     }
 
     public function updateSettings(PublisherSettingsUpdateRequest $request, string $id): JsonResponse
@@ -104,6 +107,59 @@ class PublisherController extends BaseApiController
         $publisher->save();
 
         return $this->successResponse($publisher->settings, 'Settings updated');
+    }
+
+    public function commissionAccount(Request $request, string $id): JsonResponse
+    {
+        if (! $this->canManagePublisherSettings($id)) {
+            return $this->errorResponse('Forbidden', 403);
+        }
+
+        try {
+            $summary = $this->commissionAccountService->getAccountSummary($id);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        }
+
+        $perPage = min((int) $request->get('per_page', 24), 100);
+        $ledger = $this->commissionAccountService->getLedger($id, $perPage);
+
+        return $this->successResponse([
+            'account' => $summary,
+            'ledger' => $ledger,
+        ]);
+    }
+
+    public function storeCommissionSettlement(CommissionSettlementStoreRequest $request, string $id): JsonResponse
+    {
+        if (! $this->canManagePublisherSettings($id)) {
+            return $this->errorResponse('Forbidden', 403);
+        }
+
+        $data = $request->validated();
+        $employeeId = (string) (auth('employee')->id() ?? '');
+
+        try {
+            $entry = $this->commissionAccountService->recordSettlement(
+                $id,
+                (float) $data['amount'],
+                $employeeId !== '' ? $employeeId : null,
+                $data['note'] ?? null,
+                $data['reference'] ?? null
+            );
+        } catch (\InvalidArgumentException $e) {
+            $message = $e->getMessage();
+            $status = str_contains(strtolower($message), 'not found') ? 404 : 422;
+
+            return $this->errorResponse($message, $status);
+        }
+
+        $summary = $this->commissionAccountService->getAccountSummary($id);
+
+        return $this->successResponse([
+            'entry' => $entry,
+            'account' => $summary,
+        ], 'Commission transfer recorded', 201);
     }
 
     /** Payout settings (bank / PayPal / commission): global managers or the publisher's own manager. */

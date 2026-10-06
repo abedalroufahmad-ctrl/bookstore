@@ -312,6 +312,31 @@ class AppLocalizations {
         'تُحدَّد هذه النسبة مع إدارة المشروع ولا يمكن تغييرها من هنا.',
         'This rate is set with project management and cannot be changed here.',
       );
+  String get adminCommissionAccount =>
+      _s('حساب عمولة الموقع', 'Site commission account');
+  String get adminCommissionAccountHint => _s(
+        'عند كل عملية بيع تُجمع النسبة المتفق عليها هنا. حوّل المبلغ إلى حساب الموقع ثم سجّل التحويل أدناه.',
+        'On each sale, the agreed percentage is collected here. Transfer that amount to the site account, then mark the transfer below.',
+      );
+  String get adminCommissionOwed => _s('مستحق للموقع', 'Owed to site');
+  String get adminCommissionAccrued => _s('إجمالي المستحق', 'Total accrued');
+  String get adminCommissionPaid => _s('إجمالي المحوّل', 'Total transferred');
+  String get adminMarkCommissionTransfer =>
+      _s('تسجيل تحويل إلى الموقع', 'Mark transfer to site');
+  String get adminTransferAmount => _s('المبلغ', 'Amount');
+  String get adminTransferReference => _s('المرجع', 'Reference');
+  String get adminTransferNote => _s('ملاحظة', 'Note');
+  String get adminRecordTransfer => _s('تسجيل التحويل', 'Record transfer');
+  String get adminCommissionTransferRecorded =>
+      _s('تم تسجيل التحويل. شكراً.', 'Transfer recorded. Thank you.');
+  String get adminCommissionLedger => _s('سجل العمولة', 'Commission history');
+  String get adminCommissionLedgerEmpty =>
+      _s('لا توجد قيود عمولة بعد.', 'No commission entries yet.');
+  String get adminCommissionTypeSale => _s('عمولة بيع', 'Sale commission');
+  String get adminCommissionTypeSettlement =>
+      _s('تحويل إلى الموقع', 'Transfer to site');
+  String get adminCommissionAmountInvalid =>
+      _s('أدخل مبلغ تحويل أكبر من صفر.', 'Enter a transfer amount greater than zero.');
   String get adminPaymentMethods => _s('طرق الدفع', 'Payment methods');
   String get adminNoGlobalPaymentMethods =>
       _s('لا توجد طرق دفع مفعلة عالمياً.', 'No payment methods are globally enabled.');

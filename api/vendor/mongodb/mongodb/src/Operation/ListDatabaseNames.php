@@ -30,14 +30,14 @@ use function array_column;
 /**
  * Operation for the ListDatabases command, returning only database names.
  *
- * @api
  * @see \MongoDB\Client::listDatabaseNames()
  * @see https://mongodb.com/docs/manual/reference/command/listDatabases/#mongodb-dbcommand-dbcmd.listDatabases
+ *
+ * @final extending this class will not be supported in v2.0.0
  */
 class ListDatabaseNames implements Executable
 {
-    /** @var ListDatabasesCommand */
-    private $listDatabases;
+    private ListDatabasesCommand $listDatabases;
 
     /**
      * Constructs a listDatabases command.

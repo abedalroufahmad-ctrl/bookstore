@@ -17,14 +17,24 @@
 
 namespace MongoDB\GridFS\Exception;
 
+use MongoDB\BSON\Document;
 use MongoDB\Exception\RuntimeException;
 
-use function MongoDB\BSON\fromPHP;
-use function MongoDB\BSON\toJSON;
 use function sprintf;
 
 class FileNotFoundException extends RuntimeException
 {
+    /**
+     * Thrown when a file cannot be found by its filename.
+     *
+     * @param string $filename Filename
+     * @return self
+     */
+    public static function byFilename(string $filename)
+    {
+        return new self(sprintf('File with name "%s" not found', $filename));
+    }
+
     /**
      * Thrown when a file cannot be found by its filename and revision.
      *
@@ -35,7 +45,7 @@ class FileNotFoundException extends RuntimeException
      */
     public static function byFilenameAndRevision(string $filename, int $revision, string $namespace)
     {
-        return new static(sprintf('File with name "%s" and revision "%d" not found in "%s"', $filename, $revision, $namespace));
+        return new self(sprintf('File with name "%s" and revision "%d" not found in "%s"', $filename, $revision, $namespace));
     }
 
     /**
@@ -45,10 +55,10 @@ class FileNotFoundException extends RuntimeException
      * @param string $namespace Namespace for the files collection
      * @return self
      */
-    public static function byId($id, string $namespace)
+    public static function byId(mixed $id, string $namespace)
     {
-        $json = toJSON(fromPHP(['_id' => $id]));
+        $json = Document::fromPHP(['_id' => $id])->toRelaxedExtendedJSON();
 
-        return new static(sprintf('File "%s" not found in "%s"', $json, $namespace));
+        return new self(sprintf('File "%s" not found in "%s"', $json, $namespace));
     }
 }

@@ -28,9 +28,9 @@ use function current;
 use function is_array;
 use function is_bool;
 use function is_integer;
-use function is_object;
 use function is_string;
-use function sprintf;
+use function MongoDB\is_document;
+use function MongoDB\is_pipeline;
 use function trigger_error;
 
 use const E_USER_DEPRECATED;
@@ -38,23 +38,18 @@ use const E_USER_DEPRECATED;
 /**
  * Operation for the create command.
  *
- * @api
  * @see \MongoDB\Database::createCollection()
  * @see https://mongodb.com/docs/manual/reference/command/create/
+ *
+ * @final extending this class will not be supported in v2.0.0
  */
 class CreateCollection implements Executable
 {
+    /** @deprecated 1.21 */
     public const USE_POWER_OF_2_SIZES = 1;
+
+    /** @deprecated 1.21 */
     public const NO_PADDING = 2;
-
-    /** @var string */
-    private $databaseName;
-
-    /** @var string */
-    private $collectionName;
-
-    /** @var array */
-    private $options = [];
 
     /**
      * Constructs a create command.
@@ -87,7 +82,8 @@ class CreateCollection implements Executable
      *
      *  * collation (document): Collation specification.
      *
-     *  * encryptedFields (document): CSFLE specification.
+     *  * encryptedFields (document): Configuration for encrypted fields.
+     *    See: https://www.mongodb.com/docs/manual/core/queryable-encryption/fundamentals/encrypt-and-query/
      *
      *  * expireAfterSeconds: The TTL for documents in time series collections.
      *
@@ -142,123 +138,111 @@ class CreateCollection implements Executable
      * @param array  $options        Command options
      * @throws InvalidArgumentException for parameter/option parsing errors
      */
-    public function __construct(string $databaseName, string $collectionName, array $options = [])
+    public function __construct(private string $databaseName, private string $collectionName, private array $options = [])
     {
-        if (isset($options['autoIndexId']) && ! is_bool($options['autoIndexId'])) {
-            throw InvalidArgumentException::invalidType('"autoIndexId" option', $options['autoIndexId'], 'boolean');
+        if (isset($this->options['autoIndexId']) && ! is_bool($this->options['autoIndexId'])) {
+            throw InvalidArgumentException::invalidType('"autoIndexId" option', $this->options['autoIndexId'], 'boolean');
         }
 
-        if (isset($options['capped']) && ! is_bool($options['capped'])) {
-            throw InvalidArgumentException::invalidType('"capped" option', $options['capped'], 'boolean');
+        if (isset($this->options['capped']) && ! is_bool($this->options['capped'])) {
+            throw InvalidArgumentException::invalidType('"capped" option', $this->options['capped'], 'boolean');
         }
 
-        if (isset($options['changeStreamPreAndPostImages']) && ! is_array($options['changeStreamPreAndPostImages']) && ! is_object($options['changeStreamPreAndPostImages'])) {
-            throw InvalidArgumentException::invalidType('"changeStreamPreAndPostImages" option', $options['changeStreamPreAndPostImages'], 'array or object');
+        if (isset($this->options['changeStreamPreAndPostImages']) && ! is_document($this->options['changeStreamPreAndPostImages'])) {
+            throw InvalidArgumentException::expectedDocumentType('"changeStreamPreAndPostImages" option', $this->options['changeStreamPreAndPostImages']);
         }
 
-        if (isset($options['clusteredIndex']) && ! is_array($options['clusteredIndex']) && ! is_object($options['clusteredIndex'])) {
-            throw InvalidArgumentException::invalidType('"clusteredIndex" option', $options['clusteredIndex'], 'array or object');
+        if (isset($this->options['clusteredIndex']) && ! is_document($this->options['clusteredIndex'])) {
+            throw InvalidArgumentException::expectedDocumentType('"clusteredIndex" option', $this->options['clusteredIndex']);
         }
 
-        if (isset($options['collation']) && ! is_array($options['collation']) && ! is_object($options['collation'])) {
-            throw InvalidArgumentException::invalidType('"collation" option', $options['collation'], 'array or object');
+        if (isset($this->options['collation']) && ! is_document($this->options['collation'])) {
+            throw InvalidArgumentException::expectedDocumentType('"collation" option', $this->options['collation']);
         }
 
-        if (isset($options['encryptedFields']) && ! is_array($options['encryptedFields']) && ! is_object($options['encryptedFields'])) {
-            throw InvalidArgumentException::invalidType('"encryptedFields" option', $options['encryptedFields'], 'array or object');
+        if (isset($this->options['encryptedFields']) && ! is_document($this->options['encryptedFields'])) {
+            throw InvalidArgumentException::expectedDocumentType('"encryptedFields" option', $this->options['encryptedFields']);
         }
 
-        if (isset($options['expireAfterSeconds']) && ! is_integer($options['expireAfterSeconds'])) {
-            throw InvalidArgumentException::invalidType('"expireAfterSeconds" option', $options['expireAfterSeconds'], 'integer');
+        if (isset($this->options['expireAfterSeconds']) && ! is_integer($this->options['expireAfterSeconds'])) {
+            throw InvalidArgumentException::invalidType('"expireAfterSeconds" option', $this->options['expireAfterSeconds'], 'integer');
         }
 
-        if (isset($options['flags']) && ! is_integer($options['flags'])) {
-            throw InvalidArgumentException::invalidType('"flags" option', $options['flags'], 'integer');
+        if (isset($this->options['flags']) && ! is_integer($this->options['flags'])) {
+            throw InvalidArgumentException::invalidType('"flags" option', $this->options['flags'], 'integer');
         }
 
-        if (isset($options['indexOptionDefaults']) && ! is_array($options['indexOptionDefaults']) && ! is_object($options['indexOptionDefaults'])) {
-            throw InvalidArgumentException::invalidType('"indexOptionDefaults" option', $options['indexOptionDefaults'], 'array or object');
+        if (isset($this->options['indexOptionDefaults']) && ! is_document($this->options['indexOptionDefaults'])) {
+            throw InvalidArgumentException::expectedDocumentType('"indexOptionDefaults" option', $this->options['indexOptionDefaults']);
         }
 
-        if (isset($options['max']) && ! is_integer($options['max'])) {
-            throw InvalidArgumentException::invalidType('"max" option', $options['max'], 'integer');
+        if (isset($this->options['max']) && ! is_integer($this->options['max'])) {
+            throw InvalidArgumentException::invalidType('"max" option', $this->options['max'], 'integer');
         }
 
-        if (isset($options['maxTimeMS']) && ! is_integer($options['maxTimeMS'])) {
-            throw InvalidArgumentException::invalidType('"maxTimeMS" option', $options['maxTimeMS'], 'integer');
+        if (isset($this->options['maxTimeMS']) && ! is_integer($this->options['maxTimeMS'])) {
+            throw InvalidArgumentException::invalidType('"maxTimeMS" option', $this->options['maxTimeMS'], 'integer');
         }
 
-        if (isset($options['pipeline']) && ! is_array($options['pipeline'])) {
-            throw InvalidArgumentException::invalidType('"pipeline" option', $options['pipeline'], 'array');
+        if (isset($this->options['pipeline']) && ! is_array($this->options['pipeline'])) {
+            throw InvalidArgumentException::invalidType('"pipeline" option', $this->options['pipeline'], 'array');
         }
 
-        if (isset($options['session']) && ! $options['session'] instanceof Session) {
-            throw InvalidArgumentException::invalidType('"session" option', $options['session'], Session::class);
+        if (isset($this->options['session']) && ! $this->options['session'] instanceof Session) {
+            throw InvalidArgumentException::invalidType('"session" option', $this->options['session'], Session::class);
         }
 
-        if (isset($options['size']) && ! is_integer($options['size'])) {
-            throw InvalidArgumentException::invalidType('"size" option', $options['size'], 'integer');
+        if (isset($this->options['size']) && ! is_integer($this->options['size'])) {
+            throw InvalidArgumentException::invalidType('"size" option', $this->options['size'], 'integer');
         }
 
-        if (isset($options['storageEngine']) && ! is_array($options['storageEngine']) && ! is_object($options['storageEngine'])) {
-            throw InvalidArgumentException::invalidType('"storageEngine" option', $options['storageEngine'], 'array or object');
+        if (isset($this->options['storageEngine']) && ! is_document($this->options['storageEngine'])) {
+            throw InvalidArgumentException::expectedDocumentType('"storageEngine" option', $this->options['storageEngine']);
         }
 
-        if (isset($options['timeseries']) && ! is_array($options['timeseries']) && ! is_object($options['timeseries'])) {
-            throw InvalidArgumentException::invalidType('"timeseries" option', $options['timeseries'], ['array', 'object']);
+        if (isset($this->options['timeseries']) && ! is_document($this->options['timeseries'])) {
+            throw InvalidArgumentException::expectedDocumentType('"timeseries" option', $this->options['timeseries']);
         }
 
-        if (isset($options['typeMap']) && ! is_array($options['typeMap'])) {
-            throw InvalidArgumentException::invalidType('"typeMap" option', $options['typeMap'], 'array');
+        if (isset($this->options['typeMap']) && ! is_array($this->options['typeMap'])) {
+            throw InvalidArgumentException::invalidType('"typeMap" option', $this->options['typeMap'], 'array');
         }
 
-        if (isset($options['validationAction']) && ! is_string($options['validationAction'])) {
-            throw InvalidArgumentException::invalidType('"validationAction" option', $options['validationAction'], 'string');
+        if (isset($this->options['validationAction']) && ! is_string($this->options['validationAction'])) {
+            throw InvalidArgumentException::invalidType('"validationAction" option', $this->options['validationAction'], 'string');
         }
 
-        if (isset($options['validationLevel']) && ! is_string($options['validationLevel'])) {
-            throw InvalidArgumentException::invalidType('"validationLevel" option', $options['validationLevel'], 'string');
+        if (isset($this->options['validationLevel']) && ! is_string($this->options['validationLevel'])) {
+            throw InvalidArgumentException::invalidType('"validationLevel" option', $this->options['validationLevel'], 'string');
         }
 
-        if (isset($options['validator']) && ! is_array($options['validator']) && ! is_object($options['validator'])) {
-            throw InvalidArgumentException::invalidType('"validator" option', $options['validator'], 'array or object');
+        if (isset($this->options['validator']) && ! is_document($this->options['validator'])) {
+            throw InvalidArgumentException::expectedDocumentType('"validator" option', $this->options['validator']);
         }
 
-        if (isset($options['viewOn']) && ! is_string($options['viewOn'])) {
-            throw InvalidArgumentException::invalidType('"viewOn" option', $options['viewOn'], 'string');
+        if (isset($this->options['viewOn']) && ! is_string($this->options['viewOn'])) {
+            throw InvalidArgumentException::invalidType('"viewOn" option', $this->options['viewOn'], 'string');
         }
 
-        if (isset($options['writeConcern']) && ! $options['writeConcern'] instanceof WriteConcern) {
-            throw InvalidArgumentException::invalidType('"writeConcern" option', $options['writeConcern'], WriteConcern::class);
+        if (isset($this->options['writeConcern']) && ! $this->options['writeConcern'] instanceof WriteConcern) {
+            throw InvalidArgumentException::invalidType('"writeConcern" option', $this->options['writeConcern'], WriteConcern::class);
         }
 
-        if (isset($options['writeConcern']) && $options['writeConcern']->isDefault()) {
-            unset($options['writeConcern']);
+        if (isset($this->options['writeConcern']) && $this->options['writeConcern']->isDefault()) {
+            unset($this->options['writeConcern']);
         }
 
-        if (isset($options['autoIndexId'])) {
-            trigger_error('The "autoIndexId" option is deprecated and will be removed in a future release', E_USER_DEPRECATED);
+        if (isset($this->options['autoIndexId'])) {
+            trigger_error('The "autoIndexId" option is deprecated and will be removed in version 2.0', E_USER_DEPRECATED);
         }
 
-        if (isset($options['pipeline'])) {
-            $expectedIndex = 0;
-
-            foreach ($options['pipeline'] as $i => $operation) {
-                if ($i !== $expectedIndex) {
-                    throw new InvalidArgumentException(sprintf('The "pipeline" option is not a list (unexpected index: "%s")', $i));
-                }
-
-                if (! is_array($operation) && ! is_object($operation)) {
-                    throw InvalidArgumentException::invalidType(sprintf('$options["pipeline"][%d]', $i), $operation, 'array or object');
-                }
-
-                $expectedIndex += 1;
-            }
+        if (isset($this->options['flags'])) {
+            trigger_error('The "flags" option is deprecated and will be removed in version 2.0', E_USER_DEPRECATED);
         }
 
-        $this->databaseName = $databaseName;
-        $this->collectionName = $collectionName;
-        $this->options = $options;
+        if (isset($this->options['pipeline']) && ! is_pipeline($this->options['pipeline'], true /* allowEmpty */)) {
+            throw new InvalidArgumentException('"pipeline" option is not a valid aggregation pipeline');
+        }
     }
 
     /**

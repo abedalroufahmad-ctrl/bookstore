@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { api, admin } from '../lib/api'
+import { api, admin, type PublisherCommissionEntry } from '../lib/api'
 
 interface PublisherSettingsData {
   support_email?: string
@@ -51,6 +51,11 @@ export function PublisherSettings() {
   })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [settleAmount, setSettleAmount] = useState('')
+  const [settleReference, setSettleReference] = useState('')
+  const [settleNote, setSettleNote] = useState('')
+  const [settleError, setSettleError] = useState('')
+  const [settleMessage, setSettleMessage] = useState('')
 
   const { data: globalSettings, isLoading: isLoadingGlobal } = useQuery({
     queryKey: ['admin-settings'],
@@ -89,6 +94,15 @@ export function PublisherSettings() {
     enabled: !!targetId,
   })
 
+  const { data: commissionData, isLoading: isLoadingCommission } = useQuery({
+    queryKey: ['publisher-commission-account', targetId],
+    queryFn: async () => {
+      const res = await admin.publishers.commissionAccount(String(targetId))
+      return res.data.data
+    },
+    enabled: !!targetId,
+  })
+
   useEffect(() => {
     if (data?.data) {
       setForm({
@@ -122,12 +136,45 @@ export function PublisherSettings() {
     },
   })
 
+  const settleMutation = useMutation({
+    mutationFn: (payload: { amount: number; note?: string; reference?: string }) =>
+      admin.publishers.recordCommissionSettlement(String(targetId), payload),
+    onSuccess: () => {
+      setSettleMessage(t('admin.commissionTransferRecorded', 'Transfer recorded. Thank you.'))
+      setSettleError('')
+      setSettleAmount('')
+      setSettleReference('')
+      setSettleNote('')
+      queryClient.invalidateQueries({ queryKey: ['publisher-commission-account', targetId] })
+      setTimeout(() => setSettleMessage(''), 3000)
+    },
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { message?: string } } }
+      setSettleError(error?.response?.data?.message || t('common.error'))
+      setSettleMessage('')
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     updateMutation.mutate({
       ...form,
       default_discount: Number(form.default_discount),
       platform_commission_percent: Number(form.platform_commission_percent),
+    })
+  }
+
+  const handleSettle = (e: React.FormEvent) => {
+    e.preventDefault()
+    const amount = Number(settleAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setSettleError(t('admin.commissionAmountInvalid', 'Enter a transfer amount greater than zero.'))
+      return
+    }
+    settleMutation.mutate({
+      amount,
+      note: settleNote.trim() || undefined,
+      reference: settleReference.trim() || undefined,
     })
   }
 
@@ -142,6 +189,11 @@ export function PublisherSettings() {
   if (isLoading || isLoadingGlobal) {
     return <div className="text-center py-12">{t('common.loading')}</div>
   }
+
+  const account = commissionData?.account
+  const ledgerItems: PublisherCommissionEntry[] = Array.isArray(commissionData?.ledger?.data)
+    ? commissionData.ledger.data
+    : []
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -165,6 +217,168 @@ export function PublisherSettings() {
           {error}
         </div>
       )}
+
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-navy-900">
+            {t('admin.commissionAccount', 'Site commission account')}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            {t(
+              'admin.commissionAccountHint',
+              'On each sale, the agreed percentage is collected here. Transfer that amount to the site account, then mark the transfer below.',
+            )}
+          </p>
+        </div>
+        <div className="p-6 space-y-6">
+          {isLoadingCommission ? (
+            <p className="text-slate-500">{t('common.loading')}</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-lg bg-amber-50 border border-amber-100 p-4">
+                  <p className="text-xs uppercase tracking-wide text-amber-800/80">
+                    {t('admin.commissionOwed', 'Owed to site')}
+                  </p>
+                  <p className="text-2xl font-semibold text-amber-900 mt-1">
+                    ${Number(account?.commission_owed ?? 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                    {t('admin.commissionAccrued', 'Total accrued')}
+                  </p>
+                  <p className="text-2xl font-semibold text-slate-800 mt-1">
+                    ${Number(account?.commission_accrued_total ?? 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                    {t('admin.commissionPaid', 'Total transferred')}
+                  </p>
+                  <p className="text-2xl font-semibold text-slate-800 mt-1">
+                    ${Number(account?.commission_paid_total ?? 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSettle} className="space-y-4 border border-slate-200 rounded-lg p-4 bg-slate-50">
+                <h3 className="text-sm font-medium text-slate-800">
+                  {t('admin.markCommissionTransfer', 'Mark transfer to site')}
+                </h3>
+                {settleMessage && (
+                  <div className="p-3 bg-green-50 text-green-800 rounded-lg border border-green-200 text-sm">
+                    {settleMessage}
+                  </div>
+                )}
+                {settleError && (
+                  <div className="p-3 bg-red-50 text-red-800 rounded-lg border border-red-200 text-sm">
+                    {settleError}
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('admin.transferAmount', 'Amount')}
+                    </label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={settleAmount}
+                      onChange={(e) => setSettleAmount(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('admin.transferReference', 'Reference')}
+                    </label>
+                    <input
+                      type="text"
+                      value={settleReference}
+                      onChange={(e) => setSettleReference(e.target.value)}
+                      placeholder={t('admin.transferReferencePlaceholder', 'Bank/PayPal ref (optional)')}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('admin.transferNote', 'Note')}
+                    </label>
+                    <input
+                      type="text"
+                      value={settleNote}
+                      onChange={(e) => setSettleNote(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={settleMutation.isPending || Number(account?.commission_owed ?? 0) <= 0}
+                    className="px-5 py-2.5 bg-navy-600 text-white font-medium rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50"
+                  >
+                    {settleMutation.isPending
+                      ? t('common.saving', 'Saving...')
+                      : t('admin.recordTransfer', 'Record transfer')}
+                  </button>
+                </div>
+              </form>
+
+              <div>
+                <h3 className="text-sm font-medium text-slate-800 mb-3">
+                  {t('admin.commissionLedger', 'Commission history')}
+                </h3>
+                {ledgerItems.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {t('admin.commissionLedgerEmpty', 'No commission entries yet.')}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-600">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">{t('admin.date', 'Date')}</th>
+                          <th className="text-left px-3 py-2 font-medium">{t('admin.type', 'Type')}</th>
+                          <th className="text-right px-3 py-2 font-medium">{t('admin.amount', 'Amount')}</th>
+                          <th className="text-left px-3 py-2 font-medium">{t('admin.details', 'Details')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ledgerItems.map((entry) => (
+                          <tr key={entry._id} className="border-t border-slate-100">
+                            <td className="px-3 py-2 text-slate-600 whitespace-nowrap">
+                              {entry.created_at
+                                ? new Date(entry.created_at).toLocaleString()
+                                : '—'}
+                            </td>
+                            <td className="px-3 py-2">
+                              {entry.type === 'settlement'
+                                ? t('admin.commissionTypeSettlement', 'Transfer to site')
+                                : t('admin.commissionTypeSale', 'Sale commission')}
+                            </td>
+                            <td className="px-3 py-2 text-right font-medium">
+                              ${Number(entry.amount).toFixed(2)}
+                            </td>
+                            <td className="px-3 py-2 text-slate-500">
+                              {entry.type === 'sale_accrual' && entry.order_id
+                                ? `${t('admin.order', 'Order')}: ${entry.order_id}`
+                                : [entry.reference, entry.note].filter(Boolean).join(' · ') || '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 space-y-6">

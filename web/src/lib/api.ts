@@ -335,6 +335,19 @@ export const admin = {
     update: (id: string, data: { name?: string; address?: string; phone?: string; email?: string; website?: string }) =>
       api.put<ApiResponse<Publisher>>(`/admin/publishers/${id}`, data),
     delete: (id: string) => api.delete<ApiResponse<null>>(`/admin/publishers/${id}`),
+    commissionAccount: (id: string, params?: Record<string, string | number>) =>
+      api.get<ApiResponse<PublisherCommissionAccountResponse>>(
+        `/admin/publishers/${id}/commission-account`,
+        { params },
+      ),
+    recordCommissionSettlement: (
+      id: string,
+      data: { amount: number; note?: string; reference?: string },
+    ) =>
+      api.post<ApiResponse<{ entry: PublisherCommissionEntry; account: PublisherCommissionAccount }>>(
+        `/admin/publishers/${id}/commission-settlements`,
+        data,
+      ),
   },
   settings: {
     get: () => api.get<ApiResponse<Record<string, any>>>('/admin/settings'),
@@ -500,6 +513,31 @@ export interface Publisher {
   website?: string
   warehouses_count?: number
   warehouses?: Warehouse[]
+}
+
+export interface PublisherCommissionAccount {
+  publisher_id: string
+  commission_owed: number
+  commission_accrued_total: number
+  commission_paid_total: number
+  platform_commission_percent: number
+}
+
+export interface PublisherCommissionEntry {
+  _id: string
+  publisher_id: string
+  order_id?: string | null
+  type: 'sale_accrual' | 'settlement' | string
+  amount: number
+  note?: string | null
+  reference?: string | null
+  created_by?: string | null
+  created_at?: string
+}
+
+export interface PublisherCommissionAccountResponse {
+  account: PublisherCommissionAccount
+  ledger: PaginatedResponse<PublisherCommissionEntry>
 }
 
 export interface Author {

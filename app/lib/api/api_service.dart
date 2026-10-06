@@ -1134,6 +1134,42 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> adminPublisherCommissionAccount(
+    String id, {
+    int perPage = 24,
+  }) async {
+    final res = await _client.get<Map<String, dynamic>>(
+      '/admin/publishers/$id/commission-account',
+      params: {'per_page': perPage.toString()},
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Map<String, dynamic>.from(res.data as Map),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> adminPublisherCommissionSettlement(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/admin/publishers/$id/commission-settlements',
+      body: data,
+    );
+    if (res.success && res.data != null) {
+      return ApiResponse(
+        success: true,
+        message: res.message,
+        data: Map<String, dynamic>.from(res.data as Map),
+      );
+    }
+    return ApiResponse(success: false, message: res.message, data: null);
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> adminWarehousesCreate(
     Map<String, dynamic> data,
   ) async {

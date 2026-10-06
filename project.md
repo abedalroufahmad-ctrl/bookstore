@@ -71,7 +71,7 @@ Roles: `manager`, `publisher_manager`, `warehouse_manager`, `shipping`, `account
 |------------|--------|
 | Books / authors / categories | CRUD; bulk delete; spreadsheet import; cover & author photo upload; **cover analysis** (barcode ISBN + OCR.space text recognition to prefill the book form) |
 | **Publishers** | CRUD (managers); each publisher owns **multiple warehouses** |
-| **Publisher settings** | Support contact, return policy, default discount, enabled payment methods, **payout accounts** (PayPal email / merchant ID, bank) and the **agreed platform commission %**. Readable/editable only by managers and that publisher's own manager; only managers can change the commission. Public/cart responses expose only `public_settings` (payment methods, support contact, return policy). |
+| **Publisher settings** | Support contact, return policy, default discount, enabled payment methods, **payout accounts** (PayPal email / merchant ID, bank) and the **agreed platform commission %**. Readable/editable only by managers and that publisher's own manager; only managers can change the commission. **Site commission account** shows owed / accrued / transferred balances; publisher managers mark manual transfers to the site. Public/cart responses expose only `public_settings` (payment methods, support contact, return policy). |
 | Warehouses | Belong to a publisher; `warehouse_manager` is scoped to assigned warehouse(s) |
 | **Publisher manager** | Scoped to their publisher's warehouses, books, employees and orders |
 | Customers / employees | Admin management; filter employees by role, publisher and warehouse; convert customer → employee; warehouse managers, shipping and direct-sales staff can have multiple warehouses |
@@ -86,6 +86,7 @@ Roles: `manager`, `publisher_manager`, `warehouse_manager`, `shipping`, `account
 - At checkout, methods = **global enabled ∩ all publishers in the cart**.
 - Each publisher stores its own payout accounts. Customer PayPal payments are routed to that publisher when PayPal accepts the payee; otherwise the platform account collects and the split is still recorded.
 - The platform commission is an agreed **percentage of book revenue** (not shipping), stored per publisher and snapshotted on each order and POS invoice (`platform_commission_*`, `publisher_payout_amount`).
+- When a sale is finalized (order **completed**, or POS invoice created), that commission amount is **accrued** on the publishing house’s site-commission account (`commission_owed`). The publisher manager (or site manager) records a **manual transfer** to the site account via `POST /admin/publishers/{id}/commission-settlements`; balances and ledger are at `GET /admin/publishers/{id}/commission-account`.
 - PayPal: after the quote, `POST /customers/orders/paypal/start` with `order_ids` → buyer approves on PayPal → `GET /paypal/complete` captures and verifies the amount; webhook `PAYMENT.CAPTURE.COMPLETED` when `PAYPAL_WEBHOOK_ID` is set. Clients only follow approval links on `https://*.paypal.com`.
 - Env: `PAYPAL_*`, `STRIPE_*` — see `api/.env.example` and `api/config/paypal.php`.
 

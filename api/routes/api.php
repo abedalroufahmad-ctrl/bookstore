@@ -77,6 +77,8 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
             Route::get('publishers/{id}', [PublisherController::class, 'show']);
             Route::get('publishers/{id}/settings', [PublisherController::class, 'getSettings']);
             Route::put('publishers/{id}/settings', [PublisherController::class, 'updateSettings']);
+            Route::get('publishers/{id}/commission-account', [PublisherController::class, 'commissionAccount']);
+            Route::post('publishers/{id}/commission-settlements', [PublisherController::class, 'storeCommissionSettlement']);
         });
 
         // Warehouses: read-only for order-management roles

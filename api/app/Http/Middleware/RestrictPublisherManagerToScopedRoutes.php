@@ -42,8 +42,11 @@ class RestrictPublisherManagerToScopedRoutes
             }
         }
 
-        // Allow publisher settings PUT
+        // Allow publisher settings PUT and commission settlement POST for own house.
         if (str_contains($path, 'admin/publishers/') && str_ends_with($path, '/settings') && $request->isMethod('PUT')) {
+            return $next($request);
+        }
+        if (str_contains($path, 'admin/publishers/') && str_ends_with($path, '/commission-settlements') && $request->isMethod('POST')) {
             return $next($request);
         }
 
