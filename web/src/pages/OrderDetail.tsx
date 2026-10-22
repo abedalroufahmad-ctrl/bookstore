@@ -1,9 +1,11 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { orders } from '../lib/api'
-import { isTrustedPayPalUrl } from '../lib/utils'
+import { isTrustedPayPalUrl, isTrustedStripeCheckoutUrl, paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
 import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/SettingsContext'
 
 type OrderPayload = {
   _id: string
@@ -14,6 +16,7 @@ type OrderPayload = {
   shipping_method?: string | null
   payment_method?: string
   payment_status?: string
+  payment_info?: { provider?: string; simulated?: boolean }
   shipping_address?: { address?: string; city?: string; country?: string; postal_code?: string }
   warehouse?: {
     _id: string
@@ -29,9 +32,14 @@ type OrderPayload = {
 
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const { t } = useTranslation()
   const { userType } = useAuth()
+  const { settings } = useSettings()
   const queryClient = useQueryClient()
+  const stripeSessionId = searchParams.get('session_id')
+  const stripeReturn = searchParams.get('stripe') === 'success'
+  const paypalResult = searchParams.get('paypal')
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['order', id],
@@ -41,6 +49,23 @@ export function OrderDetail() {
     },
     enabled: !!id && userType === 'customer',
   })
+
+  const stripeVerifyQuery = useQuery({
+    queryKey: ['stripe-payment-verify', id, stripeSessionId],
+    queryFn: async () => {
+      const res = await orders.stripeVerify(id!, stripeSessionId!)
+      return res.data
+    },
+    enabled: !!id && userType === 'customer' && stripeReturn && !!stripeSessionId,
+    retry: false,
+  })
+
+  useEffect(() => {
+    if (stripeVerifyQuery.data?.success) {
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    }
+  }, [id, queryClient, stripeVerifyQuery.data])
 
   const confirmMut = useMutation({
     mutationFn: () => orders.confirmQuote(id!),
@@ -64,6 +89,26 @@ export function OrderDetail() {
     },
   })
 
+  const paypalSimulationMut = useMutation({
+    mutationFn: () => orders.paypalSimulateSandbox(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+  })
+
+  const stripeMut = useMutation({
+    mutationFn: async () => {
+      const res = await orders.stripeStart(id!)
+      const checkoutUrl = res.data.data?.checkout_url
+      if (!res.data.success || !checkoutUrl || !isTrustedStripeCheckoutUrl(checkoutUrl)) {
+        throw new Error(t('orders.cardPaymentStartFailed', 'Could not open secure card checkout.'))
+      }
+      return checkoutUrl
+    },
+    onSuccess: (checkoutUrl) => window.location.assign(checkoutUrl),
+  })
+
   if (userType !== 'customer') return null
   if (isLoading) return <div className="text-center py-12">{t('common.loading')}</div>
   if (error || !data?.data) {
@@ -79,10 +124,20 @@ export function OrderDetail() {
 
   const order = data.data as OrderPayload
   const canConfirmCod =
-    order.status === 'awaiting_customer_confirmation' && order.payment_method !== 'paypal'
+    order.status === 'awaiting_customer_confirmation'
+    && order.payment_method !== 'paypal'
+    && order.payment_method !== 'stripe'
   const canPayPal =
     order.status === 'awaiting_customer_confirmation' && order.payment_method === 'paypal'
-  const actionError = confirmMut.error ?? paypalMut.error
+  const canSimulatePayPal =
+    canPayPal && settings.paypal_mode === 'sandbox'
+  const canPayByCard =
+    order.status === 'awaiting_customer_confirmation'
+    && ['stripe', 'card'].includes((order.payment_method ?? '').toLowerCase())
+  const actionError = confirmMut.error ?? paypalMut.error ?? paypalSimulationMut.error ?? stripeVerifyQuery.error
+  const paypalErrorMessage = paypalResult && !['ok', 'cancelled'].includes(paypalResult)
+    ? t(`orders.paypal.${paypalResult}`, 'PayPal could not complete payment. Review the order total and try again.')
+    : null
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -145,18 +200,40 @@ export function OrderDetail() {
         ) : null}
         <div>
           <span className="text-sm font-medium text-slate-600">{t('checkout.paymentMethod')}:</span>{' '}
-          <span className="text-slate-800">{order.payment_method ?? '-'}</span>
+          <span className="text-slate-800">{paymentMethodLabel(order.payment_method, t)}</span>
         </div>
         <div>
           <span className="text-sm font-medium text-slate-600">{t('orders.paymentStatus')}:</span>{' '}
-          <span className="text-slate-800">{order.payment_status ?? '-'}</span>
+          <span className="text-slate-800">{paymentStatusLabel(order.payment_status, t)}</span>
         </div>
+        {order.payment_info?.provider === 'paypal_sandbox_simulation' && (
+          <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded-lg p-3">
+            {t('orders.paypalSimulationRecorded', 'Sandbox payment simulated for testing only. No money was charged and no PayPal transaction was created.')}
+          </p>
+        )}
         {order.status === 'awaiting_customer_confirmation' && (
-          <p className="text-sm text-navy-900 bg-navy-50 border border-navy-200 rounded-lg p-3">
-            {t(
-              'orders.awaitingConfirmationHint',
-              'The warehouse finalized this quote. Confirm to send it back for fulfillment, or pay with PayPal if that is your selected method.'
+          <>
+            <p className="text-sm text-navy-900 bg-navy-50 border border-navy-200 rounded-lg p-3">
+              {t(
+                'orders.awaitingConfirmationHint',
+                'The warehouse finalized this quote. Confirm to send it back for fulfillment, or pay with PayPal if that is your selected method.'
+              )}
+            </p>
+            {stripeVerifyQuery.data?.success && (
+              <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg p-3">
+                {t('orders.cardPaymentSuccess', 'Card payment confirmed. Your order has been sent back to the warehouse.')}
+              </p>
             )}
+          </>
+        )}
+        {paypalResult === 'cancelled' && (
+          <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            {t('orders.paypal.cancelled', 'Payment was cancelled. Your order is still available below.')}
+          </p>
+        )}
+        {paypalErrorMessage && (
+          <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg p-3">
+            {paypalErrorMessage}
           </p>
         )}
         {order.shipping_address && (
@@ -221,7 +298,7 @@ export function OrderDetail() {
           </div>
         </div>
 
-        {(canConfirmCod || canPayPal) && (
+        {(canConfirmCod || canPayPal || canPayByCard) && (
           <div className="pt-4 border-t border-slate-200 space-y-2">
             {canConfirmCod && (
               <button
@@ -236,20 +313,44 @@ export function OrderDetail() {
             {canPayPal && (
               <button
                 type="button"
-                disabled={paypalMut.isPending}
+                disabled={paypalMut.isPending || paypalSimulationMut.isPending}
                 className="w-full py-2.5 rounded-lg font-medium text-white bg-[#00457C] hover:opacity-90 disabled:opacity-50"
                 onClick={() => paypalMut.mutate()}
               >
                 {paypalMut.isPending ? t('common.loading') : t('orders.payWithPayPal', 'Pay with PayPal')}
               </button>
             )}
+            {canSimulatePayPal && (
+              <button
+                type="button"
+                disabled={paypalMut.isPending || paypalSimulationMut.isPending}
+                className="w-full py-2.5 rounded-lg font-medium text-amber-950 bg-amber-200 hover:bg-amber-300 disabled:opacity-50"
+                onClick={() => paypalSimulationMut.mutate()}
+              >
+                {paypalSimulationMut.isPending
+                  ? t('common.loading')
+                  : t('orders.simulatePayPalSandbox', 'Simulate PayPal payment (sandbox only)')}
+              </button>
+            )}
+            {canPayByCard && (
+              <button
+                type="button"
+                disabled={stripeMut.isPending}
+                className="w-full py-2.5 rounded-lg font-medium text-white bg-[#635BFF] hover:opacity-90 disabled:opacity-50"
+                onClick={() => stripeMut.mutate()}
+              >
+                {stripeMut.isPending
+                  ? t('common.loading')
+                  : t('orders.payByCard', 'Pay by card')}
+              </button>
+            )}
           </div>
         )}
 
-        {actionError && (
+        {(actionError || stripeMut.error) && (
           <p className="text-red-600 text-sm">
-            {(actionError as { response?: { data?: { message?: string } } }).response?.data?.message ??
-              (actionError as Error).message}
+            {((actionError ?? stripeMut.error) as { response?: { data?: { message?: string } } }).response?.data?.message ??
+              ((actionError ?? stripeMut.error) as Error).message}
           </p>
         )}
       </div>

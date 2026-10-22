@@ -24,8 +24,8 @@ class PayPalController extends BaseApiController
     public function start(PayPalQuotedOrdersRequest $request): JsonResponse
     {
         $returnUrl = (string) config('paypal.return_url');
-        $cancelUrl = (string) config('paypal.cancel_redirect');
-        if ($returnUrl === '' || $cancelUrl === '') {
+        $orderRedirect = (string) config('paypal.order_redirect');
+        if ($returnUrl === '' || $orderRedirect === '') {
             return $this->errorResponse('PayPal redirect URLs are not configured on the server.', 503);
         }
 
@@ -47,6 +47,14 @@ class PayPalController extends BaseApiController
             if (strlen($customId) > 127) {
                 return $this->errorResponse('Too many orders for a single PayPal payment.', 422);
             }
+
+            $returnUrl = $this->appendQuery($returnUrl, 'order_id', (string) $orders[0]->getKey());
+            $cancelUrl = str_replace(
+                '{ORDER_ID}',
+                rawurlencode((string) $orders[0]->getKey()),
+                $orderRedirect
+            );
+            $cancelUrl = $this->appendQuery($cancelUrl, 'paypal', 'cancelled');
 
             $units = [];
             foreach ($orders as $order) {
@@ -101,6 +109,34 @@ class PayPalController extends BaseApiController
         ], 'Redirect to approval_url to complete payment.', 200);
     }
 
+    public function simulateSandboxPayment(string $id): JsonResponse
+    {
+        if ($this->payPalService->mode() !== 'sandbox') {
+            return $this->errorResponse('Simulated payments are only available in PayPal Sandbox.', 403);
+        }
+
+        $customer = auth('customer')->user();
+        $order = $customer
+            ? $this->orderService->getOrderById($id, (string) $customer->getKey())
+            : null;
+        if (! $order) {
+            return $this->errorResponse('Order not found.', 404);
+        }
+
+        try {
+            $this->orderService->markSandboxPayPalOrderPaid($order);
+        } catch (\InvalidArgumentException $e) {
+            return $this->domainErrorResponse($e);
+        }
+
+        $order->refresh();
+
+        return $this->successResponse(
+            $order->hideInternalPayouts(),
+            'Sandbox payment simulated. No PayPal transaction was created.'
+        );
+    }
+
     /**
      * Public redirect target after buyer approves payment in PayPal (return_url).
      */
@@ -108,14 +144,16 @@ class PayPalController extends BaseApiController
     {
         $token = $request->query('token');
         if (! is_string($token) || $token === '') {
-            return $this->redirectToConfiguredUrl((string) config('paypal.cancel_redirect'), 'paypal=missing_token');
+            return $this->redirectToOrder($request->query('order_id'), 'cancelled');
         }
 
         $successUrl = (string) config('paypal.success_redirect');
-        $failUrl = (string) config('paypal.cancel_redirect');
+        $fallbackOrderId = $request->query('order_id');
 
         try {
             $details = $this->payPalService->getOrder($token);
+            $customId = $this->extractOrderIds($details);
+            $orderId = $customId[0] ?? $fallbackOrderId;
             $status = is_string($details['status'] ?? null) ? $details['status'] : '';
 
             if ($status === 'APPROVED') {
@@ -124,14 +162,14 @@ class PayPalController extends BaseApiController
             }
 
             if ($status !== 'COMPLETED') {
-                return $this->redirectToConfiguredUrl($failUrl, 'paypal=not_completed');
+                return $this->redirectToOrder($orderId, 'not_completed');
             }
 
             [$customId, $captureId, $capturedAmount] = $this->extractCustomCaptureAndAmount($details);
             if ($customId === '') {
                 Log::warning('PayPal completed order missing custom_id');
 
-                return $this->redirectToConfiguredUrl($failUrl, 'paypal=no_custom_id');
+                return $this->redirectToOrder($orderId, 'no_custom_id');
             }
 
             $ids = array_values(array_filter(array_map('trim', explode(',', $customId))));
@@ -142,7 +180,7 @@ class PayPalController extends BaseApiController
                 if (! $order) {
                     Log::warning('PayPal capture referenced missing order', ['order_id' => $orderId]);
 
-                    return $this->redirectToConfiguredUrl($failUrl, 'paypal=order_mismatch');
+                    return $this->redirectToOrder($orderId, 'order_mismatch');
                 }
                 $expected += (float) $order->total;
             }
@@ -154,14 +192,14 @@ class PayPalController extends BaseApiController
                     'order_ids' => $ids,
                 ]);
 
-                return $this->redirectToConfiguredUrl($failUrl, 'paypal=amount_mismatch');
+                return $this->redirectToOrder($orderId, 'amount_mismatch');
             }
 
             $this->orderService->markPayPalOrdersPaid($ids, $captureId);
         } catch (\Throwable $e) {
             Log::error($e->getMessage(), ['exception' => $e]);
 
-            return $this->redirectToConfiguredUrl($failUrl, 'paypal=error');
+            return $this->redirectToOrder($fallbackOrderId, 'error');
         }
 
         if ($successUrl === '') {
@@ -243,13 +281,55 @@ class PayPalController extends BaseApiController
         return $byId;
     }
 
-    private function redirectToConfiguredUrl(string $base, string $querySuffix): RedirectResponse
+    private function redirectToOrder(mixed $orderId, string $result): RedirectResponse
     {
-        if ($base === '') {
-            return redirect()->away('/?'.$querySuffix);
-        }
-        $sep = str_contains($base, '?') ? '&' : '?';
+        $base = trim((string) config('paypal.order_redirect'));
+        if ($base === '' || ! is_string($orderId) || $orderId === '') {
+            $base = rtrim((string) config('paypal.success_redirect'), '/');
+            if ($base === '') {
+                return redirect()->away('/orders?paypal='.$result);
+            }
+            $base .= '?paypal='.$result;
 
-        return redirect()->away($base.$sep.$querySuffix);
+            return redirect()->away($base);
+        }
+
+        $url = str_replace('{ORDER_ID}', rawurlencode($orderId), $base);
+
+        return redirect()->away($this->appendQuery($url, 'paypal', $result));
+    }
+
+    /**
+     * @param  array<string, mixed>  $orderPayload
+     * @return list<string>
+     */
+    private function extractOrderIds(array $orderPayload): array
+    {
+        $units = $orderPayload['purchase_units'] ?? [];
+        if (! is_array($units)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($units as $unit) {
+            if (! is_array($unit) || ! is_string($unit['custom_id'] ?? null)) {
+                continue;
+            }
+            foreach (explode(',', $unit['custom_id']) as $id) {
+                $id = trim($id);
+                if ($id !== '') {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function appendQuery(string $url, string $key, string $value): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.rawurlencode($key).'='.rawurlencode($value);
     }
 }

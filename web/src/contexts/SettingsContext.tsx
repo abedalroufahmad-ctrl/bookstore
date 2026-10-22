@@ -12,6 +12,7 @@ export interface CatalogLayout {
 }
 
 interface Settings {
+    paypal_mode: 'sandbox' | 'live' | null
     global_discount: number
     invoice_shipping_fee: number
     weight_unit: WeightUnit
@@ -80,6 +81,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const raw = data?.data as Record<string, unknown> | undefined
     const books = parseCatalogLayout(raw, 'books', 27, 5)
     const settings: Settings = {
+        paypal_mode: raw?.paypal_mode === 'sandbox' || raw?.paypal_mode === 'live'
+            ? raw.paypal_mode
+            : null,
         global_discount: typeof raw?.global_discount === 'number' ? raw.global_discount : 0,
         invoice_shipping_fee: typeof raw?.invoice_shipping_fee === 'number' ? Math.max(0, raw.invoice_shipping_fee) : 0,
         weight_unit: (raw?.weight_unit as WeightUnit) || 'kg',

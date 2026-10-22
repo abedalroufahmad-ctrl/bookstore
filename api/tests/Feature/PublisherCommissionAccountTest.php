@@ -99,4 +99,105 @@ class PublisherCommissionAccountTest extends MongoFeatureTestCase
             ->assertOk()
             ->assertJsonPath('data.account.commission_owed', 0);
     }
+
+    public function test_publisher_manager_can_filter_order_totals_for_own_publisher(): void
+    {
+        $pm = $this->employee('publisher_manager', [
+            'publisher_id' => (string) $this->publisher->_id,
+        ]);
+        $headers = $this->employeeHeaders($pm);
+
+        Order::create([
+            'warehouse_id' => (string) $this->warehouse->_id,
+            'total' => 12.5,
+            'created_at' => new \DateTimeImmutable('2026-10-14T10:00:00Z'),
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $this->warehouse->_id,
+            'total' => 7.5,
+            'created_at' => new \DateTimeImmutable('2026-10-01T10:00:00Z'),
+        ]);
+        Order::create([
+            'warehouse_id' => (string) Warehouse::create([
+                'name' => 'Other WH',
+                'publisher_id' => 'another-publisher',
+            ])->_id,
+            'total' => 99,
+            'created_at' => new \DateTimeImmutable('2026-10-14T10:00:00Z'),
+        ]);
+
+        $this->getJson(
+            "/api/v1/admin/publishers/{$this->publisher->_id}/order-totals?period=day&date=2026-10-14",
+            $headers
+        )
+            ->assertOk()
+            ->assertJsonPath('data.total_sum', 12.5)
+            ->assertJsonPath('data.orders.total', 1)
+            ->assertJsonPath('data.orders.data.0.total', 12.5)
+            ->assertJsonMissingPath('data.orders.data.0.items');
+    }
+
+    public function test_publisher_manager_cannot_view_another_publishers_order_totals(): void
+    {
+        $other = Publisher::create(['name' => 'Other']);
+        $pm = $this->employee('publisher_manager', [
+            'publisher_id' => (string) $this->publisher->_id,
+        ]);
+
+        $this->getJson(
+            "/api/v1/admin/publishers/{$other->_id}/order-totals?period=year&date=2026-01-01",
+            $this->employeeHeaders($pm)
+        )->assertForbidden();
+    }
+
+    public function test_manager_can_filter_admin_order_totals_by_publisher_and_period(): void
+    {
+        $other = Publisher::create(['name' => 'Another Press']);
+        $otherWarehouse = Warehouse::create([
+            'name' => 'Another WH',
+            'publisher_id' => (string) $other->_id,
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $this->warehouse->_id,
+            'total' => 12.5,
+            'platform_commission_amount' => 1.25,
+            'created_at' => new \DateTimeImmutable('2026-10-14T10:00:00Z'),
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $otherWarehouse->_id,
+            'total' => 20,
+            'platform_commission_amount' => 2,
+            'created_at' => new \DateTimeImmutable('2026-10-14T10:00:00Z'),
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $this->warehouse->_id,
+            'total' => 7.5,
+            'created_at' => new \DateTimeImmutable('2026-10-01T10:00:00Z'),
+        ]);
+
+        $this->getJson(
+            "/api/v1/admin/settings/order-totals?period=day&date=2026-10-14&publisher_id={$this->publisher->_id}",
+            $this->employeeHeaders($this->employee('manager'))
+        )
+            ->assertOk()
+            ->assertJsonPath('data.total_sum', 12.5)
+            ->assertJsonPath('data.commission_sum', 1.25)
+            ->assertJsonPath('data.orders.total', 1)
+            ->assertJsonPath('data.orders.data.0.total', 12.5)
+            ->assertJsonPath('data.orders.data.0.commission', 1.25)
+            ->assertJsonPath('data.orders.data.0.publisher_name', 'Ledger Press')
+            ->assertJsonMissingPath('data.orders.data.0.customer_name');
+    }
+
+    public function test_publisher_manager_cannot_access_admin_order_totals(): void
+    {
+        $pm = $this->employee('publisher_manager', [
+            'publisher_id' => (string) $this->publisher->_id,
+        ]);
+
+        $this->getJson(
+            '/api/v1/admin/settings/order-totals?period=year&date=2026-01-01',
+            $this->employeeHeaders($pm)
+        )->assertForbidden();
+    }
 }

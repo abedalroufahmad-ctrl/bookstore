@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type Order, type Employee } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
+import { paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
 
 const ORDER_STATUSES = [
   'pending_warehouse_review',
@@ -397,7 +398,7 @@ export function AdminOrders() {
                   <td className="px-4 py-2">
                     {t(`admin.orderStatus.${order.status}`, order.status)}
                   </td>
-                  <td className="px-4 py-2">{order.payment_status ?? '-'}</td>
+                  <td className="px-4 py-2">{paymentStatusLabel(order.payment_status, t)}</td>
                   <td className="px-4 py-2">${order.total?.toFixed(2)}</td>
                   <td className="px-4 py-2">
                     {order.employee?.name ?? order.employee_id ?? (
@@ -492,6 +493,30 @@ function OrderDetailModal({
       return body.data
     },
   })
+
+  const { data: settingsResponse } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: async () => {
+      const res = await admin.settings.get()
+      return res.data
+    },
+  })
+  const quotePaymentMethods = useMemo(() => {
+    const methods = settingsResponse?.data?.payment_methods
+    if (!Array.isArray(methods)) return []
+    return methods.filter(
+      (method): method is { id: string; name: string; enabled: boolean } =>
+        method !== null
+        && typeof method === 'object'
+        && typeof method.id === 'string'
+        && typeof method.name === 'string'
+        && Boolean(method.enabled)
+        && (
+          !['stripe', 'card'].includes(method.id.toLowerCase())
+          || settingsResponse?.data?.stripe_available === true
+        )
+    )
+  }, [settingsResponse])
 
   const displayOrder = detailOrder ?? order
 
@@ -661,13 +686,26 @@ function OrderDetailModal({
                 </div>
                 <div>
                   <label className="block text-sm text-slate-700 mb-1">{t('checkout.paymentMethod')}</label>
-                  <input
-                    type="text"
+                  <select
                     value={confirmPaymentMethod}
                     onChange={(e) => setConfirmPaymentMethod(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    placeholder="cod / paypal / stripe …"
-                  />
+                  >
+                    {!quotePaymentMethods.some((method) => method.id === confirmPaymentMethod) && confirmPaymentMethod && (
+                      <option value={confirmPaymentMethod}>{confirmPaymentMethod}</option>
+                    )}
+                    {quotePaymentMethods.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.id === 'cod'
+                          ? t('checkout.paymentCOD')
+                          : method.id === 'paypal'
+                            ? t('checkout.paymentPayPal')
+                            : method.id === 'stripe' || method.id === 'card'
+                              ? t('admin.settings.paymentCardStripe')
+                              : method.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 {quoteMutation.error && (
                   <p className="text-red-600 text-sm">
@@ -690,9 +728,9 @@ function OrderDetailModal({
               <span className="text-sm font-medium text-slate-600">
                 {t('admin.paymentStatus')}:
               </span>{' '}
-              {displayOrder.payment_status ?? '-'}
+              {paymentStatusLabel(displayOrder.payment_status, t)}
               {displayOrder.payment_method && (
-                <span className="text-slate-500"> ({displayOrder.payment_method})</span>
+                <span className="text-slate-500"> ({paymentMethodLabel(displayOrder.payment_method, t)})</span>
               )}
             </div>
 

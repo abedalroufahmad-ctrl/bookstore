@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { orders } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Pagination } from '../components/Pagination'
+import { paymentStatusLabel } from '../lib/utils'
 
 export function Orders() {
   const { userType } = useAuth()
@@ -41,13 +42,13 @@ export function Orders() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="font-medium font-mono text-sm break-all">
-                  Order #{order._id}
+                  {t('orders.order')} #{order._id}
                 </p>
                 <p className="text-sm text-slate-500">
                   ${order.total?.toFixed(2)} · {t(`admin.orderStatus.${order.status}`, order.status)}
                   {order.payment_status && (
                     <span className="ml-2 text-slate-600">
-                      · Payment: {order.payment_status}
+                      · {t('orders.paymentStatus')}: {paymentStatusLabel(order.payment_status, t)}
                     </span>
                   )}
                 </p>

@@ -33,6 +33,12 @@ class SubmitWarehouseOrderQuoteRequest extends BaseFormRequest
             if ($enabled !== [] && ! in_array((string) $method, $enabled, true)) {
                 $validator->errors()->add('payment_method', 'This payment method is not available or not enabled.');
             }
+            if (
+                in_array(strtolower($method), ['stripe', 'card'], true)
+                && trim((string) config('services.stripe.secret')) === ''
+            ) {
+                $validator->errors()->add('payment_method', 'Card payment is not configured on the server.');
+            }
         });
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Publisher;
 use App\Models\PublisherCommissionEntry;
 use App\Models\Warehouse;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PublisherCommissionAccountService
@@ -143,6 +144,112 @@ class PublisherCommissionAccountService
             ->where('publisher_id', $publisherId)
             ->orderByDesc('created_at')
             ->paginate(min(max($perPage, 1), 100));
+    }
+
+    /**
+     * @return array{orders: LengthAwarePaginator, total_sum: float}
+     */
+    public function getOrderTotals(
+        string $publisherId,
+        CarbonImmutable $start,
+        CarbonImmutable $end,
+        int $perPage = 25
+    ): array {
+        $warehouseIds = Warehouse::query()
+            ->where('publisher_id', $publisherId)
+            ->pluck('_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        $query = Order::query()
+            ->whereIn('warehouse_id', $warehouseIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->orderByDesc('created_at');
+
+        $totalSum = (float) (clone $query)->sum('total');
+        $orders = $query->paginate(min(max($perPage, 1), 100), ['_id', 'total', 'created_at']);
+        $orders->through(fn (Order $order) => [
+            'total' => (float) $order->total,
+            'created_at' => $order->created_at,
+        ]);
+
+        return [
+            'orders' => $orders,
+            'total_sum' => round($totalSum, 2),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     publishers: list<array{id: string, name: string}>,
+     *     orders: LengthAwarePaginator,
+     *     total_sum: float
+     * }
+     */
+    public function getAdminOrderTotals(
+        ?string $publisherId,
+        CarbonImmutable $start,
+        CarbonImmutable $end,
+        int $perPage = 25
+    ): array {
+        $publishers = Publisher::query()->orderBy('name')->get(['_id', 'name']);
+        $publisherNames = [];
+        $publisherOptions = [];
+        foreach ($publishers as $publisher) {
+            $id = (string) $publisher->getKey();
+            $name = (string) $publisher->name;
+            $publisherNames[$id] = $name;
+            $publisherOptions[] = ['id' => $id, 'name' => $name];
+        }
+
+        if ($publisherId !== null && ! array_key_exists($publisherId, $publisherNames)) {
+            throw new \InvalidArgumentException('Publisher not found.');
+        }
+
+        $warehouses = Warehouse::query()->get(['_id', 'publisher_id']);
+        $publisherIdByWarehouse = [];
+        foreach ($warehouses as $warehouse) {
+            $ownerId = trim((string) ($warehouse->publisher_id ?? ''));
+            if ($ownerId !== '' && isset($publisherNames[$ownerId])) {
+                $publisherIdByWarehouse[(string) $warehouse->getKey()] = $ownerId;
+            }
+        }
+
+        $warehouseIds = [];
+        foreach ($publisherIdByWarehouse as $warehouseId => $ownerId) {
+            if ($publisherId === null || $ownerId === $publisherId) {
+                $warehouseIds[] = $warehouseId;
+            }
+        }
+
+        $query = Order::query()
+            ->whereIn('warehouse_id', $warehouseIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->orderByDesc('created_at');
+        $totalSum = (float) (clone $query)->sum('total');
+        $commissionSum = (float) (clone $query)->sum('platform_commission_amount');
+        $orders = $query->paginate(min(max($perPage, 1), 100), [
+            '_id',
+            'total',
+            'warehouse_id',
+            'platform_commission_amount',
+        ]);
+        $orders->through(function (Order $order) use ($publisherIdByWarehouse, $publisherNames) {
+            $ownerId = $publisherIdByWarehouse[(string) $order->warehouse_id] ?? '';
+
+            return [
+                'total' => (float) $order->total,
+                'commission' => (float) ($order->platform_commission_amount ?? 0),
+                'publisher_name' => $publisherNames[$ownerId] ?? '',
+            ];
+        });
+
+        return [
+            'publishers' => $publisherOptions,
+            'orders' => $orders,
+            'total_sum' => round($totalSum, 2),
+            'commission_sum' => round($commissionSum, 2),
+        ];
     }
 
     private function resolvePublisherId(Order $order): ?string

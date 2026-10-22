@@ -159,6 +159,12 @@ export const orders = {
         approval_url: string
       }>
     >('/customers/orders/paypal/start', { order_ids: orderIds }),
+  paypalSimulateSandbox: (id: string) =>
+    api.post<ApiResponse<Order>>(`/customers/orders/${id}/paypal/simulate`),
+  stripeStart: (id: string) =>
+    api.post<ApiResponse<{ checkout_url: string }>>(`/customers/orders/${id}/stripe/start`),
+  stripeVerify: (id: string, sessionId: string) =>
+    api.post<ApiResponse<Order>>(`/customers/orders/${id}/stripe/verify`, { session_id: sessionId }),
 }
 
 export const admin = {
@@ -340,6 +346,14 @@ export const admin = {
         `/admin/publishers/${id}/commission-account`,
         { params },
       ),
+    orderTotals: (
+      id: string,
+      params: { period: 'day' | 'month' | 'year'; date: string; page?: number; per_page?: number },
+    ) =>
+      api.get<ApiResponse<{
+        total_sum: number
+        orders: PaginatedResponse<{ total: number; created_at?: string }>
+      }>>(`/admin/publishers/${id}/order-totals`, { params }),
     recordCommissionSettlement: (
       id: string,
       data: { amount: number; note?: string; reference?: string },
@@ -352,6 +366,19 @@ export const admin = {
   settings: {
     get: () => api.get<ApiResponse<Record<string, any>>>('/admin/settings'),
     update: (data: Record<string, any>) => api.put<ApiResponse<null>>('/admin/settings', data),
+    orderTotals: (params: {
+      period: 'day' | 'month' | 'year'
+      date: string
+      publisher_id?: string
+      page?: number
+      per_page?: number
+    }) =>
+      api.get<ApiResponse<{
+        publishers: { id: string; name: string }[]
+        total_sum: number
+        commission_sum: number
+        orders: PaginatedResponse<{ total: number; commission: number; publisher_name: string }>
+      }>>('/admin/settings/order-totals', { params }),
   },
   countries: {
     list: (params?: Record<string, string | number>) =>

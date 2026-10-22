@@ -351,7 +351,7 @@ export function AdminPos() {
                     {hasCover(book) ? (
                       <img loading="lazy" decoding="async" src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)} alt="" className="object-cover w-full h-full" />
                     ) : (
-                      <span className="text-slate-300 font-serif">BOOK</span>
+                      <span className="text-slate-300 font-serif">{t('admin.bookPlaceholder')}</span>
                     )}
                   </div>
                   <h3 className="text-sm font-medium line-clamp-2 leading-tight">{book.title}</h3>

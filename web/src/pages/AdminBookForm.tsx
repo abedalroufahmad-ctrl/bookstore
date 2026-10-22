@@ -1276,7 +1276,7 @@ export function AdminBookForm() {
                   <p className="text-xs text-slate-500 mb-1">{t('admin.thumbnail')}</p>
                   <img
                     src={resolveCoverUrl(form.cover_image_thumb)}
-                    alt="Thumb"
+                    alt={t('admin.thumbnail')}
                     className="h-24 w-auto rounded border border-slate-200"
                   />
                 </div>
@@ -1286,7 +1286,7 @@ export function AdminBookForm() {
                   <p className="text-xs text-slate-500 mb-1">{t('admin.original')}</p>
                   <img
                     src={resolveCoverUrl(form.cover_image)}
-                    alt="Cover"
+                    alt={t('admin.original')}
                     className="max-h-24 w-auto rounded border border-slate-200"
                   />
                 </div>

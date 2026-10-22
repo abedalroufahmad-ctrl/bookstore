@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -17,17 +18,42 @@ class PayPalService
 
     public function baseUrl(): string
     {
-        return config('paypal.mode') === 'live'
+        return $this->mode() === 'live'
             ? 'https://api-m.paypal.com'
             : 'https://api-m.sandbox.paypal.com';
     }
 
+    public function mode(): string
+    {
+        $mode = Setting::get('paypal_mode', config('paypal.mode', 'sandbox'));
+
+        return in_array($mode, ['sandbox', 'live'], true)
+            ? $mode
+            : 'sandbox';
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function availableModes(): array
+    {
+        $modes = [];
+        foreach (['sandbox', 'live'] as $mode) {
+            [$clientId, $secret] = $this->credentialsForMode($mode);
+            if ($clientId !== '' && $secret !== '') {
+                $modes[] = $mode;
+            }
+        }
+
+        return $modes;
+    }
+
     public function getAccessToken(): string
     {
-        $clientId = trim((string) config('paypal.client_id'));
-        $secret = trim((string) config('paypal.secret'));
+        $mode = $this->mode();
+        [$clientId, $secret] = $this->credentialsForMode($mode);
         if ($clientId === '' || $secret === '') {
-            throw new \RuntimeException('PayPal client credentials are not configured.');
+            throw new \RuntimeException("PayPal {$mode} credentials are not configured.");
         }
 
         $response = self::http()
@@ -41,7 +67,7 @@ class PayPalService
             Log::warning('PayPal OAuth request failed', [
                 'status' => $response->status(),
                 'body' => $response->json() ?: $response->body(),
-                'mode' => config('paypal.mode'),
+                'mode' => $mode,
                 'base_url' => $this->baseUrl(),
             ]);
 
@@ -61,6 +87,29 @@ class PayPalService
         }
 
         return $token;
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function credentialsForMode(string $mode): array
+    {
+        $clientId = trim((string) config("paypal.{$mode}_client_id", ''));
+        $secret = trim((string) config("paypal.{$mode}_secret", ''));
+        if ($clientId !== '' && $secret !== '') {
+            return [$clientId, $secret];
+        }
+
+        if ($mode === config('paypal.mode', 'sandbox')) {
+            $clientId = trim((string) config('paypal.client_id', ''));
+            $secret = trim((string) config('paypal.secret', ''));
+
+            if ($clientId !== '' && $secret !== '') {
+                return [$clientId, $secret];
+            }
+        }
+
+        return ['', ''];
     }
 
     /**
