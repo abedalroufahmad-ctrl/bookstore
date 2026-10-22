@@ -287,7 +287,13 @@ export function AdminPos() {
           <input
             type="text"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value
+              setSearchInput(next)
+              if (next.endsWith(' ')) {
+                window.setTimeout(() => commitSearch(next), 0)
+              }
+            }}
             onKeyDown={(e) => e.key === 'Enter' && commitSearch(searchInput)}
             placeholder={t('search.placeholder')}
             className="flex-1 min-w-[200px] px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-navy-500"
