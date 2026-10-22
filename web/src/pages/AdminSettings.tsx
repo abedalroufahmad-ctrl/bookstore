@@ -476,7 +476,7 @@ export function AdminSettings() {
           </p>
           <select
             value={paypalMode}
-            onChange={(e) => setPaypalMode(e.target.value as PayPalMode)}
+            onChange={(e) => { setPaypalMode(e.target.value as PayPalMode); }}
             className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
           >
             {paypalAvailableModes.includes('sandbox') && (
@@ -514,7 +514,7 @@ export function AdminSettings() {
             <input
               type="email"
               value={commissionCollectionPayPalEmail}
-              onChange={(e) => setCommissionCollectionPayPalEmail(e.target.value)}
+              onChange={(e) => { setCommissionCollectionPayPalEmail(e.target.value); }}
               className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </label>
@@ -523,7 +523,7 @@ export function AdminSettings() {
             <input
               type="text"
               value={commissionCollectionBankName}
-              onChange={(e) => setCommissionCollectionBankName(e.target.value)}
+              onChange={(e) => { setCommissionCollectionBankName(e.target.value); }}
               className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </label>
@@ -533,7 +533,7 @@ export function AdminSettings() {
               type="text"
               autoComplete="off"
               value={commissionCollectionBankAccountNumber}
-              onChange={(e) => setCommissionCollectionBankAccountNumber(e.target.value)}
+              onChange={(e) => { setCommissionCollectionBankAccountNumber(e.target.value); }}
               className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
             />
           </label>

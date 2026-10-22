@@ -89,7 +89,7 @@ export function Checkout() {
   useEffect(() => {
     if (!paypalReturn || !customerOrdersData) return
 
-    const orderList = customerOrdersData.data?.data
+    const orderList = customerOrdersData.data.data
     const customerOrders = Array.isArray(orderList) ? orderList as {
       _id: string
       payment_method?: string
@@ -102,7 +102,7 @@ export function Checkout() {
       && item.status === 'awaiting_customer_confirmation'
     ) ?? customerOrders[0]
 
-    if (order?._id) {
+    if (order && order._id) {
       navigate(`/orders/${encodeURIComponent(order._id)}?paypal=${encodeURIComponent(paypalResult)}`, {
         replace: true,
       })

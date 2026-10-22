@@ -100,13 +100,13 @@ export function OrderDetail() {
   const stripeMut = useMutation({
     mutationFn: async () => {
       const res = await orders.stripeStart(id!)
-      const checkoutUrl = res.data.data?.checkout_url
+      const checkoutUrl = res.data.data.checkout_url
       if (!res.data.success || !checkoutUrl || !isTrustedStripeCheckoutUrl(checkoutUrl)) {
         throw new Error(t('orders.cardPaymentStartFailed', 'Could not open secure card checkout.'))
       }
       return checkoutUrl
     },
-    onSuccess: (checkoutUrl) => window.location.assign(checkoutUrl),
+    onSuccess: (checkoutUrl) => { window.location.assign(checkoutUrl); },
   })
 
   if (userType !== 'customer') return null
@@ -325,7 +325,7 @@ export function OrderDetail() {
                 type="button"
                 disabled={paypalMut.isPending || paypalSimulationMut.isPending}
                 className="w-full py-2.5 rounded-lg font-medium text-amber-950 bg-amber-200 hover:bg-amber-300 disabled:opacity-50"
-                onClick={() => paypalSimulationMut.mutate()}
+                onClick={() => { paypalSimulationMut.mutate(); }}
               >
                 {paypalSimulationMut.isPending
                   ? t('common.loading')
@@ -337,7 +337,7 @@ export function OrderDetail() {
                 type="button"
                 disabled={stripeMut.isPending}
                 className="w-full py-2.5 rounded-lg font-medium text-white bg-[#635BFF] hover:opacity-90 disabled:opacity-50"
-                onClick={() => stripeMut.mutate()}
+                onClick={() => { stripeMut.mutate(); }}
               >
                 {stripeMut.isPending
                   ? t('common.loading')
