@@ -151,8 +151,8 @@ class PublisherCommissionAccountService
      */
     public function getOrderTotals(
         string $publisherId,
-        CarbonImmutable $start,
-        CarbonImmutable $end,
+        ?CarbonImmutable $start,
+        ?CarbonImmutable $end,
         int $perPage = 25
     ): array {
         $warehouseIds = Warehouse::query()
@@ -163,8 +163,10 @@ class PublisherCommissionAccountService
 
         $query = Order::query()
             ->whereIn('warehouse_id', $warehouseIds)
-            ->whereBetween('created_at', [$start, $end])
             ->orderByDesc('created_at');
+        if ($start !== null && $end !== null) {
+            $query->whereBetween('created_at', [$start, $end]);
+        }
 
         $totalSum = (float) (clone $query)->sum('total');
         $orders = $query->paginate(min(max($perPage, 1), 100), ['_id', 'total', 'created_at']);

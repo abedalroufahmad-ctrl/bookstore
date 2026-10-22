@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { orders, settings, auth, cart } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 
 type PaymentMethodOption = { id: string; name: string; enabled: boolean }
 
@@ -117,9 +117,12 @@ export function Checkout() {
     () => parsePaymentMethods(rawPaymentMethods).filter((method) => !['stripe', 'card'].includes(method.id.toLowerCase())),
     [rawPaymentMethods]
   )
-  const cartItems = (cartData?.data as {
-    items?: { book?: { publisher?: { settings?: { payment_methods?: string[] } } } }[]
-  } | undefined)?.items ?? []
+  const cartItems = useMemo(
+    () => (cartData?.data as {
+      items?: { book?: { publisher?: { settings?: { payment_methods?: string[] } } } }[]
+    } | undefined)?.items ?? [],
+    [cartData?.data],
+  )
   
   const enabledMethods = useMemo(() => {
     // 1. Get globally enabled methods

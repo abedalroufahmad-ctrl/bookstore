@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { books as booksApi, warehousesPublic as warehousesApi, publishersPublic as publishersApi } from '../lib/api'
 import { resolveCoverUrl, getPublisherEntries, hasCover } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
-import { useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
 import type { Book, Warehouse, Publisher } from '../lib/api'
 
 export function HomePage() {

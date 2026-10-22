@@ -144,23 +144,26 @@ class PublisherController extends BaseApiController
         }
 
         $validated = $request->validate([
-            'period' => ['required', 'in:day,month,year'],
-            'date' => ['required', 'date_format:Y-m-d'],
+            'period' => ['required', 'in:all,day,month,year'],
+            'date' => ['required_unless:period,all', 'date_format:Y-m-d'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $date = CarbonImmutable::createFromFormat('!Y-m-d', $validated['date'], config('app.timezone'));
-        $start = match ($validated['period']) {
-            'month' => $date->startOfMonth(),
-            'year' => $date->startOfYear(),
-            default => $date->startOfDay(),
-        };
-        $end = match ($validated['period']) {
-            'month' => $date->endOfMonth(),
-            'year' => $date->endOfYear(),
-            default => $date->endOfDay(),
-        };
+        $start = $end = null;
+        if ($validated['period'] !== 'all') {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $validated['date'], config('app.timezone'));
+            $start = match ($validated['period']) {
+                'month' => $date->startOfMonth(),
+                'year' => $date->startOfYear(),
+                default => $date->startOfDay(),
+            };
+            $end = match ($validated['period']) {
+                'month' => $date->endOfMonth(),
+                'year' => $date->endOfYear(),
+                default => $date->endOfDay(),
+            };
+        }
 
         return $this->successResponse(
             $this->commissionAccountService->getOrderTotals(

@@ -6,8 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { admin, warehousesPublic, type Book, type BookFormData } from '../lib/api'
 import { compressImageForUpload } from '../lib/compressImage'
 import { resolveCoverUrl } from '../lib/utils'
-import { useSettings, gramsToDisplay, displayToGrams } from '../contexts/SettingsContext'
-import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { gramsToDisplay, displayToGrams } from '../contexts/settingsUtils'
+import { useAuth } from '../contexts/authContextCore'
 
 const emptyForm: BookFormData = {
   title: '',
@@ -197,8 +198,12 @@ export function AdminBookForm() {
 
   const authorList = extractList<{ _id: string; name: string }>(authorsData)
   const searchAuthorList = extractList<{ _id: string; name: string }>(authorsSearchData)
-  const rawBook = bookData?.data as (Book & { authors?: Array<Record<string, unknown>> }) | undefined
-  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a: any) => {
+  const rawBook = bookData?.data as (Omit<Book, 'authors' | 'publishers' | 'publisher'> & {
+    authors?: Array<{ _id?: string; id?: string; name?: string; title?: string }>
+    publishers?: Array<{ _id?: string; id?: string; name?: string }>
+    publisher?: { _id?: string; id?: string; name?: string }
+  }) | undefined
+  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a) => {
     const id = normalizeId(a._id ?? a.id) ?? ''
     const name = (a.name ?? a.title) as string | undefined
     return { _id: id, name: name ?? '' }
@@ -266,12 +271,12 @@ export function AdminBookForm() {
 
   const publisherList = extractList<{ _id: string; name: string }>(publishersData)
   const searchPublisherList = extractList<{ _id: string; name: string }>(publishersSearchData)
-  const rawBookPublishers = ((rawBook as any)?.publishers as Array<{ _id?: string; id?: string; name?: string }> | undefined) ?? []
+  const rawBookPublishers = rawBook?.publishers ?? []
   const bookPublishers: { _id: string; name: string }[] = rawBookPublishers.map((p) => ({
     _id: normalizeId(p._id ?? p.id) ?? '',
     name: p.name ?? '',
   })).filter((p) => p._id)
-  const rawBookPublisher = (rawBook as any)?.publisher as { _id?: string; id?: string; name?: string } | undefined
+  const rawBookPublisher = rawBook?.publisher
   if (rawBookPublisher) {
     const id = normalizeId(rawBookPublisher._id ?? rawBookPublisher.id)
     if (id && !bookPublishers.some((p) => p._id === id)) {
@@ -298,7 +303,7 @@ export function AdminBookForm() {
   useEffect(() => {
     if (bookData?.data) {
       const b = bookData.data as Book & { authors?: Array<{ _id?: string; id?: string; name?: string }> }
-      const rawAuthorIds = b.author_ids ?? b.authors?.map((a: any) => a._id ?? a.id) ?? []
+      const rawAuthorIds = b.author_ids ?? b.authors?.map((a) => a._id) ?? []
       const authorIds = (Array.isArray(rawAuthorIds) ? rawAuthorIds : []).map((id) => normalizeId(id)).filter((id): id is string => id != null)
       const warehouseId = normalizeId(b.warehouse_id) ?? (b.warehouse as { _id?: string } | undefined)?._id ?? ''
       setForm({
@@ -315,8 +320,8 @@ export function AdminBookForm() {
         publish_year: b.publish_year,
         publisher_id: normalizeId(b.publisher_id) ?? (b.publisher as { _id?: string } | undefined)?._id ?? '',
         publisher_ids: (() => {
-          const fromIds = Array.isArray((b as any).publisher_ids)
-            ? ((b as any).publisher_ids as unknown[]).map((id) => normalizeId(id)).filter((id): id is string => id != null)
+          const fromIds = Array.isArray(b.publisher_ids)
+            ? b.publisher_ids.map((id) => normalizeId(id)).filter((id): id is string => id != null)
             : []
           if (fromIds.length) return fromIds
           const single = normalizeId(b.publisher_id) ?? (b.publisher as { _id?: string } | undefined)?._id

@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 import { SearchBox } from './SearchBox'
 
 export function Layout() {

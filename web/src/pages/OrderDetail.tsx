@@ -4,8 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { orders } from '../lib/api'
 import { isTrustedPayPalUrl, isTrustedStripeCheckoutUrl, paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
-import { useAuth } from '../contexts/AuthContext'
-import { useSettings } from '../contexts/SettingsContext'
+import { useAuth } from '../contexts/authContextCore'
+import { useSettings } from '../contexts/settingsContextCore'
 
 type OrderPayload = {
   _id: string

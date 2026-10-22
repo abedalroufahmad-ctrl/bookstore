@@ -137,6 +137,56 @@ class PublisherCommissionAccountTest extends MongoFeatureTestCase
             ->assertJsonMissingPath('data.orders.data.0.items');
     }
 
+    public function test_publisher_manager_can_view_all_time_order_revenue_for_own_publisher_only(): void
+    {
+        $pm = $this->employee('publisher_manager', [
+            'publisher_id' => (string) $this->publisher->_id,
+        ]);
+        $otherWarehouse = Warehouse::create([
+            'name' => 'Other WH',
+            'publisher_id' => 'another-publisher',
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $this->warehouse->_id,
+            'total' => 12.5,
+            'created_at' => new \DateTimeImmutable('2024-01-01T10:00:00Z'),
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $this->warehouse->_id,
+            'total' => 7.5,
+            'created_at' => new \DateTimeImmutable('2026-10-14T10:00:00Z'),
+        ]);
+        Order::create([
+            'warehouse_id' => (string) $otherWarehouse->_id,
+            'total' => 99,
+            'created_at' => new \DateTimeImmutable('2026-10-14T10:00:00Z'),
+        ]);
+
+        $this->getJson(
+            "/api/v1/admin/publishers/{$this->publisher->_id}/order-totals?period=all",
+            $this->employeeHeaders($pm)
+        )
+            ->assertOk()
+            ->assertJsonPath('data.total_sum', 20)
+            ->assertJsonPath('data.orders.total', 2);
+    }
+
+    public function test_publisher_manager_can_only_list_own_publishers_warehouses(): void
+    {
+        $pm = $this->employee('publisher_manager', [
+            'publisher_id' => (string) $this->publisher->_id,
+        ]);
+        Warehouse::create([
+            'name' => 'Other publisher warehouse',
+            'publisher_id' => 'another-publisher',
+        ]);
+
+        $this->getJson('/api/v1/admin/warehouses?per_page=100', $this->employeeHeaders($pm))
+            ->assertOk()
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.data.0.name', 'WH');
+    }
+
     public function test_publisher_manager_cannot_view_another_publishers_order_totals(): void
     {
         $other = Publisher::create(['name' => 'Other']);

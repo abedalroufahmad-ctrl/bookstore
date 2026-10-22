@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { admin } from '../lib/api'
 import { useTranslation } from 'react-i18next'
 import { Pagination } from '../components/Pagination'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 
 type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
 type PayPalMode = 'sandbox' | 'live'

@@ -348,7 +348,7 @@ export const admin = {
       ),
     orderTotals: (
       id: string,
-      params: { period: 'day' | 'month' | 'year'; date: string; page?: number; per_page?: number },
+      params: { period: 'all' | 'day' | 'month' | 'year'; date?: string; page?: number; per_page?: number },
     ) =>
       api.get<ApiResponse<{
         total_sum: number
@@ -364,8 +364,8 @@ export const admin = {
       ),
   },
   settings: {
-    get: () => api.get<ApiResponse<Record<string, any>>>('/admin/settings'),
-    update: (data: Record<string, any>) => api.put<ApiResponse<null>>('/admin/settings', data),
+    get: () => api.get<ApiResponse<Record<string, unknown>>>('/admin/settings'),
+    update: (data: Record<string, unknown>) => api.put<ApiResponse<null>>('/admin/settings', data),
     orderTotals: (params: {
       period: 'day' | 'month' | 'year'
       date: string
@@ -401,18 +401,18 @@ export const admin = {
   },
   pos: {
     books: (params?: Record<string, string | number>) =>
-      api.get<ApiResponse<any>>('/admin/pos/books', { params }),
+      api.get<ApiResponse<PaginatedResponse<Book>>>('/admin/pos/books', { params }),
     createInvoice: (data: { items: { book_id: string; quantity: number }[]; warehouse_id: string; customer_name?: string }) =>
-      api.post<ApiResponse<any>>('/admin/pos/invoices', data),
+      api.post<ApiResponse<PosInvoice>>('/admin/pos/invoices', data),
     invoices: (params?: Record<string, string | number>) =>
-      api.get<ApiResponse<any>>('/admin/pos/invoices', { params }),
-    getInvoice: (id: string) => api.get<ApiResponse<any>>(`/admin/pos/invoices/${id}`),
+      api.get<ApiResponse<PaginatedResponse<PosInvoice>>>('/admin/pos/invoices', { params }),
+    getInvoice: (id: string) => api.get<ApiResponse<PosInvoice>>(`/admin/pos/invoices/${id}`),
     reports: (params?: { type: string; warehouse_id?: string; timezone?: string }) => {
       const query: Record<string, string> = {}
       if (params?.type) query.type = params.type
       if (params?.warehouse_id) query.warehouse_id = params.warehouse_id
       if (params?.timezone) query.timezone = params.timezone
-      return api.get<ApiResponse<any>>('/admin/pos/reports', { params: query })
+      return api.get<ApiResponse<PosReportResponse>>('/admin/pos/reports', { params: query })
     },
   },
 }
@@ -462,6 +462,43 @@ export interface Warehouse {
   manager_id?: string | null
   manager?: Employee | null
   employees?: Employee[]
+}
+
+export interface PosInvoiceItem {
+  book_title?: string
+  book_id?: string
+  quantity?: number
+  price?: number
+  weight?: number | null
+}
+
+export interface PosInvoice {
+  _id?: string
+  id?: string
+  created_at?: string
+  customer_name?: string | null
+  warehouse_id?: string
+  warehouse?: Warehouse
+  items?: PosInvoiceItem[]
+  books_subtotal?: number
+  shipping_fee?: number
+  total?: number
+}
+
+export interface PosReportBucket {
+  period?: string
+  total: number
+  count: number
+}
+
+export interface PosReportResponse {
+  summary?: {
+    today?: PosReportBucket
+    month?: PosReportBucket
+    year?: PosReportBucket
+    all?: PosReportBucket
+  }
+  periods?: PosReportBucket[]
 }
 
 export interface WarehouseFormData {

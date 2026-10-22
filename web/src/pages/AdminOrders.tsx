@@ -22,6 +22,14 @@ const ORDER_STATUSES = [
   'delivered',
 ]
 
+type WarehouseLookup = {
+  _id: string
+  id?: string
+  name?: string
+  publisher_id?: string
+  publisher?: { _id?: string; id?: string; name?: string }
+}
+
 function extractList<T>(data: unknown): T[] {
   if (!data) return []
   const d = data as Record<string, unknown>
@@ -161,12 +169,7 @@ export function AdminOrders() {
   const orders = ordersPaginated?.data ?? extractList<Order>(data)
   const ordersMeta = ordersPaginated && 'current_page' in ordersPaginated ? ordersPaginated : null
   const employees = extractList<Employee>(employeesData)
-  const warehouses = extractList<{
-    _id: string
-    name?: string
-    publisher_id?: string
-    publisher?: { _id?: string; id?: string; name?: string }
-  }>(warehousesData)
+  const warehouses = extractList<WarehouseLookup>(warehousesData)
   const publishersFromApi = extractList<{ _id: string; name?: string }>(publishersData)
   const publishers =
     publishersFromApi.length > 0
@@ -473,7 +476,7 @@ function OrderDetailModal({
 }: {
   order: Order
   employees: Employee[]
-  warehouses: any[]
+  warehouses: WarehouseLookup[]
   onClose: () => void
   onAssign: (employeeId: string) => void
   onStatusChange: (status: string) => void
@@ -596,7 +599,7 @@ function OrderDetailModal({
                 {t('admin.warehouse')}:
               </span>{' '}
               {(() => {
-                const w = warehouses.find((wh: any) => wh._id === displayOrder.warehouse_id || wh.id === displayOrder.warehouse_id)
+                const w = warehouses.find((wh) => wh._id === displayOrder.warehouse_id || wh.id === displayOrder.warehouse_id)
                 return w ? (w.name || displayOrder.warehouse_id) : (displayOrder.warehouse_id || '-')
               })()}
             </div>

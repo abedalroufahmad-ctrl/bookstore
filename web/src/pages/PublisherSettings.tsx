@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 import { api, admin, type PublisherCommissionEntry } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 
-type OrderTotalsPeriod = 'day' | 'month' | 'year'
+type OrderTotalsPeriod = 'all' | 'day' | 'month' | 'year'
 
 function todayDate(): string {
   const now = new Date()
@@ -125,7 +125,7 @@ export function PublisherSettings() {
     queryFn: async () => {
       const res = await admin.publishers.orderTotals(String(targetId), {
         period: ordersPeriod,
-        date: ordersDate,
+        ...(ordersPeriod !== 'all' ? { date: ordersDate } : {}),
         page: ordersPage,
         per_page: 25,
       })
@@ -465,27 +465,30 @@ export function PublisherSettings() {
                 }}
                 className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
               >
+                <option value="all">{t('admin.allDates', 'All dates')}</option>
                 <option value="day">{t('admin.day', 'Day')}</option>
                 <option value="month">{t('admin.month', 'Month')}</option>
                 <option value="year">{t('admin.year', 'Year')}</option>
               </select>
             </label>
-            <label className="block text-sm font-medium text-slate-700">
-              {t('admin.date', 'Date')}
-              <input
-                type={dateInputType}
-                min={ordersPeriod === 'year' ? 2000 : undefined}
-                max={ordersPeriod === 'year' ? 2100 : undefined}
-                value={dateInputValue}
-                onChange={(event) => {
-                  const value = event.target.value
-                  if (!value) return
-                  setOrdersDate(ordersPeriod === 'month' ? `${value}-01` : ordersPeriod === 'year' ? `${value}-01-01` : value)
-                  setOrdersPage(1)
-                }}
-                className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
-              />
-            </label>
+            {ordersPeriod !== 'all' && (
+              <label className="block text-sm font-medium text-slate-700">
+                {t('admin.date', 'Date')}
+                <input
+                  type={dateInputType}
+                  min={ordersPeriod === 'year' ? 2000 : undefined}
+                  max={ordersPeriod === 'year' ? 2100 : undefined}
+                  value={dateInputValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    if (!value) return
+                    setOrdersDate(ordersPeriod === 'month' ? `${value}-01` : ordersPeriod === 'year' ? `${value}-01-01` : value)
+                    setOrdersPage(1)
+                  }}
+                  className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </label>
+            )}
           </div>
 
           {orderTotalsError && (
