@@ -85,7 +85,6 @@ class SettingController extends BaseApiController
             'warehouses_per_page' => $this->intSetting($settings, 'warehouses_per_page', 28, 1, 100),
             'warehouses_per_row' => $this->intSetting($settings, 'warehouses_per_row', 3, 1, 8),
             'payment_methods' => $paymentMethods,
-            'paypal_mode' => app(PayPalService::class)->mode(),
         ];
     }
 

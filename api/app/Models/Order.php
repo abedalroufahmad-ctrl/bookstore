@@ -40,6 +40,8 @@ class Order extends Model
         'publisher_payout_amount',
         'payout_paypal_email',
         'payout_paypal_merchant_id',
+        'created_at',
+        'updated_at',
     ];
 
     protected $hidden = [
