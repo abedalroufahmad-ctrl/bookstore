@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domain\Order\Interfaces\OrderServiceInterface;
+use App\Domain\Order\Enums\OrderStatus;
 use App\Services\PayPalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Stripe\Webhook;
 
 /**
  * Payment gateway webhooks. Fail closed when signatures cannot be verified.
@@ -51,7 +51,35 @@ class WebhookController extends BaseApiController
             $object = $data['data']['object'] ?? [];
             $orderId = $object['metadata']['order_id'] ?? null;
             $transactionId = $object['id'] ?? null;
-            if ($orderId) {
+            $order = is_string($orderId) && $orderId !== ''
+                ? $this->orderService->getOrderById($orderId)
+                : null;
+            $expectedAmount = $order ? (int) round((float) $order->total * 100) : -1;
+            $expectedCurrency = strtolower((string) config('services.stripe.currency', 'USD'));
+            if (
+                ! $order
+                || ! in_array((string) ($order->payment_method ?? ''), ['stripe', 'card'], true)
+                || (int) ($object['amount_received'] ?? -1) !== $expectedAmount
+                || strtolower((string) ($object['currency'] ?? '')) !== $expectedCurrency
+                || ! is_string($transactionId)
+                || $transactionId === ''
+            ) {
+                Log::warning('Stripe payment intent did not match an expected order', [
+                    'order_id' => $orderId,
+                    'payment_intent_id' => $transactionId,
+                ]);
+
+                return $this->successResponse(null, 'OK');
+            }
+
+            if ((string) ($order->payment_status ?? '') !== 'paid') {
+                if (OrderStatus::normalizeStored((string) $order->status) !== OrderStatus::AwaitingCustomerConfirmation) {
+                    Log::warning('Stripe payment intent arrived for an order not awaiting confirmation', [
+                        'order_id' => $orderId,
+                    ]);
+
+                    return $this->successResponse(null, 'OK');
+                }
                 $this->orderService->markOrderPaymentPaid($orderId, $transactionId);
             }
         }
@@ -95,17 +123,29 @@ class WebhookController extends BaseApiController
 
     private function verifyStripeSignature(string $payload, string $sig, string $secret): bool
     {
-        if (! class_exists(Webhook::class)) {
-            // Without Stripe SDK, require HMAC header match against raw payload timestamp scheme is unavailable.
-            return false;
+        $timestamp = null;
+        $signatures = [];
+        foreach (explode(',', $sig) as $part) {
+            [$key, $value] = array_pad(explode('=', trim($part), 2), 2, '');
+            if ($key === 't' && ctype_digit($value)) {
+                $timestamp = (int) $value;
+            } elseif ($key === 'v1' && $value !== '') {
+                $signatures[] = $value;
+            }
         }
-        try {
-            Webhook::constructEvent($payload, $sig, $secret);
 
-            return true;
-        } catch (\Throwable) {
+        if ($timestamp === null || abs(now()->timestamp - $timestamp) > 300 || $signatures === []) {
             return false;
         }
+
+        $expected = hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
+        foreach ($signatures as $signature) {
+            if (hash_equals($expected, $signature)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

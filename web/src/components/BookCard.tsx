@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { calculateDiscountedPrice, resolveCoverUrl } from '../lib/utils'
-import { formatWeight, useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { formatWeight } from '../contexts/settingsUtils'
 
 const FALLBACK_COVER_URL = '/favicon.png'
 

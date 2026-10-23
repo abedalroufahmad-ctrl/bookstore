@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 import { api, admin, type PublisherCommissionEntry } from '../lib/api'
+import { Pagination } from '../components/Pagination'
+
+type OrderTotalsPeriod = 'all' | 'day' | 'month' | 'year'
+
+function todayDate(): string {
+  const now = new Date()
+  const offset = now.getTimezoneOffset() * 60_000
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
 
 interface PublisherSettingsData {
   support_email?: string
@@ -56,6 +65,9 @@ export function PublisherSettings() {
   const [settleNote, setSettleNote] = useState('')
   const [settleError, setSettleError] = useState('')
   const [settleMessage, setSettleMessage] = useState('')
+  const [ordersPeriod, setOrdersPeriod] = useState<OrderTotalsPeriod>('day')
+  const [ordersDate, setOrdersDate] = useState(todayDate)
+  const [ordersPage, setOrdersPage] = useState(1)
 
   const { data: globalSettings, isLoading: isLoadingGlobal } = useQuery({
     queryKey: ['admin-settings'],
@@ -84,6 +96,11 @@ export function PublisherSettings() {
     }
     return []
   })()
+  const collectionAccount = globalSettings?.data as {
+    commission_collection_paypal_email?: string
+    commission_collection_bank_name?: string
+    commission_collection_bank_account_number?: string
+  } | undefined
 
   const { data, isLoading } = useQuery({
     queryKey: ['publisher-settings', targetId],
@@ -98,6 +115,20 @@ export function PublisherSettings() {
     queryKey: ['publisher-commission-account', targetId],
     queryFn: async () => {
       const res = await admin.publishers.commissionAccount(String(targetId))
+      return res.data.data
+    },
+    enabled: !!targetId,
+  })
+
+  const { data: orderTotalsData, isLoading: isLoadingOrderTotals, error: orderTotalsError } = useQuery({
+    queryKey: ['publisher-order-totals', targetId, ordersPeriod, ordersDate, ordersPage],
+    queryFn: async () => {
+      const res = await admin.publishers.orderTotals(String(targetId), {
+        period: ordersPeriod,
+        ...(ordersPeriod !== 'all' ? { date: ordersDate } : {}),
+        page: ordersPage,
+        per_page: 25,
+      })
       return res.data.data
     },
     enabled: !!targetId,
@@ -194,6 +225,14 @@ export function PublisherSettings() {
   const ledgerItems: PublisherCommissionEntry[] = Array.isArray(commissionData?.ledger?.data)
     ? commissionData.ledger.data
     : []
+  const orderTotals = orderTotalsData?.orders
+  const orderTotalItems = orderTotals?.data ?? []
+  const dateInputType = ordersPeriod === 'day' ? 'date' : ordersPeriod === 'month' ? 'month' : 'number'
+  const dateInputValue = ordersPeriod === 'day'
+    ? ordersDate
+    : ordersPeriod === 'month'
+      ? ordersDate.slice(0, 7)
+      : ordersDate.slice(0, 4)
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -219,6 +258,31 @@ export function PublisherSettings() {
       )}
 
       <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        {isPublisherManager && (
+          <div className="m-6 rounded-lg border border-navy-200 bg-navy-50 p-4 space-y-2">
+            <h2 className="font-semibold text-navy-900">
+              {t('admin.settings.commissionCollectionAccount', 'Site commission collection account')}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {t('admin.settings.commissionCollectionAccountHint', 'Use these account details to transfer commissions owed to the site.')}
+            </p>
+            {collectionAccount?.commission_collection_paypal_email && (
+              <p className="text-sm text-slate-700">
+                {t('admin.paypalEmail', 'PayPal email')}: {collectionAccount.commission_collection_paypal_email}
+              </p>
+            )}
+            {collectionAccount?.commission_collection_bank_name && (
+              <p className="text-sm text-slate-700">
+                {t('admin.bankName', 'Bank name')}: {collectionAccount.commission_collection_bank_name}
+              </p>
+            )}
+            {collectionAccount?.commission_collection_bank_account_number && (
+              <p className="text-sm text-slate-700">
+                {t('admin.bankAccountNumber', 'Bank account number')}: {collectionAccount.commission_collection_bank_account_number}
+              </p>
+            )}
+          </div>
+        )}
         <div className="px-6 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-navy-900">
             {t('admin.commissionAccount', 'Site commission account')}
@@ -380,6 +444,112 @@ export function PublisherSettings() {
         </div>
       </section>
 
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-navy-900">
+            {t('admin.publisherOrderTotals', 'Publisher orders')}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            {t('admin.publisherOrderTotalsHint', 'Order totals for this publisher, filtered by date.')}
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="block text-sm font-medium text-slate-700">
+              {t('admin.period', 'Period')}
+              <select
+                value={ordersPeriod}
+                onChange={(event) => {
+                  setOrdersPeriod(event.target.value as OrderTotalsPeriod)
+                  setOrdersPage(1)
+                }}
+                className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+              >
+                <option value="all">{t('admin.allDates', 'All dates')}</option>
+                <option value="day">{t('admin.day', 'Day')}</option>
+                <option value="month">{t('admin.month', 'Month')}</option>
+                <option value="year">{t('admin.year', 'Year')}</option>
+              </select>
+            </label>
+            {ordersPeriod !== 'all' && (
+              <label className="block text-sm font-medium text-slate-700">
+                {t('admin.date', 'Date')}
+                <input
+                  type={dateInputType}
+                  min={ordersPeriod === 'year' ? 2000 : undefined}
+                  max={ordersPeriod === 'year' ? 2100 : undefined}
+                  value={dateInputValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    if (!value) return
+                    setOrdersDate(ordersPeriod === 'month' ? `${value}-01` : ordersPeriod === 'year' ? `${value}-01-01` : value)
+                    setOrdersPage(1)
+                  }}
+                  className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </label>
+            )}
+          </div>
+
+          {orderTotalsError && (
+            <p role="alert" className="text-sm text-red-700">
+              {t('admin.publisherOrderTotalsFailed', 'Could not load publisher order totals. Please try again.')}
+            </p>
+          )}
+          {isLoadingOrderTotals ? (
+            <p className="text-sm text-slate-500">{t('common.loading')}</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">{t('admin.date', 'Date')}</th>
+                      <th className="text-right px-3 py-2 font-medium">{t('admin.total', 'Total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderTotalItems.length > 0 ? orderTotalItems.map((order, index) => (
+                      <tr key={`${order.created_at ?? index}-${index}`} className="border-t border-slate-100">
+                        <td className="px-3 py-2 text-slate-600">
+                          {order.created_at ? new Date(order.created_at).toLocaleString() : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium">${Number(order.total).toFixed(2)}</td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={2} className="px-3 py-4 text-center text-slate-500">
+                          {t('admin.publisherOrderTotalsEmpty', 'No orders found for this period.')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot className="border-t border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-800">
+                        {t('admin.periodTotal', 'Period total')}
+                      </th>
+                      <td className="px-3 py-3 text-right font-semibold text-slate-900">
+                        ${Number(orderTotalsData?.total_sum ?? 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              {orderTotals && orderTotals.last_page > 1 && (
+                <Pagination
+                  currentPage={orderTotals.current_page}
+                  lastPage={orderTotals.last_page}
+                  total={orderTotals.total}
+                  perPage={orderTotals.per_page}
+                  onPageChange={setOrdersPage}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </section>
+
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 space-y-6">
           
@@ -419,10 +589,13 @@ export function PublisherSettings() {
               max="100"
               value={form.default_discount}
               onChange={(e) => setForm({ ...form, default_discount: Number(e.target.value) })}
-              className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+              disabled={!isPublisherManager}
+              className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
             />
             <p className="text-sm text-slate-500 mt-1">
-              {t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')}
+              {isPublisherManager
+                ? t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')
+                : t('admin.defaultDiscountReadOnly', 'Only the publishing house manager can change this discount.')}
             </p>
           </div>
 
@@ -437,6 +610,11 @@ export function PublisherSettings() {
                   'Customers pay this publishing house directly when an account is set. Project management keeps the agreed percentage of book revenue.',
                 )}
               </p>
+              {!isPublisherManager && (
+                <p className="text-sm text-slate-500 mt-1">
+                  {t('admin.payoutAccountsReadOnly', 'Only the publishing house manager can edit these payout accounts.')}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -448,6 +626,7 @@ export function PublisherSettings() {
                   type="email"
                   value={form.paypal_email}
                   onChange={(e) => setForm({ ...form, paypal_email: e.target.value })}
+                  disabled={!isPublisherManager}
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
                   placeholder="publisher@paypal.com"
                 />
@@ -460,7 +639,8 @@ export function PublisherSettings() {
                   type="text"
                   value={form.paypal_merchant_id}
                   onChange={(e) => setForm({ ...form, paypal_merchant_id: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  disabled={!isPublisherManager}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
                 />
                 <p className="text-sm text-slate-500 mt-1">
                   {t('admin.paypalMerchantIdHint', 'Optional. Use if PayPal provided a merchant ID for this house.')}
@@ -477,7 +657,8 @@ export function PublisherSettings() {
                   type="text"
                   value={form.bank_name}
                   onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  disabled={!isPublisherManager}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
                 />
               </div>
               <div>
@@ -489,7 +670,8 @@ export function PublisherSettings() {
                   value={form.bank_account_number}
                   onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })}
                   autoComplete="off"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  disabled={!isPublisherManager}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
                 />
               </div>
             </div>

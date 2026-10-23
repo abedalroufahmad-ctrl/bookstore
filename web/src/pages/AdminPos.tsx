@@ -2,16 +2,37 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { admin, publishersPublic, type Book } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
+import {
+  admin,
+  publishersPublic,
+  type Book,
+  type PaginatedResponse,
+  type PosInvoice,
+  type Publisher,
+  type Warehouse,
+} from '../lib/api'
+import { useAuth } from '../contexts/authContextCore'
 import { Pagination } from '../components/Pagination'
 import { useSearchCommit } from '../hooks/useSearchCommit'
-import { useSettings, formatWeight } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { formatWeight } from '../contexts/settingsUtils'
 import { hasCover, resolveCoverUrl } from '../lib/utils'
 
 function discountedPrice(book: Book): number {
   const discount = book.discount_percent ?? 0
   return book.price - (book.price * discount) / 100
+}
+
+function extractList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[]
+  if (!payload || typeof payload !== 'object') return []
+  const data = (payload as { data?: unknown }).data
+  if (Array.isArray(data)) return data as T[]
+  if (data && typeof data === 'object') {
+    const nested = (data as { data?: unknown }).data
+    if (Array.isArray(nested)) return nested as T[]
+  }
+  return []
 }
 
 function formatDateTime(raw: unknown): string {
@@ -38,7 +59,7 @@ export function AdminPos() {
 
   const [cart, setCart] = useState<Array<{ book: Book; quantity: number }>>([])
   const [customerName, setCustomerName] = useState('')
-  const [createdInvoice, setCreatedInvoice] = useState<any>(null)
+  const [createdInvoice, setCreatedInvoice] = useState<PosInvoice | null>(null)
 
   const { data: warehousesData } = useQuery({
     queryKey: ['admin-warehouses'],
@@ -48,12 +69,7 @@ export function AdminPos() {
     },
   })
   
-  const warehousesRaw = (warehousesData as any)?.data ?? warehousesData
-  const warehouses = Array.isArray(warehousesRaw)
-    ? warehousesRaw
-    : Array.isArray(warehousesRaw?.data)
-      ? warehousesRaw.data
-      : []
+  const warehouses = useMemo(() => extractList<Warehouse>(warehousesData), [warehousesData])
 
   const { data: publishersData } = useQuery({
     queryKey: ['public-publishers'],
@@ -62,16 +78,11 @@ export function AdminPos() {
       return res.data
     },
   })
-  const publishersRaw = (publishersData as any)?.data ?? publishersData
-  const publishers = Array.isArray(publishersRaw)
-    ? publishersRaw
-    : Array.isArray(publishersRaw?.data)
-      ? publishersRaw.data
-      : []
+  const publishers = useMemo(() => extractList<Publisher>(publishersData), [publishersData])
 
   const filteredWarehouses = useMemo(() => {
     if (!publisherFilter) return warehouses
-    return warehouses.filter((w: any) => String(w.publisher_id ?? w.publisher?._id ?? '') === publisherFilter)
+    return warehouses.filter((w) => String(w.publisher_id ?? w.publisher?._id ?? '') === publisherFilter)
   }, [warehouses, publisherFilter])
 
   useEffect(() => {
@@ -119,11 +130,7 @@ export function AdminPos() {
       })
     },
     onSuccess: (res) => {
-      const payload = res.data as { data?: unknown } | undefined
-      const invoice = payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object'
-        ? payload.data
-        : payload
-      setCreatedInvoice(invoice)
+      setCreatedInvoice(res.data.data)
       setCart([])
       setCustomerName('')
       void queryClient.invalidateQueries({ queryKey: ['pos-books'] })
@@ -160,14 +167,14 @@ export function AdminPos() {
     const invoiceItems = Array.isArray(createdInvoice.items) ? createdInvoice.items : []
     const invoiceBooksSubtotal = Number(
       createdInvoice.books_subtotal
-      ?? invoiceItems.reduce(
+      ??       invoiceItems.reduce<number>(
         (s: number, i: { price?: number; quantity?: number }) => s + Number(i.price) * Number(i.quantity ?? 0),
         0,
       ),
     )
     const invoiceShippingFee = Number(createdInvoice.shipping_fee ?? 0)
     const invoiceTotal = Number(createdInvoice.total ?? 0)
-    const invoiceTotalWeightG = invoiceItems.reduce((s: number, item: { weight?: number; quantity?: number }) => {
+    const invoiceTotalWeightG = invoiceItems.reduce((s: number, item) => {
       const unit = Number(item.weight)
       if (!Number.isFinite(unit) || unit <= 0) return s
       return s + unit * Number(item.quantity ?? 0)
@@ -178,11 +185,8 @@ export function AdminPos() {
     const createdAt = formatDateTime(createdInvoice.created_at)
     const createdWarehouse =
       createdInvoice.warehouse
-      ?? warehouses.find((w: any) => String(w._id) === String(createdInvoice.warehouse_id))
-    const createdPublisherName =
-      (typeof createdWarehouse?.publisher === 'object' && createdWarehouse?.publisher?.name)
-        ? createdWarehouse.publisher.name
-        : (typeof createdWarehouse?.publisher === 'string' ? createdWarehouse.publisher : null)
+      ?? warehouses.find((w) => String(w._id) === String(createdInvoice.warehouse_id))
+    const createdPublisherName = createdWarehouse?.publisher?.name
     return (
       <div className="space-y-4">
       <div className="flex flex-wrap gap-2 print:hidden">
@@ -220,7 +224,7 @@ export function AdminPos() {
             </tr>
           </thead>
           <tbody>
-            {invoiceItems.map((item: { book_title?: string; book_id?: string; quantity?: number; price?: number; weight?: number }, i: number) => {
+            {invoiceItems.map((item, i) => {
               const lineW = Number(item.weight) > 0 ? Number(item.weight) * Number(item.quantity ?? 0) : 0
               return (
                 <tr key={i} className="border-b border-slate-100">
@@ -268,9 +272,9 @@ export function AdminPos() {
     )
   }
 
-  const booksPaginated = (booksData as any)?.data ?? booksData
-  const booksList = Array.isArray(booksPaginated?.data) ? booksPaginated.data : (Array.isArray(booksPaginated) ? booksPaginated : [])
-  const booksMeta = booksPaginated && 'current_page' in booksPaginated ? booksPaginated : null
+  const booksPaginated = booksData?.data as PaginatedResponse<Book> | undefined
+  const booksList = booksPaginated?.data ?? []
+  const booksMeta = booksPaginated ?? null
 
   return (
     <div className="space-y-4">
@@ -287,7 +291,13 @@ export function AdminPos() {
           <input
             type="text"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value
+              setSearchInput(next)
+              if (next.endsWith(' ')) {
+                window.setTimeout(() => commitSearch(next), 0)
+              }
+            }}
             onKeyDown={(e) => e.key === 'Enter' && commitSearch(searchInput)}
             placeholder={t('search.placeholder')}
             className="flex-1 min-w-[200px] px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-navy-500"
@@ -304,18 +314,18 @@ export function AdminPos() {
               setPage(1)
               setCart([])
               const list = nextPub
-                ? warehouses.filter((w: any) => String(w.publisher_id ?? w.publisher?._id ?? '') === nextPub)
+                ? warehouses.filter((w) => String(w.publisher_id ?? w.publisher?._id ?? '') === nextPub)
                 : warehouses
-              const stillValid = list.some((w: any) => String(w._id) === String(warehouseFilter))
+                const stillValid = list.some((w) => String(w._id) === String(warehouseFilter))
               if (!stillValid) {
-                const own = list.find((w: any) => String(w._id) === String(defaultWarehouseId))
+                  const own = list.find((w) => String(w._id) === String(defaultWarehouseId))
                 setWarehouseFilter(own?._id ? String(own._id) : String(list[0]?._id ?? ''))
               }
             }}
             className="px-3 py-2 border border-slate-300 rounded max-w-xs"
           >
             <option value="">{t('admin.allPublishers')}</option>
-            {publishers.map((p: any) => (
+            {publishers.map((p) => (
               <option key={p._id} value={p._id}>{p.name}</option>
             ))}
           </select>
@@ -329,7 +339,7 @@ export function AdminPos() {
             }}
             className="px-3 py-2 border border-slate-300 rounded max-w-xs"
           >
-            {filteredWarehouses.map((w: any) => (
+            {filteredWarehouses.map((w) => (
               <option key={String(w._id)} value={String(w._id)}>{w.name}{w.publisher?.name ? ` — ${w.publisher.name}` : ''}</option>
             ))}
           </select>
@@ -351,7 +361,7 @@ export function AdminPos() {
                     {hasCover(book) ? (
                       <img loading="lazy" decoding="async" src={resolveCoverUrl(book.cover_image_thumb || book.cover_image)} alt="" className="object-cover w-full h-full" />
                     ) : (
-                      <span className="text-slate-300 font-serif">BOOK</span>
+                      <span className="text-slate-300 font-serif">{t('admin.bookPlaceholder')}</span>
                     )}
                   </div>
                   <h3 className="text-sm font-medium line-clamp-2 leading-tight">{book.title}</h3>

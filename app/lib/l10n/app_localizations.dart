@@ -113,6 +113,14 @@ class AppLocalizations {
 
   // ── Home ────────────────────────────────────────────────────────────────────
   String get heroTitle => _s('مرحباً بك في متجر الكتب', 'Welcome to Book Store');
+  String get homeHeroTitle => _s('متجرك الشامل للكتب', 'Your Comprehensive Book Store');
+  String get homeHeroBullet1 => _s('تصفح آلاف الكتب في جميع التصنيفات', 'Browse thousands of books across all categories');
+  String get homeHeroBullet2 => _s('اكتشف مؤلفين جدد والكتب الأكثر مبيعاً', 'Discover new authors and bestsellers');
+  String get homeHeroBullet3 => _s('خصومات خاصة على عناوين مختارة', 'Special discounts on selected titles');
+  String get homeHeroCta => _s('ابدأ الآن', 'Start Now');
+  String get homeBrowseBooks => _s('تصفح الكتب', 'Browse Books');
+  String get homeTopAuthors => _s('أفضل المؤلفين', 'Top Authors');
+  String get homeCategories => _s('التصنيفات', 'Categories');
   String get featuredBooks => _s('عروض مميزة', 'Featured Books');
   String get newestBooks => _s('أحدث الكتب', 'Newest Books');
   String get viewAll => _s('عرض الكل', 'View All');

@@ -1,22 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { auth } from '../lib/api'
-
-type UserType = 'customer' | 'employee' | null
-
-interface AuthContextType {
-  user: { id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[]; publisher_id?: string } | null
-  userType: UserType
-  token: string | null
-  login: (type: 'customer' | 'employee', email: string, password: string, rememberMe?: boolean) => Promise<{ role?: string }>
-  register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>
-  logout: () => Promise<void>
-  /** Refetch current user from API (e.g. after profile update). */
-  refreshUser: () => Promise<void>
-  isLoading: boolean
-}
-
-const AuthContext = createContext<AuthContextType | null>(null)
+import { AuthContext, type AuthContextType, type UserType } from './authContextCore'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthContextType['user']>(null)
@@ -75,18 +60,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = res.data.data
     const t = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string }; token: string }).token
       : (data as { employee: { _id: string; name: string; email: string }; token: string }).token
-    const u: any = type === 'customer' ? (data as { customer: { _id: string; name: string; email: string } }).customer
-      : (data as { employee: { _id: string; name: string; email: string; role?: string; warehouse_id?: string; warehouse_ids?: string[]; publisher_id?: string } }).employee
     localStorage.setItem('token', t)
     localStorage.setItem('userType', type)
     setToken(t)
     setUserType(type)
-    setUser(
-      type === 'customer'
-        ? { id: u._id, name: u.name, email: u.email }
-        : { id: u._id, name: u.name, email: u.email, role: u.role, warehouse_id: u.warehouse_id, warehouse_ids: u.warehouse_ids, publisher_id: u.publisher_id }
-    )
-    return { role: type === 'employee' ? u.role : undefined }
+    if (type === 'customer') {
+      const customer = (data as { customer: { _id: string; name: string; email: string } }).customer
+      setUser({ id: customer._id, name: customer.name, email: customer.email })
+      return { role: undefined }
+    }
+
+    const employee = (data as {
+      employee: {
+        _id: string
+        name: string
+        email: string
+        role?: string
+        warehouse_id?: string
+        warehouse_ids?: string[]
+        publisher_id?: string
+      }
+    }).employee
+    setUser({
+      id: employee._id,
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+      warehouse_id: employee.warehouse_id,
+      warehouse_ids: employee.warehouse_ids,
+      publisher_id: employee.publisher_id,
+    })
+    return { role: employee.role }
   }
 
   const register = async (name: string, email: string, password: string, passwordConfirmation: string) => {
@@ -143,10 +147,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
 }

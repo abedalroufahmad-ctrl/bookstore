@@ -227,6 +227,8 @@ class OrderService extends BaseService implements OrderServiceInterface
             'shipping_method' => isset($data['shipping_method']) ? (string) $data['shipping_method'] : ($order->shipping_method ?? null),
             'total' => $total,
             'status' => OrderStatus::AwaitingCustomerConfirmation->value,
+            'stripe_checkout_session_id' => null,
+            'stripe_checkout_session_expires_at' => null,
         ], $payout);
 
         if (! empty($data['payment_method']) && is_string($data['payment_method'])) {
@@ -256,8 +258,8 @@ class OrderService extends BaseService implements OrderServiceInterface
             throw new \InvalidArgumentException('Order is not waiting for customer confirmation.');
         }
 
-        if ((string) ($order->payment_method ?? '') === 'paypal') {
-            throw new \InvalidArgumentException('Complete PayPal payment to confirm PayPal orders.');
+        if (in_array((string) ($order->payment_method ?? ''), ['paypal', 'stripe', 'card'], true)) {
+            throw new \InvalidArgumentException('Complete online payment to confirm this order.');
         }
 
         $this->orderRepository->update($order->getKey(), [
@@ -284,6 +286,18 @@ class OrderService extends BaseService implements OrderServiceInterface
         if ($next === OrderStatus::Cancelled) {
             if (! $current->canBeCancelled()) {
                 throw new \InvalidArgumentException('Order cannot be cancelled from its current status.');
+            }
+
+            if ((string) ($order->payment_status ?? '') === Payment::statusPaid()) {
+                throw new \InvalidArgumentException('Paid orders cannot be cancelled. Contact support for assistance.');
+            }
+
+            if (
+                in_array((string) ($order->payment_method ?? ''), ['stripe', 'card'], true)
+                && (string) ($order->payment_status ?? '') !== Payment::statusPaid()
+                && (int) ($order->stripe_checkout_session_expires_at ?? 0) > now()->timestamp
+            ) {
+                throw new \InvalidArgumentException('Wait for the active card checkout session to expire before cancelling this order.');
             }
 
             $wasHeld = $this->orderHoldsStock($order);
@@ -564,8 +578,9 @@ class OrderService extends BaseService implements OrderServiceInterface
             'payment_status' => Payment::statusPaid(),
         ];
 
-        if ($order !== null && OrderStatus::normalizeStored((string) $order->status) === OrderStatus::AwaitingCustomerConfirmation
-            && (string) ($order->payment_method ?? '') === 'paypal') {
+        if ($order !== null
+            && OrderStatus::normalizeStored((string) $order->status) === OrderStatus::AwaitingCustomerConfirmation
+            && in_array((string) ($order->payment_method ?? ''), ['paypal', 'stripe', 'card'], true)) {
             $patch['status'] = OrderStatus::ResubmittedToWarehouse->value;
         }
 
@@ -670,5 +685,37 @@ class OrderService extends BaseService implements OrderServiceInterface
 
             throw new \InvalidArgumentException("Order {$id} cannot accept PayPal capture in status {$order->status}.");
         }
+    }
+
+    public function markSandboxPayPalOrderPaid(Order $order): void
+    {
+        if (app(PayPalService::class)->mode() !== 'sandbox') {
+            throw new \InvalidArgumentException('Simulated payments are only available in PayPal Sandbox.');
+        }
+
+        if ((string) $order->payment_method !== 'paypal'
+            || (string) $order->payment_status !== Payment::statusPending()
+            || OrderStatus::normalizeStored((string) $order->status) !== OrderStatus::AwaitingCustomerConfirmation) {
+            throw new \InvalidArgumentException('This order is not awaiting a PayPal sandbox payment.');
+        }
+
+        $orderId = (string) $order->getKey();
+        $payment = $this->paymentRepository->findByOrderId($orderId);
+        if ($payment) {
+            $this->paymentRepository->updateStatus(
+                (string) $payment->getKey(),
+                Payment::statusPaid(),
+                'SANDBOX-SIMULATED-'.$orderId
+            );
+        }
+
+        $this->orderRepository->update($orderId, [
+            'payment_status' => Payment::statusPaid(),
+            'status' => OrderStatus::ResubmittedToWarehouse->value,
+            'payment_info' => [
+                'provider' => 'paypal_sandbox_simulation',
+                'simulated' => true,
+            ],
+        ]);
     }
 }

@@ -59,6 +59,9 @@ class CheckoutRequest extends BaseFormRequest
             if (! in_array((string) $method, $enabledIds, true)) {
                 $validator->errors()->add('payment_method', 'This payment method is not available or not enabled.');
             }
+            if (in_array(strtolower((string) $method), ['stripe', 'card'], true)) {
+                $validator->errors()->add('payment_method', 'Card payment is available after the warehouse confirms the final quote.');
+            }
         });
     }
 }

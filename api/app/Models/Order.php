@@ -33,11 +33,20 @@ class Order extends Model
         'payment_info',
         'payment_method',
         'payment_status',
+        'stripe_checkout_session_id',
+        'stripe_checkout_session_expires_at',
         'platform_commission_percent',
         'platform_commission_amount',
         'publisher_payout_amount',
         'payout_paypal_email',
         'payout_paypal_merchant_id',
+        'created_at',
+        'updated_at',
+    ];
+
+    protected $hidden = [
+        'stripe_checkout_session_id',
+        'stripe_checkout_session_expires_at',
     ];
 
     /** @var list<string> */

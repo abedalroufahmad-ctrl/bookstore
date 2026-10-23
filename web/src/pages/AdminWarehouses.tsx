@@ -5,7 +5,7 @@ import { admin, type Warehouse, type WarehouseFormData, type Publisher } from '.
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 
 function extractList<T>(data: unknown): T[] {
   if (!data) return []

@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\PublisherStoreRequest;
 use App\Http\Requests\Admin\PublisherUpdateRequest;
 use App\Infrastructure\Services\PublisherService;
 use App\Services\PublisherCommissionAccountService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -128,6 +129,50 @@ class PublisherController extends BaseApiController
             'account' => $summary,
             'ledger' => $ledger,
         ]);
+    }
+
+    public function orderTotals(Request $request, string $id): JsonResponse
+    {
+        if (! $this->canManagePublisherSettings($id)) {
+            return $this->errorResponse('Forbidden', 403);
+        }
+
+        try {
+            $this->commissionAccountService->getAccountSummary($id);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        }
+
+        $validated = $request->validate([
+            'period' => ['required', 'in:all,day,month,year'],
+            'date' => ['required_unless:period,all', 'date_format:Y-m-d'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $start = $end = null;
+        if ($validated['period'] !== 'all') {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $validated['date'], config('app.timezone'));
+            $start = match ($validated['period']) {
+                'month' => $date->startOfMonth(),
+                'year' => $date->startOfYear(),
+                default => $date->startOfDay(),
+            };
+            $end = match ($validated['period']) {
+                'month' => $date->endOfMonth(),
+                'year' => $date->endOfYear(),
+                default => $date->endOfDay(),
+            };
+        }
+
+        return $this->successResponse(
+            $this->commissionAccountService->getOrderTotals(
+                $id,
+                $start,
+                $end,
+                (int) ($validated['per_page'] ?? 25)
+            )
+        );
     }
 
     public function storeCommissionSettlement(CommissionSettlementStoreRequest $request, string $id): JsonResponse

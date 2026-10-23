@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { books, cart } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
-import { useSettings, formatWeight } from '../contexts/SettingsContext'
+import { useAuth } from '../contexts/authContextCore'
+import { useSettings } from '../contexts/settingsContextCore'
+import { formatWeight } from '../contexts/settingsUtils'
 import { calculateDiscountedPrice, resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
 
 const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {

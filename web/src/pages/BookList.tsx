@@ -14,7 +14,8 @@ import {
 import { BookCard } from '../components/BookCard'
 import { type BookConditionFilterValue } from '../components/BookConditionFilter'
 import { Pagination } from '../components/Pagination'
-import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { catalogGridStyle } from '../contexts/settingsUtils'
 import { useAddToCart } from '../hooks/useAddToCart'
 import { getPublisherEntries, getWarehouseId } from '../lib/utils'
 
@@ -329,7 +330,7 @@ export function BookList() {
         </div>
 
         <div className="books-grid" style={catalogGridStyle(settings.books.per_row)}>
-          {items.map((book: any) => (
+          {items.map((book) => (
             <BookCard
               key={book._id}
               id={book._id}
@@ -337,7 +338,7 @@ export function BookList() {
               price={book.price}
               coverImage={book.cover_image}
               coverImageThumb={book.cover_image_thumb}
-              authorName={book.authors?.map((a: any) => a.name).join('، ') || ''}
+              authorName={book.authors?.map((author) => author.name).join('، ') || ''}
               authors={book.authors}
               publishers={getPublisherEntries(book)}
               warehouseName={book.warehouse?.name}

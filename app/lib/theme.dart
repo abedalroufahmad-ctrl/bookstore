@@ -44,7 +44,7 @@ ThemeData buildLightTheme() {
   const bg = AppColors.bg;
   const card = AppColors.bgCard;
   const primary = AppColors.primary;
-  const secondary = AppColors.accent;
+  const secondary = Color.fromARGB(255, 81, 107, 164);
   const onSurface = AppColors.text;
   const muted = AppColors.textMuted;
   const outline = AppColors.border;

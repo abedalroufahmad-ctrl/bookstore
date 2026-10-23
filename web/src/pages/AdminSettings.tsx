@@ -2,8 +2,18 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { admin } from '../lib/api'
 import { useTranslation } from 'react-i18next'
+import { Pagination } from '../components/Pagination'
+import { useAuth } from '../contexts/authContextCore'
 
 type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
+type PayPalMode = 'sandbox' | 'live'
+type OrderTotalsPeriod = 'day' | 'month' | 'year'
+
+function todayDate(): string {
+  const now = new Date()
+  const offset = now.getTimezoneOffset() * 60_000
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
 
 type PaymentMethodItem = { id: string; name: string; enabled: boolean }
 
@@ -34,6 +44,7 @@ function normalizePaymentMethods(raw: unknown): PaymentMethodItem[] {
 
 export function AdminSettings() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [globalDiscount, setGlobalDiscount] = useState<number>(0)
   const [invoiceShippingFee, setInvoiceShippingFee] = useState<number>(0)
@@ -47,18 +58,42 @@ export function AdminSettings() {
   const [warehousesPerPage, setWarehousesPerPage] = useState<number>(28)
   const [warehousesPerRow, setWarehousesPerRow] = useState<number>(3)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>(DEFAULT_PAYMENT_METHODS)
+  const [commissionCollectionPayPalEmail, setCommissionCollectionPayPalEmail] = useState('')
+  const [commissionCollectionBankName, setCommissionCollectionBankName] = useState('')
+  const [commissionCollectionBankAccountNumber, setCommissionCollectionBankAccountNumber] = useState('')
+  const [paypalMode, setPaypalMode] = useState<PayPalMode>('sandbox')
+  const [paypalAvailableModes, setPaypalAvailableModes] = useState<PayPalMode[]>(['sandbox'])
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newMethodId, setNewMethodId] = useState('')
   const [newMethodName, setNewMethodName] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [ordersPeriod, setOrdersPeriod] = useState<OrderTotalsPeriod>('day')
+  const [ordersDate, setOrdersDate] = useState(todayDate)
+  const [ordersPublisherId, setOrdersPublisherId] = useState('')
+  const [ordersPage, setOrdersPage] = useState(1)
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: async () => {
       const res = await admin.settings.get()
       return res.data
+    },
+  })
+
+  const { data: orderTotalsData, isLoading: isLoadingOrderTotals, error: orderTotalsError } = useQuery({
+    queryKey: ['admin-settings-order-totals', ordersPeriod, ordersDate, ordersPublisherId, ordersPage],
+    enabled: user?.role === 'manager',
+    queryFn: async () => {
+      const res = await admin.settings.orderTotals({
+        period: ordersPeriod,
+        date: ordersDate,
+        publisher_id: ordersPublisherId || undefined,
+        page: ordersPage,
+        per_page: 25,
+      })
+      return res.data.data
     },
   })
 
@@ -83,6 +118,15 @@ export function AdminSettings() {
       setWarehousesPerPage(clamp(d.warehouses_per_page, 28, 1, 100))
       setWarehousesPerRow(clamp(d.warehouses_per_row, 3, 1, 8))
       setPaymentMethods(normalizePaymentMethods(d.payment_methods))
+      setCommissionCollectionPayPalEmail(String(d.commission_collection_paypal_email ?? ''))
+      setCommissionCollectionBankName(String(d.commission_collection_bank_name ?? ''))
+      setCommissionCollectionBankAccountNumber(String(d.commission_collection_bank_account_number ?? ''))
+      setPaypalMode(d.paypal_mode === 'live' ? 'live' : 'sandbox')
+      setPaypalAvailableModes(
+        Array.isArray(d.paypal_available_modes)
+          ? d.paypal_available_modes.filter((mode): mode is PayPalMode => mode === 'sandbox' || mode === 'live')
+          : []
+      )
     }
   }, [data])
 
@@ -100,6 +144,10 @@ export function AdminSettings() {
       warehouses_per_page?: number
       warehouses_per_row?: number
       payment_methods?: PaymentMethodItem[]
+      paypal_mode?: PayPalMode
+      commission_collection_paypal_email?: string
+      commission_collection_bank_name?: string
+      commission_collection_bank_account_number?: string
     }) => admin.settings.update(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] })
@@ -131,6 +179,10 @@ export function AdminSettings() {
       warehouses_per_page: warehousesPerPage,
       warehouses_per_row: warehousesPerRow,
       payment_methods: paymentMethods,
+      paypal_mode: paypalAvailableModes.includes(paypalMode) ? paypalMode : undefined,
+      commission_collection_paypal_email: commissionCollectionPayPalEmail,
+      commission_collection_bank_name: commissionCollectionBankName,
+      commission_collection_bank_account_number: commissionCollectionBankAccountNumber,
     })
   }
 
@@ -165,6 +217,15 @@ export function AdminSettings() {
 
   if (isLoading) return <div className="p-8">{t('common.loading')}</div>
 
+  const orderTotals = orderTotalsData?.orders
+  const orderTotalItems = orderTotals?.data ?? []
+  const dateInputType = ordersPeriod === 'day' ? 'date' : ordersPeriod === 'month' ? 'month' : 'number'
+  const dateInputValue = ordersPeriod === 'day'
+    ? ordersDate
+    : ordersPeriod === 'month'
+      ? ordersDate.slice(0, 7)
+      : ordersDate.slice(0, 4)
+
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold text-navy-900 mb-6">{t('admin.settings.title') || 'Admin Settings'}</h1>
@@ -179,6 +240,125 @@ export function AdminSettings() {
           {message}
         </div>
       )}
+
+      {user?.role === 'manager' && <section className="mb-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-navy-900">
+            {t('admin.publisherOrderTotals', 'Publisher orders')}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            {t('admin.adminPublisherOrderTotalsHint', 'Order totals by publisher, filtered by date.')}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="block text-sm font-medium text-slate-700">
+            {t('admin.period', 'Period')}
+            <select
+              value={ordersPeriod}
+              onChange={(event) => {
+                setOrdersPeriod(event.target.value as OrderTotalsPeriod)
+                setOrdersPage(1)
+              }}
+              className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="day">{t('admin.day', 'Day')}</option>
+              <option value="month">{t('admin.month', 'Month')}</option>
+              <option value="year">{t('admin.year', 'Year')}</option>
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            {t('admin.date', 'Date')}
+            <input
+              type={dateInputType}
+              min={ordersPeriod === 'year' ? 2000 : undefined}
+              max={ordersPeriod === 'year' ? 2100 : undefined}
+              value={dateInputValue}
+              onChange={(event) => {
+                const value = event.target.value
+                if (!value) return
+                setOrdersDate(ordersPeriod === 'month' ? `${value}-01` : ordersPeriod === 'year' ? `${value}-01-01` : value)
+                setOrdersPage(1)
+              }}
+              className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            {t('admin.publisher', 'Publisher')}
+            <select
+              value={ordersPublisherId}
+              onChange={(event) => {
+                setOrdersPublisherId(event.target.value)
+                setOrdersPage(1)
+              }}
+              className="mt-1 block min-w-52 px-3 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="">{t('admin.allPublishers', 'All publishers')}</option>
+              {orderTotalsData?.publishers.map((publisher) => (
+                <option key={publisher.id} value={publisher.id}>{publisher.name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {orderTotalsError && (
+          <p role="alert" className="text-sm text-red-700">
+            {t('admin.publisherOrderTotalsFailed', 'Could not load publisher order totals. Please try again.')}
+          </p>
+        )}
+        {isLoadingOrderTotals ? (
+          <p className="text-sm text-slate-500">{t('common.loading')}</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">{t('admin.publisher', 'Publisher')}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t('admin.total', 'Total')}</th>
+                    <th className="text-right px-3 py-2 font-medium">{t('admin.commission', 'Commission')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderTotalItems.length > 0 ? orderTotalItems.map((order, index) => (
+                    <tr key={`${order.publisher_name}-${index}`} className="border-t border-slate-100">
+                      <td className="px-3 py-2 text-slate-700">{order.publisher_name}</td>
+                      <td className="px-3 py-2 text-right font-medium">${Number(order.total).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right font-medium">${Number(order.commission).toFixed(2)}</td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={3} className="px-3 py-4 text-center text-slate-500">
+                        {t('admin.publisherOrderTotalsEmpty', 'No orders found for this period.')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot className="border-t border-slate-200 bg-slate-50">
+                  <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-800">
+                      {t('admin.periodTotal', 'Period total')}
+                    </th>
+                    <td className="px-3 py-3 text-right font-semibold text-slate-900">
+                      ${Number(orderTotalsData?.total_sum ?? 0).toFixed(2)}
+                    </td>
+                    <td className="px-3 py-3 text-right font-semibold text-slate-900">
+                      ${Number(orderTotalsData?.commission_sum ?? 0).toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {orderTotals && orderTotals.last_page > 1 && (
+              <Pagination
+                currentPage={orderTotals.current_page}
+                lastPage={orderTotals.last_page}
+                total={orderTotals.total}
+                perPage={orderTotals.per_page}
+                onPageChange={setOrdersPage}
+              />
+            )}
+          </>
+        )}
+      </section>}
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div>
@@ -285,6 +465,78 @@ export function AdminSettings() {
           <p className="mt-2 text-xs text-slate-500">
             {t('admin.settings.weightUnitHint') || 'Book weights are stored in kg and displayed in this unit across the site.'}
           </p>
+        </div>
+
+        <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+          <h2 className="text-lg font-semibold text-navy-900 mb-1">
+            {t('admin.settings.paypalEnvironment') || 'PayPal environment'}
+          </h2>
+          <p className="text-sm text-slate-500 mb-3">
+            {t('admin.settings.paypalEnvironmentHint') || 'Choose whether PayPal checkout uses test or live payments. Credentials are configured on the server.'}
+          </p>
+          <select
+            value={paypalMode}
+            onChange={(e) => { setPaypalMode(e.target.value as PayPalMode); }}
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+          >
+            {paypalAvailableModes.includes('sandbox') && (
+              <option value="sandbox">{t('admin.settings.paypalSandbox') || 'Sandbox (test)'}</option>
+            )}
+            {paypalAvailableModes.includes('live') && (
+              <option value="live">{t('admin.settings.paypalLive') || 'Live (real payments)'}</option>
+            )}
+            {!paypalAvailableModes.includes(paypalMode) && (
+              <option value={paypalMode} disabled>
+                {paypalMode === 'live'
+                  ? t('admin.settings.paypalLiveUnavailable') || 'Live (credentials not configured)'
+                  : t('admin.settings.paypalSandboxUnavailable') || 'Sandbox (credentials not configured)'}
+              </option>
+            )}
+          </select>
+          {paypalAvailableModes.length === 1 && (
+            <p className="mt-2 text-xs text-slate-500">
+              {t('admin.settings.paypalOtherModeHint') || 'To enable the other environment, configure its PayPal Client ID and Secret on the server.'}
+            </p>
+          )}
+        </div>
+
+        <div className="border border-slate-200 rounded-lg p-4 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-navy-900">
+              {t('admin.settings.commissionCollectionAccount') || 'Site commission collection account'}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              {t('admin.settings.commissionCollectionAccountHint') || 'Account details publishers use to transfer collected site commissions.'}
+            </p>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">
+            {t('admin.settings.commissionCollectionPayPalEmail') || 'PayPal email'}
+            <input
+              type="email"
+              value={commissionCollectionPayPalEmail}
+              onChange={(e) => { setCommissionCollectionPayPalEmail(e.target.value); }}
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            {t('admin.settings.commissionCollectionBankName') || 'Bank name'}
+            <input
+              type="text"
+              value={commissionCollectionBankName}
+              onChange={(e) => { setCommissionCollectionBankName(e.target.value); }}
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            {t('admin.settings.commissionCollectionBankAccountNumber') || 'Bank account number'}
+            <input
+              type="text"
+              autoComplete="off"
+              value={commissionCollectionBankAccountNumber}
+              onChange={(e) => { setCommissionCollectionBankAccountNumber(e.target.value); }}
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+            />
+          </label>
         </div>
 
         <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
