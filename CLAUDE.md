@@ -7,11 +7,14 @@
 
 
 
+
+
+
 <!-- cloude-code-toolbox:mcp-skills-awareness-begin -->
 
 ### MCP & Skills awareness (Claude Code ToolBox)
 
-_Last synced: 2026-10-25T09:04:06.597Z._
+_Last synced: 2026-10-25T12:17:45.530Z._
 
 - **Full report:** `.claude/cloude-code-toolbox-mcp-skills-awareness.md` in this workspace (auto-overwritten on each scan). Use it as ground truth for configured servers and skill folders.
 - **MCP:** For **live tools** in Claude Code, enable the matching server via `/mcp`. Servers are configured in `~/.claude.json` (user) and `.mcp.json` (project).
@@ -35,6 +38,8 @@ _No active user-scoped servers in mcp.json._
 _None found (or no workspace open)._
 
 #### User skills
+
+- **microsoft-foundry** — `/home/abedkh/.agents/skills/microsoft-foundry` — Build, deploy, evaluate, optimize, fine-tune, and manage Microsoft Foundry agents, models, and resources end to end. USE FOR: foundry, azd ai agent, azd provision/deploy, hosted agent scaffold/develop/run/deploy/troubles
 
 - **banner-design** — `/home/abedkh/.cursor/skills/banner-design` — Design banners for social media, ads, website heroes, creative assets, and print. Multiple art direction options with AI-generated visuals. Actions: design, create, generate banner. Platforms: Facebook, Twitter/X, Linked
 

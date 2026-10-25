@@ -1,6 +1,6 @@
 # Claude Code ToolBox — MCP & Skills awareness
 
-_Generated: 2026-10-25T09:04:06.593Z_
+_Generated: 2026-10-25T12:17:45.525Z_
 
 ## How to use this report
 
@@ -32,6 +32,9 @@ _No active user-scoped servers in mcp.json._
 _None found (or no workspace open)._
 
 ### User-scoped
+
+- **microsoft-foundry** — `/home/abedkh/.agents/skills/microsoft-foundry`
+  - Build, deploy, evaluate, optimize, fine-tune, and manage Microsoft Foundry agents, models, and resources end to end. USE FOR: foundry, azd ai agent, azd provision/deploy, hosted agent scaffold/develop/run/deploy/troubles
 
 - **banner-design** — `/home/abedkh/.cursor/skills/banner-design`
   - Design banners for social media, ads, website heroes, creative assets, and print. Multiple art direction options with AI-generated visuals. Actions: design, create, generate banner. Platforms: Facebook, Twitter/X, Linked
