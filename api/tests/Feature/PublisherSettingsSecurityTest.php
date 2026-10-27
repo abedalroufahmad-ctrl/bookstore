@@ -142,6 +142,23 @@ class PublisherSettingsSecurityTest extends MongoFeatureTestCase
         $this->assertSame(20, (int) ($this->publisher->fresh()->settings['default_discount'] ?? 0));
     }
 
+    public function test_publisher_manager_can_change_currency_symbol_and_it_is_public(): void
+    {
+        $pm = $this->employee('publisher_manager', ['publisher_id' => (string) $this->publisher->_id]);
+        $headers = $this->employeeHeaders($pm);
+
+        $this->putJson(
+            "/api/v1/admin/publishers/{$this->publisher->_id}/settings",
+            ['currency_symbol' => '€'],
+            $headers
+        )->assertOk()->assertJsonPath('data.currency_symbol', '€');
+
+        $this->assertSame('€', $this->publisher->fresh()->settings['currency_symbol']);
+        $this->getJson("/api/v1/publishers/{$this->publisher->_id}")
+            ->assertOk()
+            ->assertJsonPath('data.public_settings.currency_symbol', '€');
+    }
+
     public function test_publisher_manager_can_edit_own_payout_accounts(): void
     {
         $pm = $this->employee('publisher_manager', ['publisher_id' => (string) $this->publisher->_id]);

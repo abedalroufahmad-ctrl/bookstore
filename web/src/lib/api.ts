@@ -575,6 +575,9 @@ export interface Publisher {
   phone?: string
   email?: string
   website?: string
+  public_settings?: {
+    currency_symbol?: string
+  }
   warehouses_count?: number
   warehouses?: Warehouse[]
 }

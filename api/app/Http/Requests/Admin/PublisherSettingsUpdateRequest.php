@@ -18,6 +18,7 @@ class PublisherSettingsUpdateRequest extends BaseFormRequest
             'support_email' => ['nullable', 'email'],
             'support_phone' => ['nullable', 'string', 'max:50'],
             'return_policy' => ['nullable', 'string', 'max:5000'],
+            'currency_symbol' => ['nullable', 'string', 'max:8'],
             'payment_methods' => ['nullable', 'array'],
             'payment_methods.*' => ['string', 'max:50'],
         ];

@@ -16,7 +16,7 @@ import { Pagination } from '../components/Pagination'
 import { useSearchCommit } from '../hooks/useSearchCommit'
 import { useSettings } from '../contexts/settingsContextCore'
 import { formatWeight } from '../contexts/settingsUtils'
-import { hasCover, resolveCoverUrl } from '../lib/utils'
+import { formatBookPrice, hasCover, resolveCoverUrl } from '../lib/utils'
 
 function discountedPrice(book: Book): number {
   const discount = book.discount_percent ?? 0
@@ -79,6 +79,14 @@ export function AdminPos() {
     },
   })
   const publishers = useMemo(() => extractList<Publisher>(publishersData), [publishersData])
+  const selectedWarehouse = warehouses.find((warehouse) => String(warehouse._id) === warehouseFilter)
+  const selectedPublisherId = String(
+    selectedWarehouse?.publisher_id ?? selectedWarehouse?.publisher?._id ?? '',
+  )
+  const currencySymbol =
+    selectedWarehouse?.publisher?.public_settings?.currency_symbol
+    ?? publishers.find((publisher) => publisher._id === selectedPublisherId)?.public_settings?.currency_symbol
+  const formatPrice = (price: number) => formatBookPrice(price, currencySymbol)
 
   const filteredWarehouses = useMemo(() => {
     if (!publisherFilter) return warehouses
@@ -186,6 +194,13 @@ export function AdminPos() {
     const createdWarehouse =
       createdInvoice.warehouse
       ?? warehouses.find((w) => String(w._id) === String(createdInvoice.warehouse_id))
+    const invoicePublisherId = String(
+      createdWarehouse?.publisher_id ?? createdWarehouse?.publisher?._id ?? '',
+    )
+    const invoiceCurrencySymbol =
+      createdWarehouse?.publisher?.public_settings?.currency_symbol
+      ?? publishers.find((publisher) => publisher._id === invoicePublisherId)?.public_settings?.currency_symbol
+    const formatInvoicePrice = (price: number) => formatBookPrice(price, invoiceCurrencySymbol)
     const createdPublisherName = createdWarehouse?.publisher?.name
     return (
       <div className="space-y-4">
@@ -232,7 +247,7 @@ export function AdminPos() {
                   <td className="py-2 text-end text-slate-600">
                     {lineW > 0 ? formatWeight(lineW, settings.weight_unit) : '—'}
                   </td>
-                  <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
+                  <td className="py-2 text-end">{formatInvoicePrice(Number(item.price) * Number(item.quantity ?? 0))}</td>
                 </tr>
               )
             })}
@@ -240,15 +255,15 @@ export function AdminPos() {
           <tfoot>
             <tr className="text-slate-600">
               <td className="text-start py-2" colSpan={2}>{t('orders.booksSubtotal', 'Books subtotal')}</td>
-              <td className="text-end py-2">${invoiceBooksSubtotal.toFixed(2)}</td>
+              <td className="text-end py-2">{formatInvoicePrice(invoiceBooksSubtotal)}</td>
             </tr>
             <tr className="text-slate-600">
               <td className="text-start py-2" colSpan={2}>{t('orders.shippingFee', 'Shipping fee')}</td>
-              <td className="text-end py-2">${invoiceShippingFee.toFixed(2)}</td>
+              <td className="text-end py-2">{formatInvoicePrice(invoiceShippingFee)}</td>
             </tr>
             <tr>
               <th className="text-start py-4 text-lg" colSpan={2}>{t('orders.total')}</th>
-              <th className="text-end py-4 text-lg">${invoiceTotal.toFixed(2)}</th>
+              <th className="text-end py-4 text-lg">{formatInvoicePrice(invoiceTotal)}</th>
             </tr>
             {invoiceTotalWeightLabel && (
               <tr className="text-slate-600">
@@ -371,7 +386,7 @@ export function AdminPos() {
                     </p>
                   )}
                   <div className="mt-2 flex justify-between items-center">
-                    <span className="font-semibold text-navy-900">${discountedPrice(book).toFixed(2)}</span>
+                    <span className="font-semibold text-navy-900">{formatPrice(discountedPrice(book))}</span>
                     <span className="text-xs text-slate-500">Qty: {book.stock_quantity}</span>
                   </div>
                 </div>
@@ -411,7 +426,7 @@ export function AdminPos() {
                   <div key={item.book._id} className="flex gap-2 items-center p-2 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.book.title}</p>
-                      <p className="text-xs text-slate-500">${finalPrice.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500">{formatPrice(finalPrice)}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0 bg-slate-100 rounded">
                       <button onClick={() => updateQuantity(item.book._id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center font-bold text-slate-600">-</button>
@@ -423,7 +438,7 @@ export function AdminPos() {
                       >+</button>
                     </div>
                     <div className="w-16 text-end font-semibold text-sm shrink-0">
-                      ${(finalPrice * item.quantity).toFixed(2)}
+                      {formatPrice(finalPrice * item.quantity)}
                     </div>
                   </div>
                 )
@@ -447,15 +462,15 @@ export function AdminPos() {
           <div className="space-y-1 text-sm text-slate-600">
             <div className="flex justify-between">
               <span>{t('orders.booksSubtotal', 'Books subtotal')}</span>
-              <span>${booksSubtotal.toFixed(2)}</span>
+              <span>{formatPrice(booksSubtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>{t('orders.shippingFee', 'Shipping fee')}</span>
-              <span>${shippingFee.toFixed(2)}</span>
+              <span>{formatPrice(shippingFee)}</span>
             </div>
             <div className="flex justify-between items-center text-lg font-bold text-slate-900 pt-1">
               <span>{t('orders.total')}</span>
-              <span className="text-navy-900">${cartTotal.toFixed(2)}</span>
+              <span className="text-navy-900">{formatPrice(cartTotal)}</span>
             </div>
           </div>
 

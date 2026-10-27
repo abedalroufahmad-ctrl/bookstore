@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { calculateDiscountedPrice, resolveCoverUrl } from '../lib/utils'
+import { calculateDiscountedPrice, formatBookPrice, resolveCoverUrl } from '../lib/utils'
 import { useSettings } from '../contexts/settingsContextCore'
 import { formatWeight } from '../contexts/settingsUtils'
 
@@ -18,6 +18,7 @@ interface BookCardProps {
   id: string
   title: string
   price: number
+  currencySymbol?: string
   coverImage?: string
   coverImageThumb?: string
   authorName?: string
@@ -61,6 +62,7 @@ export function BookCard({
   id,
   title,
   price,
+  currencySymbol,
   coverImage,
   coverImageThumb,
   authorName,
@@ -159,10 +161,10 @@ export function BookCard({
         )}
         <div className="book-price-row">
           {discountUsed > 0 && (
-            <span className="original-price">${price.toFixed(2)}</span>
+            <span className="original-price">{formatBookPrice(price, currencySymbol)}</span>
           )}
           <span className="discounted-price">
-            ${finalPrice.toFixed(2)}
+            {formatBookPrice(finalPrice, currencySymbol)}
           </span>
         </div>
       </Link>

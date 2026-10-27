@@ -224,3 +224,9 @@ export function calculateDiscountedPrice(
         isSpecial: false,
     }
 }
+
+export function formatBookPrice(price: number, currencySymbol?: string): string {
+  const symbol = currencySymbol?.trim() || '$'
+  const separator = symbol.length > 1 ? ' ' : ''
+  return `${symbol}${separator}${price.toFixed(2)}`
+}

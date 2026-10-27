@@ -172,6 +172,7 @@ export function CategoryBooks() {
                             id={book._id}
                             title={book.title}
                             price={book.price}
+                            currencySymbol={book.publisher?.public_settings?.currency_symbol}
                             coverImage={book.cover_image}
                             coverImageThumb={book.cover_image_thumb}
                             authorName={book.authors?.map((a) => a.name).join('، ')}

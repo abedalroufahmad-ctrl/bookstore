@@ -53,6 +53,7 @@ class Publisher extends Model
         'support_email',
         'support_phone',
         'return_policy',
+        'currency_symbol',
     ];
 
     public function getPublicSettingsAttribute(): array

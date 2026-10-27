@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
 import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
+import '../utils/price_format.dart';
 import '../utils/weight_format.dart';
 import '../widgets/decode_size.dart';
 import '../widgets/pos_section_nav.dart';
@@ -223,6 +224,20 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     return id ?? '-';
   }
 
+  String _warehouseCurrencySymbol(String? id) {
+    final warehouse = _warehouses.where((w) => w is Map && w['_id']?.toString() == id);
+    if (warehouse.isEmpty || warehouse.first is! Map) return r'$';
+    final publisher = (warehouse.first as Map)['publisher'];
+    if (publisher is! Map) return r'$';
+    final settings = publisher['public_settings'];
+    final symbol = settings is Map
+        ? settings['currency_symbol']?.toString().trim()
+        : null;
+    return symbol == null || symbol.isEmpty ? r'$' : symbol;
+  }
+
+  String get _currentCurrencySymbol => _warehouseCurrencySymbol(_warehouseId);
+
   String? _publisherNameForInvoice(Map<String, dynamic> inv) {
     final nested = inv['warehouse'];
     Map<String, dynamic>? warehouse;
@@ -333,7 +348,8 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  String _money(num value) => '\$${value.toDouble().toStringAsFixed(2)}';
+  String _money(num value, {String? currencySymbol}) =>
+      formatBookPrice(value, currencySymbol ?? _currentCurrencySymbol);
 
   Widget _buildInvoiceView() {
     final t = AppLocalizations.of(context);
@@ -341,6 +357,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     final total = _asMoney(_createdInvoice!['total']);
     final created = _createdInvoice!['created_at']?.toString();
     final warehouseId = _createdInvoice!['warehouse_id']?.toString();
+    final invoiceCurrencySymbol = _warehouseCurrencySymbol(warehouseId);
     final publisherName = _publisherNameForInvoice(_createdInvoice!);
     return Scaffold(
       appBar: AppBar(
@@ -413,7 +430,10 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                         const SizedBox(width: 12),
                         SizedBox(
                           width: 72,
-                          child: Text(_money(price * qty), textAlign: TextAlign.end),
+                          child: Text(
+                            _money(price * qty, currencySymbol: invoiceCurrencySymbol),
+                            textAlign: TextAlign.end,
+                          ),
                         ),
                       ],
                     ),
@@ -429,7 +449,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                         : ((_createdInvoice!['items'] as List?) ?? []).fold<double>(0, (s, raw) {
                             final item = Map<String, dynamic>.from(raw as Map);
                             return s + _asMoney(item['price']) * (item['quantity'] as num? ?? 1);
-                          }))),
+                          }), currencySymbol: invoiceCurrencySymbol)),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -437,7 +457,12 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(t.shippingFeeLabel),
-                    Text(_money(_asMoney(_createdInvoice!['shipping_fee']))),
+                    Text(
+                      _money(
+                        _asMoney(_createdInvoice!['shipping_fee']),
+                        currencySymbol: invoiceCurrencySymbol,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -445,7 +470,10 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(t.ordersTotalLabel, style: theme.textTheme.titleLarge),
-                    Text(_money(total), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
+                    Text(
+                      _money(total, currencySymbol: invoiceCurrencySymbol),
+                      style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary),
+                    ),
                   ],
                 ),
                 Builder(

@@ -292,6 +292,11 @@ class AppLocalizations {
   String get adminSupportEmail => _s('بريد الدعم', 'Support email');
   String get adminSupportPhone => _s('هاتف الدعم', 'Support phone');
   String get adminDefaultDiscount => _s('الخصم الافتراضي (%)', 'Default discount (%)');
+  String get adminCurrencySymbol => _s('رمز العملة لأسعار الكتب', 'Book price currency symbol');
+  String get adminCurrencySymbolHint => _s(
+        'مثال: \$ أو € أو JD. يغيّر الرمز المعروض فقط ولا يحوّل قيمة السعر.',
+        'Example: \$, €, or JD. Changes the displayed symbol only; prices are not converted.',
+      );
   String get adminDefaultDiscountHint => _s(
         'سيُطبَّق هذا الخصم على كل كتبك ما لم يُتجاوز بخصم خاص.',
         'Applied to all your books unless overridden.',

@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
+import '../utils/price_format.dart';
 import '../utils/weight_format.dart';
 import 'decode_size.dart';
 import 'neumorphic.dart';
@@ -201,7 +202,7 @@ class BookCard extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        '\$${discountedPrice.toStringAsFixed(2)}',
+                        formatBookPrice(discountedPrice, book.currencySymbol),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurface,
@@ -215,7 +216,7 @@ class BookCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          '\$${price.toStringAsFixed(2)}',
+                          formatBookPrice(price, book.currencySymbol),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
                             decoration: TextDecoration.lineThrough,

@@ -18,6 +18,7 @@ interface PublisherSettingsData {
   support_email?: string
   support_phone?: string
   return_policy?: string
+  currency_symbol?: string
   default_discount?: number
   payment_methods?: string[]
   paypal_email?: string
@@ -50,6 +51,7 @@ export function PublisherSettings() {
     support_email: '',
     support_phone: '',
     return_policy: '',
+    currency_symbol: '$',
     default_discount: 0,
     payment_methods: [],
     paypal_email: '',
@@ -140,6 +142,7 @@ export function PublisherSettings() {
         support_email: data.data.support_email ?? '',
         support_phone: data.data.support_phone ?? '',
         return_policy: data.data.return_policy ?? '',
+        currency_symbol: data.data.currency_symbol ?? '$',
         default_discount: Number(data.data.default_discount) || 0,
         payment_methods: Array.isArray(data.data.payment_methods) ? data.data.payment_methods : [],
         paypal_email: data.data.paypal_email ?? '',
@@ -596,6 +599,22 @@ export function PublisherSettings() {
               {isPublisherManager
                 ? t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')
                 : t('admin.defaultDiscountReadOnly', 'Only the publishing house manager can change this discount.')}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('admin.currencySymbol', 'Book price currency symbol')}
+            </label>
+            <input
+              type="text"
+              maxLength={8}
+              value={form.currency_symbol}
+              onChange={(e) => setForm({ ...form, currency_symbol: e.target.value })}
+              className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+            />
+            <p className="text-sm text-slate-500 mt-1">
+              {t('admin.currencySymbolHint', 'For example $, €, or JD. This changes the displayed symbol only; prices are not converted.')}
             </p>
           </div>
 

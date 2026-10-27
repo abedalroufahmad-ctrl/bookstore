@@ -626,6 +626,8 @@
     "supportPhone": "Support Phone",
     "defaultDiscount": "Default Discount (%)",
     "defaultDiscountHint": "This discount will be applied to all your books unless overridden.",
+    "currencySymbol": "Book price currency symbol",
+    "currencySymbolHint": "For example $, €, or JD. This changes the displayed symbol only; prices are not converted.",
     "returnPolicy": "Return Policy",
     "returnPolicyPlaceholder": "Describe your return policy...",
     "paymentMethods": "Payment Methods",

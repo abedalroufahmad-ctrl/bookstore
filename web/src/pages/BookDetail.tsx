@@ -6,7 +6,7 @@ import { books, cart } from '../lib/api'
 import { useAuth } from '../contexts/authContextCore'
 import { useSettings } from '../contexts/settingsContextCore'
 import { formatWeight } from '../contexts/settingsUtils'
-import { calculateDiscountedPrice, resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
+import { calculateDiscountedPrice, formatBookPrice, resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
 
 const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
   const show = alwaysShow || (value != null && value !== '')
@@ -64,6 +64,7 @@ export function BookDetail() {
   if (error || !data?.data) return <div className="text-center py-12" style={{ color: 'var(--color-discount)' }}>{t('common.notFound')}</div>
 
   const book = data.data
+  const currencySymbol = book.publisher?.public_settings?.currency_symbol
   const authors = Array.isArray(book.authors) ? book.authors : []
   const category = book.category
   const warehouse = book.warehouse
@@ -146,11 +147,11 @@ export function BookDetail() {
           <div className="flex items-baseline gap-3 mb-6">
             {discountUsed > 0 && (
               <span className="text-xl line-through" style={{ color: 'var(--color-text-muted)' }}>
-                ${book.price.toFixed(2)}
+                {formatBookPrice(book.price, currencySymbol)}
               </span>
             )}
             <span className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
-              ${finalPrice.toFixed(2)}
+              {formatBookPrice(finalPrice, currencySymbol)}
             </span>
             {discountUsed > 0 && (
               <span

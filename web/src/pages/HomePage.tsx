@@ -5,6 +5,7 @@ import { books as booksApi, warehousesPublic as warehousesApi, publishersPublic 
 import { resolveCoverUrl, getPublisherEntries, hasCover } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/settingsContextCore'
+import { formatBookPrice } from '../lib/utils'
 import type { Book, Warehouse, Publisher } from '../lib/api'
 
 export function HomePage() {
@@ -346,7 +347,9 @@ export function HomePage() {
                                     </div>
                                 )}
                                 <div className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>
-                                    ${book.price?.toFixed(2) ?? '—'}
+                                    {book.price != null
+                                      ? formatBookPrice(book.price, book.publisher?.public_settings?.currency_symbol)
+                                      : '—'}
                                 </div>
                             </div>
                         </div>

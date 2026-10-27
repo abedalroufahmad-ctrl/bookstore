@@ -626,6 +626,8 @@
     "supportPhone": "هاتف الدعم",
     "defaultDiscount": "الخصم الافتراضي (%)",
     "defaultDiscountHint": "سيُطبَّق هذا الخصم على كل كتبك ما لم يُتجاوز بخصم خاص.",
+    "currencySymbol": "رمز العملة لأسعار الكتب",
+    "currencySymbolHint": "مثال: $ أو € أو JD. يغيّر الرمز المعروض فقط ولا يحوّل قيمة السعر.",
     "returnPolicy": "سياسة الإرجاع",
     "returnPolicyPlaceholder": "صف سياسة الإرجاع...",
     "paymentMethods": "طرق الدفع",
