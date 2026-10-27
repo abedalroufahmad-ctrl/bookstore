@@ -86,7 +86,11 @@ class PosController extends BaseApiController
                 $customerName !== '' ? $customerName : null
             );
 
-            return $this->successResponse($order, 'Invoice created successfully', 201);
+            return $this->successResponse(
+                $this->hidePayoutsForDirectSalesEmployee($order, $employee),
+                'Invoice created successfully',
+                201
+            );
         } catch (\InvalidArgumentException $e) {
             return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
@@ -112,6 +116,9 @@ class PosController extends BaseApiController
 
         $perPage = min((int) $request->get('per_page', 25), 100);
         $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $orders->getCollection()->transform(
+            fn (Order $order) => $this->hidePayoutsForDirectSalesEmployee($order, $employee)
+        );
 
         return $this->successResponse($orders);
     }
@@ -129,7 +136,7 @@ class PosController extends BaseApiController
             return $this->errorResponse('Invoice not found', 404);
         }
 
-        return $this->successResponse($order);
+        return $this->successResponse($this->hidePayoutsForDirectSalesEmployee($order, $employee));
     }
 
     public function reports(Request $request): JsonResponse
@@ -196,6 +203,13 @@ class PosController extends BaseApiController
         }
 
         return $query->where('_id', '__none__');
+    }
+
+    private function hidePayoutsForDirectSalesEmployee(Order $order, $employee): Order
+    {
+        return $employee?->role === UserRole::DirectSales->value
+            ? $order->hideInternalPayouts()
+            : $order;
     }
 
     private function forbidWarehouseForSale($employee, Warehouse $warehouse): ?JsonResponse
