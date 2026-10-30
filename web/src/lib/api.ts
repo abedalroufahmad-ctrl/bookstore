@@ -118,17 +118,23 @@ export const auth = {
 }
 
 export const cart = {
-  get: () => api.get<ApiResponse<{ cart: Cart; items: CartItemDetail[]; total: number }>>('/customers/cart'),
-  addItem: (bookId: string, quantity: number) =>
-    api.post<ApiResponse<{ cart: Cart; total: number }>>('/customers/cart/items', {
+  get: (currencyCode = 'USD') => api.get<ApiResponse<{ cart: Cart; items: CartItemDetail[]; total: number | null }>>('/customers/cart', {
+    params: { currency_code: currencyCode },
+  }),
+  addItem: (bookId: string, quantity: number, currencyCode = 'USD') =>
+    api.post<ApiResponse<{ cart: Cart; total: number | null }>>('/customers/cart/items', {
       book_id: bookId,
       quantity,
+      currency_code: currencyCode,
     }),
-  removeItem: (bookId: string) =>
-    api.delete<ApiResponse<{ cart: Cart; total: number }>>(`/customers/cart/items/${bookId}`),
-  updateItem: (bookId: string, quantity: number) =>
-    api.patch<ApiResponse<{ cart: Cart; total: number }>>(`/customers/cart/items/${bookId}`, {
+  removeItem: (bookId: string, currencyCode = 'USD') =>
+    api.delete<ApiResponse<{ cart: Cart; total: number | null }>>(`/customers/cart/items/${bookId}`, {
+      params: { currency_code: currencyCode },
+    }),
+  updateItem: (bookId: string, quantity: number, currencyCode = 'USD') =>
+    api.patch<ApiResponse<{ cart: Cart; total: number | null }>>(`/customers/cart/items/${bookId}`, {
       quantity,
+      currency_code: currencyCode,
     }),
 }
 
@@ -141,11 +147,13 @@ export const orders = {
   checkout: (
     shippingAddress: ShippingAddress,
     paymentMethod: PaymentMethodId,
+    currencyCode = 'USD',
     paymentInfo?: object
   ) =>
     api.post<ApiResponse<{ orders: Order[]; count: number }>>('/customers/orders/checkout', {
       shipping_address: shippingAddress,
       payment_method: paymentMethod,
+      currency_code: currencyCode,
       payment_info: paymentInfo,
     }),
   confirmQuote: (id: string) =>
@@ -351,12 +359,13 @@ export const admin = {
       params: { period: 'all' | 'day' | 'month' | 'year'; date?: string; page?: number; per_page?: number },
     ) =>
       api.get<ApiResponse<{
-        total_sum: number
-        orders: PaginatedResponse<{ total: number; created_at?: string }>
+        total_sum: number | null
+        totals_by_currency: Record<string, number>
+        orders: PaginatedResponse<{ total: number; currency_code: string; created_at?: string }>
       }>>(`/admin/publishers/${id}/order-totals`, { params }),
     recordCommissionSettlement: (
       id: string,
-      data: { amount: number; note?: string; reference?: string },
+      data: { amount: number; currency_code: string; note?: string; reference?: string },
     ) =>
       api.post<ApiResponse<{ entry: PublisherCommissionEntry; account: PublisherCommissionAccount }>>(
         `/admin/publishers/${id}/commission-settlements`,
@@ -375,9 +384,10 @@ export const admin = {
     }) =>
       api.get<ApiResponse<{
         publishers: { id: string; name: string }[]
-        total_sum: number
-        commission_sum: number
-        orders: PaginatedResponse<{ total: number; commission: number; publisher_name: string }>
+        total_sum: number | null
+        commission_sum: number | null
+        totals_by_currency: Record<string, { total: number; commission: number }>
+        orders: PaginatedResponse<{ total: number; commission: number; currency_code: string; publisher_name: string }>
       }>>('/admin/settings/order-totals', { params }),
   },
   countries: {
@@ -421,6 +431,7 @@ export interface Book {
   _id: string
   title: string
   price: number
+  prices?: Record<string, number>
   stock_quantity: number
   isbn?: string
   author_ids?: string[]
@@ -483,11 +494,13 @@ export interface PosInvoice {
   books_subtotal?: number
   shipping_fee?: number
   total?: number
+  currency_code?: string
 }
 
 export interface PosReportBucket {
   period?: string
-  total: number
+  total: number | null
+  totals_by_currency?: Record<string, number>
   count: number
 }
 
@@ -542,6 +555,7 @@ export interface BookFormData {
   warehouse_id: string
   warehouse_ids?: string[]
   price: number
+  prices?: Record<string, number>
   isbn: string
   stock_quantity: number
   description?: string
@@ -577,9 +591,17 @@ export interface Publisher {
   website?: string
   public_settings?: {
     currency_symbol?: string
+    default_currency_code?: string
+    currencies?: CurrencyOption[]
   }
   warehouses_count?: number
   warehouses?: Warehouse[]
+}
+
+export interface CurrencyOption {
+  code: string
+  name: string
+  symbol: string
 }
 
 export interface PublisherCommissionAccount {
@@ -588,6 +610,11 @@ export interface PublisherCommissionAccount {
   commission_accrued_total: number
   commission_paid_total: number
   platform_commission_percent: number
+  currency_balances?: Record<string, {
+    commission_owed: number
+    commission_accrued_total: number
+    commission_paid_total: number
+  }>
 }
 
 export interface PublisherCommissionEntry {
@@ -596,6 +623,7 @@ export interface PublisherCommissionEntry {
   order_id?: string | null
   type: 'sale_accrual' | 'settlement' | string
   amount: number
+  currency_code?: string
   note?: string | null
   reference?: string | null
   created_by?: string | null
@@ -643,25 +671,36 @@ export interface Employee {
 
 export interface Cart {
   _id: string
-  items: { book_id: string; quantity: number; price: number }[]
+  items: { book_id: string; quantity: number; price: number; currency_code?: string }[]
 }
 
 export interface CartItemDetail {
   book_id: string
   quantity: number
-  price: number
-  subtotal: number
-  book?: { id: string; title: string; price: number }
+  price: number | null
+  subtotal: number | null
+  currency_code: string
+  currency_available: boolean
+  book?: {
+    id: string
+    title: string
+    price: number
+    prices?: Record<string, number>
+    discount_percent?: number
+    warehouse?: { id?: string; name?: string } | null
+    publisher?: { id?: string; name?: string; settings?: Publisher['public_settings'] } | null
+  }
 }
 
 export interface Order {
   _id: string
   status: string
   total: number
+  currency_code?: string
   books_subtotal?: number
   shipping_fee?: number
   shipping_method?: string | null
-  items: { book_id: string; quantity: number; price: number; book_title?: string }[]
+  items: { book_id: string; quantity: number; price: number; currency_code?: string; book_title?: string }[]
   shipping_address?: { address?: string; city?: string; country?: string; postal_code?: string }
   customer?: Customer
   employee?: Employee

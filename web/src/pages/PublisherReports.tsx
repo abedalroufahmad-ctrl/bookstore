@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/authContextCore'
 import { admin } from '../lib/api'
+import { formatBookPrice } from '../lib/utils'
 
 type ReportCounts = {
   books: number
@@ -10,7 +11,7 @@ type ReportCounts = {
   warehouses: number
   categories: number
   orders: number
-  orderRevenue: number
+  orderRevenue: Record<string, number>
 }
 
 const REPORT_LINKS: { key: keyof ReportCounts; path: string }[] = [
@@ -48,7 +49,7 @@ export function PublisherReports() {
         warehouses: warehouses.data.data.total,
         categories: categories.data.data.total,
         orders: orders.data.data.total,
-        orderRevenue: revenue.data.data.total_sum,
+        orderRevenue: revenue.data.data.totals_by_currency ?? {},
       }
     },
   })
@@ -108,7 +109,9 @@ export function PublisherReports() {
           >
             <h2 className="font-semibold text-navy-900">{t('admin.publisherOrderRevenue')}</h2>
             <span className="mt-2 block text-2xl font-bold text-navy-800" aria-live="polite">
-              {isLoading ? '—' : `$${Number(data?.orderRevenue ?? 0).toFixed(2)}`}
+              {isLoading ? '—' : Object.entries(data?.orderRevenue ?? {})
+                .map(([code, amount]) => formatBookPrice(Number(amount), code, code))
+                .join(' · ') || '—'}
             </span>
           </Link>
         </div>

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { calculateDiscountedPrice, formatBookPrice, resolveCoverUrl } from '../lib/utils'
+import { calculateDiscountedPrice, formatBookPrice, getBookPriceForCurrency, getCurrencySymbol, resolveCoverUrl } from '../lib/utils'
 import { useSettings } from '../contexts/settingsContextCore'
 import { formatWeight } from '../contexts/settingsUtils'
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
+import type { CurrencyOption } from '../lib/api'
 
 const FALLBACK_COVER_URL = '/favicon.png'
 
@@ -18,6 +20,9 @@ interface BookCardProps {
   id: string
   title: string
   price: number
+  prices?: Record<string, number>
+  defaultCurrencyCode?: string
+  currencyOptions?: CurrencyOption[]
   currencySymbol?: string
   coverImage?: string
   coverImageThumb?: string
@@ -62,6 +67,9 @@ export function BookCard({
   id,
   title,
   price,
+  prices,
+  defaultCurrencyCode = 'USD',
+  currencyOptions,
   currencySymbol,
   coverImage,
   coverImageThumb,
@@ -84,12 +92,19 @@ export function BookCard({
 }: BookCardProps) {
   const { t } = useTranslation()
   const { settings } = useSettings()
+  const { currencyCode } = useCurrencyPreference()
   const [useFallbackCover, setUseFallbackCover] = useState(false)
 
-  const { finalPrice, discountUsed, isSpecial } = calculateDiscountedPrice(
-    price,
-    discountPercent,
-    globalDiscount
+  const selectedPrice = getBookPriceForCurrency(price, prices, defaultCurrencyCode, currencyCode)
+  const priceAvailable = selectedPrice !== null
+  const { finalPrice, discountUsed, isSpecial } = selectedPrice !== null
+    ? calculateDiscountedPrice(selectedPrice, discountPercent, globalDiscount)
+    : { finalPrice: 0, discountUsed: 0, isSpecial: false }
+  const selectedCurrencySymbol = getCurrencySymbol(
+    currencyCode,
+    currencyOptions,
+    currencySymbol,
+    defaultCurrencyCode,
   )
   const weightLabel = formatWeight(weight, settings.weight_unit)
 
@@ -143,11 +158,11 @@ export function BookCard({
             </div>
           )}
 
-          {isSpecial && discountUsed > 0 && (
+          {priceAvailable && isSpecial && discountUsed > 0 && (
             <div className="discount-badge">{t('discount.special', { percent: discountUsed })}</div>
           )}
 
-          {!isSpecial && discountUsed > 0 && (
+          {priceAvailable && !isSpecial && discountUsed > 0 && (
             <div className="global-discount-badge">{t('discount.save', { percent: discountUsed })}</div>
           )}
         </div>
@@ -160,12 +175,18 @@ export function BookCard({
           </div>
         )}
         <div className="book-price-row">
-          {discountUsed > 0 && (
-            <span className="original-price">{formatBookPrice(price, currencySymbol)}</span>
+          {priceAvailable ? (
+            <>
+              {discountUsed > 0 && (
+                <span className="original-price">{formatBookPrice(selectedPrice, selectedCurrencySymbol, currencyCode)}</span>
+              )}
+              <span className="discounted-price">
+                {formatBookPrice(finalPrice, selectedCurrencySymbol, currencyCode)}
+              </span>
+            </>
+          ) : (
+            <span className="text-sm text-slate-500">{t('bookDetail.currencyUnavailable', 'Not offered in this currency')}</span>
           )}
-          <span className="discounted-price">
-            {formatBookPrice(finalPrice, currencySymbol)}
-          </span>
         </div>
       </Link>
 
@@ -218,8 +239,8 @@ export function BookCard({
             e.stopPropagation()
             onAddToCart(id)
           }}
-          disabled={isAddingToCart}
-          style={{ cursor: isAddingToCart ? 'wait' : 'pointer' }}
+          disabled={isAddingToCart || !priceAvailable}
+          style={{ cursor: isAddingToCart ? 'wait' : priceAvailable ? 'pointer' : 'not-allowed' }}
         >
           {isAddingToCart ? t('common.loading') : t('bookDetail.addToCart')}
         </button>

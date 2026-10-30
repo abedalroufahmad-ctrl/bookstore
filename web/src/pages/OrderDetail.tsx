@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { orders } from '../lib/api'
-import { isTrustedPayPalUrl, isTrustedStripeCheckoutUrl, paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
+import { formatBookPrice, isTrustedPayPalUrl, isTrustedStripeCheckoutUrl, paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
 import { useAuth } from '../contexts/authContextCore'
 import { useSettings } from '../contexts/settingsContextCore'
 
@@ -11,6 +11,7 @@ type OrderPayload = {
   _id: string
   status: string
   total: number
+  currency_code?: string
   books_subtotal?: number
   shipping_fee?: number
   shipping_method?: string | null
@@ -123,6 +124,7 @@ export function OrderDetail() {
   }
 
   const order = data.data as OrderPayload
+  const currencyCode = order.currency_code ?? 'USD'
   const canConfirmCod =
     order.status === 'awaiting_customer_confirmation'
     && order.payment_method !== 'paypal'
@@ -177,17 +179,17 @@ export function OrderDetail() {
             <>
               <div className="text-sm text-slate-600 flex justify-between">
                 <span>{t('orders.booksSubtotal', 'Books subtotal')}</span>
-                <span>${(order.books_subtotal ?? 0).toFixed(2)}</span>
+                <span>{formatBookPrice(order.books_subtotal ?? 0, currencyCode, currencyCode)}</span>
               </div>
               <div className="text-sm text-slate-600 flex justify-between">
                 <span>{t('orders.shippingFee', 'Shipping fee')}</span>
-                <span>${(order.shipping_fee ?? 0).toFixed(2)}</span>
+                <span>{formatBookPrice(order.shipping_fee ?? 0, currencyCode, currencyCode)}</span>
               </div>
             </>
           )}
           <div>
             <span className="text-sm font-medium text-slate-600">{t('orders.total')}:</span>{' '}
-            <span className="text-slate-800">${order.total?.toFixed(2)}</span>
+            <span className="text-slate-800">{formatBookPrice(order.total ?? 0, currencyCode, currencyCode)}</span>
           </div>
         </div>
         {order.shipping_method ? (
@@ -276,7 +278,7 @@ export function OrderDetail() {
                   const title =
                     item.book_title ??
                     (item.book_id ? `${t('common.book')} (${item.book_id.slice(-8)})` : '—')
-                  const linePrice = `${item.quantity} × $${item.price?.toFixed(2)}`
+                  const linePrice = `${item.quantity} × ${formatBookPrice(Number(item.price ?? 0), currencyCode, currencyCode)}`
                   return (
                     <tr
                       key={i}

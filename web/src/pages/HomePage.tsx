@@ -2,15 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { books as booksApi, warehousesPublic as warehousesApi, publishersPublic as publishersApi } from '../lib/api'
-import { resolveCoverUrl, getPublisherEntries, hasCover } from '../lib/utils'
+import { resolveCoverUrl, getPublisherEntries, hasCover, getBookPriceForCurrency, getCurrencySymbol } from '../lib/utils'
 import { BookCarousel } from '../components/BookCarousel'
 import { useSettings } from '../contexts/settingsContextCore'
 import { formatBookPrice } from '../lib/utils'
 import type { Book, Warehouse, Publisher } from '../lib/api'
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
 
 export function HomePage() {
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
+    const { currencyCode } = useCurrencyPreference()
     const { data, isLoading, error } = useQuery({
         queryKey: ['books', settings.books.per_page],
         queryFn: async () => {
@@ -347,9 +349,27 @@ export function HomePage() {
                                     </div>
                                 )}
                                 <div className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>
-                                    {book.price != null
-                                      ? formatBookPrice(book.price, book.publisher?.public_settings?.currency_symbol)
-                                      : '—'}
+                                    {(() => {
+                                      const defaultCode = book.publisher?.public_settings?.default_currency_code ?? 'USD'
+                                      const selectedPrice = getBookPriceForCurrency(
+                                        book.price,
+                                        book.prices,
+                                        defaultCode,
+                                        currencyCode,
+                                      )
+                                      return selectedPrice == null
+                                        ? t('bookDetail.currencyUnavailable', 'Not offered in this currency')
+                                        : formatBookPrice(
+                                            selectedPrice,
+                                            getCurrencySymbol(
+                                              currencyCode,
+                                              book.publisher?.public_settings?.currencies,
+                                              book.publisher?.public_settings?.currency_symbol,
+                                              defaultCode,
+                                            ),
+                                            currencyCode,
+                                          )
+                                    })()}
                                 </div>
                             </div>
                         </div>

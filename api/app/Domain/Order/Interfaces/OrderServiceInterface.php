@@ -14,7 +14,13 @@ interface OrderServiceInterface
      *
      * @return array<int, Order>
      */
-    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array;
+    public function checkout(
+        Customer $customer,
+        array $shippingAddress,
+        string $paymentMethod,
+        ?array $paymentInfo = null,
+        string $currencyCode = 'USD'
+    ): array;
 
     /**
      * Warehouse sets confirmed books subtotal (existing), shipping fee, and confirms shipping/payment preferences.

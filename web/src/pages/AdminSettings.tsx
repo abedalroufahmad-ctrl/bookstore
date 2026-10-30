@@ -4,6 +4,7 @@ import { admin } from '../lib/api'
 import { useTranslation } from 'react-i18next'
 import { Pagination } from '../components/Pagination'
 import { useAuth } from '../contexts/authContextCore'
+import { formatBookPrice } from '../lib/utils'
 
 type WeightUnit = 'kg' | 'g' | 'lb' | 'oz'
 type PayPalMode = 'sandbox' | 'live'
@@ -321,8 +322,8 @@ export function AdminSettings() {
                   {orderTotalItems.length > 0 ? orderTotalItems.map((order, index) => (
                     <tr key={`${order.publisher_name}-${index}`} className="border-t border-slate-100">
                       <td className="px-3 py-2 text-slate-700">{order.publisher_name}</td>
-                      <td className="px-3 py-2 text-right font-medium">${Number(order.total).toFixed(2)}</td>
-                      <td className="px-3 py-2 text-right font-medium">${Number(order.commission).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right font-medium">{formatBookPrice(Number(order.total), order.currency_code, order.currency_code)}</td>
+                      <td className="px-3 py-2 text-right font-medium">{formatBookPrice(Number(order.commission), order.currency_code, order.currency_code)}</td>
                     </tr>
                   )) : (
                     <tr>
@@ -338,10 +339,14 @@ export function AdminSettings() {
                       {t('admin.periodTotal', 'Period total')}
                     </th>
                     <td className="px-3 py-3 text-right font-semibold text-slate-900">
-                      ${Number(orderTotalsData?.total_sum ?? 0).toFixed(2)}
+                      {Object.entries(orderTotalsData?.totals_by_currency ?? {}).map(([code, amounts]) => (
+                        <div key={code}>{formatBookPrice(Number(amounts.total), code, code)}</div>
+                      ))}
                     </td>
                     <td className="px-3 py-3 text-right font-semibold text-slate-900">
-                      ${Number(orderTotalsData?.commission_sum ?? 0).toFixed(2)}
+                      {Object.entries(orderTotalsData?.totals_by_currency ?? {}).map(([code, amounts]) => (
+                        <div key={code}>{formatBookPrice(Number(amounts.commission), code, code)}</div>
+                      ))}
                     </td>
                   </tr>
                 </tfoot>

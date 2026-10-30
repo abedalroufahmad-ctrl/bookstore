@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Order\Interfaces\OrderServiceInterface;
 use App\Domain\Order\Enums\OrderStatus;
 use App\Services\PayPalService;
+use App\Support\CurrencyAmount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -54,13 +55,13 @@ class WebhookController extends BaseApiController
             $order = is_string($orderId) && $orderId !== ''
                 ? $this->orderService->getOrderById($orderId)
                 : null;
-            $expectedAmount = $order ? (int) round((float) $order->total * 100) : -1;
-            $expectedCurrency = strtolower((string) config('services.stripe.currency', 'USD'));
+            $expectedCurrency = strtoupper((string) ($order?->currency_code ?? config('services.stripe.currency', 'USD')));
+            $expectedAmount = $order ? CurrencyAmount::minorUnits((float) $order->total, $expectedCurrency) : -1;
             if (
                 ! $order
                 || ! in_array((string) ($order->payment_method ?? ''), ['stripe', 'card'], true)
                 || (int) ($object['amount_received'] ?? -1) !== $expectedAmount
-                || strtolower((string) ($object['currency'] ?? '')) !== $expectedCurrency
+                || strtoupper((string) ($object['currency'] ?? '')) !== $expectedCurrency
                 || ! is_string($transactionId)
                 || $transactionId === ''
             ) {

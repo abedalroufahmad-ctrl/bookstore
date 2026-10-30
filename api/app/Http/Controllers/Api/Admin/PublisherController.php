@@ -190,7 +190,8 @@ class PublisherController extends BaseApiController
                 (float) $data['amount'],
                 $employeeId !== '' ? $employeeId : null,
                 $data['note'] ?? null,
-                $data['reference'] ?? null
+                $data['reference'] ?? null,
+                $data['currency_code'] ?? 'USD'
             );
         } catch (\InvalidArgumentException $e) {
             $message = $e->getMessage();

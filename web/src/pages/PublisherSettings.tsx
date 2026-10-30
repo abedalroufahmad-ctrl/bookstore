@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/authContextCore'
-import { api, admin, type PublisherCommissionEntry } from '../lib/api'
+import { api, admin, type CurrencyOption, type PublisherCommissionEntry } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { formatBookPrice } from '../lib/utils'
 
 type OrderTotalsPeriod = 'all' | 'day' | 'month' | 'year'
 
@@ -19,6 +20,8 @@ interface PublisherSettingsData {
   support_phone?: string
   return_policy?: string
   currency_symbol?: string
+  currencies?: CurrencyOption[]
+  default_currency_code?: string
   default_discount?: number
   payment_methods?: string[]
   paypal_email?: string
@@ -52,6 +55,8 @@ export function PublisherSettings() {
     support_phone: '',
     return_policy: '',
     currency_symbol: '$',
+    currencies: [{ code: 'USD', name: 'US Dollar', symbol: '$' }],
+    default_currency_code: 'USD',
     default_discount: 0,
     payment_methods: [],
     paypal_email: '',
@@ -63,6 +68,7 @@ export function PublisherSettings() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [settleAmount, setSettleAmount] = useState('')
+  const [settleCurrencyCode, setSettleCurrencyCode] = useState('USD')
   const [settleReference, setSettleReference] = useState('')
   const [settleNote, setSettleNote] = useState('')
   const [settleError, setSettleError] = useState('')
@@ -143,6 +149,10 @@ export function PublisherSettings() {
         support_phone: data.data.support_phone ?? '',
         return_policy: data.data.return_policy ?? '',
         currency_symbol: data.data.currency_symbol ?? '$',
+        currencies: Array.isArray(data.data.currencies) && data.data.currencies.length > 0
+          ? data.data.currencies
+          : [{ code: 'USD', name: 'US Dollar', symbol: data.data.currency_symbol ?? '$' }],
+        default_currency_code: data.data.default_currency_code ?? 'USD',
         default_discount: Number(data.data.default_discount) || 0,
         payment_methods: Array.isArray(data.data.payment_methods) ? data.data.payment_methods : [],
         paypal_email: data.data.paypal_email ?? '',
@@ -161,6 +171,8 @@ export function PublisherSettings() {
       setMessage(t('admin.settingsSaved', 'Settings saved successfully!'))
       setError('')
       queryClient.invalidateQueries({ queryKey: ['publisher-settings', targetId] })
+      queryClient.invalidateQueries({ queryKey: ['public-currency-options'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-publishers'] })
       setTimeout(() => setMessage(''), 3000)
     },
     onError: (err: unknown) => {
@@ -171,7 +183,7 @@ export function PublisherSettings() {
   })
 
   const settleMutation = useMutation({
-    mutationFn: (payload: { amount: number; note?: string; reference?: string }) =>
+    mutationFn: (payload: { amount: number; currency_code: string; note?: string; reference?: string }) =>
       admin.publishers.recordCommissionSettlement(String(targetId), payload),
     onSuccess: () => {
       setSettleMessage(t('admin.commissionTransferRecorded', 'Transfer recorded. Thank you.'))
@@ -207,6 +219,9 @@ export function PublisherSettings() {
     }
     settleMutation.mutate({
       amount,
+      currency_code: Object.keys(commissionData?.account?.currency_balances ?? {}).includes(settleCurrencyCode)
+        ? settleCurrencyCode
+        : Object.keys(commissionData?.account?.currency_balances ?? {})[0] ?? form.default_currency_code ?? 'USD',
       note: settleNote.trim() || undefined,
       reference: settleReference.trim() || undefined,
     })
@@ -225,6 +240,18 @@ export function PublisherSettings() {
   }
 
   const account = commissionData?.account
+  const currencyBalances = Object.entries(account?.currency_balances ?? {})
+  const displayedBalances = currencyBalances.length > 0
+    ? currencyBalances
+    : [[form.default_currency_code ?? 'USD', {
+        commission_owed: Number(account?.commission_owed ?? 0),
+        commission_accrued_total: Number(account?.commission_accrued_total ?? 0),
+        commission_paid_total: Number(account?.commission_paid_total ?? 0),
+      }] as [string, { commission_owed: number; commission_accrued_total: number; commission_paid_total: number }]]
+  const selectedSettlementCurrency = displayedBalances.some(([code]) => code === settleCurrencyCode)
+    ? settleCurrencyCode
+    : displayedBalances[0]?.[0] ?? 'USD'
+  const selectedCurrencyBalance = displayedBalances.find(([code]) => code === selectedSettlementCurrency)?.[1]
   const ledgerItems: PublisherCommissionEntry[] = Array.isArray(commissionData?.ledger?.data)
     ? commissionData.ledger.data
     : []
@@ -303,30 +330,34 @@ export function PublisherSettings() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-lg bg-amber-50 border border-amber-100 p-4">
+                {displayedBalances.map(([code, balance]) => (
+                  <div key={code} className="contents">
+                    <div className="rounded-lg bg-amber-50 border border-amber-100 p-4">
                   <p className="text-xs uppercase tracking-wide text-amber-800/80">
-                    {t('admin.commissionOwed', 'Owed to site')}
+                    {t('admin.commissionOwed', 'Owed to site')} · {code}
                   </p>
                   <p className="text-2xl font-semibold text-amber-900 mt-1">
-                    ${Number(account?.commission_owed ?? 0).toFixed(2)}
+                    {formatBookPrice(Number(balance.commission_owed), code, code)}
                   </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
-                    {t('admin.commissionAccrued', 'Total accrued')}
+                    {t('admin.commissionAccrued', 'Total accrued')} · {code}
                   </p>
                   <p className="text-2xl font-semibold text-slate-800 mt-1">
-                    ${Number(account?.commission_accrued_total ?? 0).toFixed(2)}
+                    {formatBookPrice(Number(balance.commission_accrued_total), code, code)}
                   </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
-                    {t('admin.commissionPaid', 'Total transferred')}
+                    {t('admin.commissionPaid', 'Total transferred')} · {code}
                   </p>
                   <p className="text-2xl font-semibold text-slate-800 mt-1">
-                    ${Number(account?.commission_paid_total ?? 0).toFixed(2)}
+                    {formatBookPrice(Number(balance.commission_paid_total), code, code)}
                   </p>
                 </div>
+                  </div>
+                ))}
               </div>
 
               <form onSubmit={handleSettle} className="space-y-4 border border-slate-200 rounded-lg p-4 bg-slate-50">
@@ -344,6 +375,18 @@ export function PublisherSettings() {
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('common.currency', 'Currency')}
+                    </label>
+                    <select
+                      value={selectedSettlementCurrency}
+                      onChange={(event) => setSettleCurrencyCode(event.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg"
+                    >
+                      {displayedBalances.map(([code]) => <option key={code} value={code}>{code}</option>)}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       {t('admin.transferAmount', 'Amount')}
@@ -385,7 +428,7 @@ export function PublisherSettings() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={settleMutation.isPending || Number(account?.commission_owed ?? 0) <= 0}
+                    disabled={settleMutation.isPending || Number(selectedCurrencyBalance?.commission_owed ?? 0) <= 0}
                     className="px-5 py-2.5 bg-navy-600 text-white font-medium rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50"
                   >
                     {settleMutation.isPending
@@ -428,7 +471,7 @@ export function PublisherSettings() {
                                 : t('admin.commissionTypeSale', 'Sale commission')}
                             </td>
                             <td className="px-3 py-2 text-right font-medium">
-                              ${Number(entry.amount).toFixed(2)}
+                              {formatBookPrice(Number(entry.amount), entry.currency_code ?? 'USD', entry.currency_code ?? 'USD')}
                             </td>
                             <td className="px-3 py-2 text-slate-500">
                               {entry.type === 'sale_accrual' && entry.order_id
@@ -517,7 +560,7 @@ export function PublisherSettings() {
                         <td className="px-3 py-2 text-slate-600">
                           {order.created_at ? new Date(order.created_at).toLocaleString() : '—'}
                         </td>
-                        <td className="px-3 py-2 text-right font-medium">${Number(order.total).toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right font-medium">{formatBookPrice(Number(order.total), order.currency_code, order.currency_code)}</td>
                       </tr>
                     )) : (
                       <tr>
@@ -533,7 +576,9 @@ export function PublisherSettings() {
                         {t('admin.periodTotal', 'Period total')}
                       </th>
                       <td className="px-3 py-3 text-right font-semibold text-slate-900">
-                        ${Number(orderTotalsData?.total_sum ?? 0).toFixed(2)}
+                        {Object.entries(orderTotalsData?.totals_by_currency ?? {})
+                          .map(([code, amount]) => formatBookPrice(Number(amount), code, code))
+                          .join(' · ') || '—'}
                       </td>
                     </tr>
                   </tfoot>
@@ -616,6 +661,103 @@ export function PublisherSettings() {
             <p className="text-sm text-slate-500 mt-1">
               {t('admin.currencySymbolHint', 'For example $, €, or JD. This changes the displayed symbol only; prices are not converted.')}
             </p>
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-slate-200 p-4">
+            <div>
+              <h2 className="font-semibold text-slate-800">{t('admin.currencies', 'Supported currencies')}</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {t('admin.currenciesHint', 'Set the currencies customers may choose and enter a separate price for each book. No exchange-rate conversion is used.')}
+              </p>
+            </div>
+            <label className="block max-w-sm text-sm font-medium text-slate-700">
+              {t('admin.defaultCurrency', 'Default currency for existing book prices')}
+              <select
+                value={form.default_currency_code ?? 'USD'}
+                onChange={(event) => setForm({ ...form, default_currency_code: event.target.value })}
+                disabled={!isPublisherManager}
+                className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+              >
+                {(form.currencies ?? []).map((currency) => (
+                  <option key={currency.code} value={currency.code}>{currency.code} — {currency.name}</option>
+                ))}
+              </select>
+            </label>
+            <div className="space-y-3">
+              {(form.currencies ?? []).map((currency, index) => (
+                <div key={`${currency.code}-${index}`} className="space-y-2">
+                  <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+                    <input
+                      aria-label={t('admin.currencyCode', 'Currency code')}
+                      value={currency.code}
+                      onChange={(event) => setForm((previous) => ({
+                        ...previous,
+                        currencies: (previous.currencies ?? []).map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, code: event.target.value.toUpperCase() } : item),
+                      }))}
+                      disabled={!isPublisherManager}
+                      maxLength={3}
+                      placeholder="USD"
+                      className="min-w-0 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+                    />
+                    <input
+                      aria-label={t('admin.currencyName', 'Currency name')}
+                      value={currency.name}
+                      onChange={(event) => setForm((previous) => ({
+                        ...previous,
+                        currencies: (previous.currencies ?? []).map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, name: event.target.value } : item),
+                      }))}
+                      disabled={!isPublisherManager}
+                      placeholder={t('admin.currencyName', 'Currency name')}
+                      className="min-w-0 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+                    />
+                    <input
+                      aria-label={t('admin.currencySymbol', 'Currency symbol')}
+                      value={currency.symbol}
+                      onChange={(event) => setForm((previous) => ({
+                        ...previous,
+                        currencies: (previous.currencies ?? []).map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, symbol: event.target.value } : item),
+                      }))}
+                      disabled={!isPublisherManager}
+                      placeholder="$"
+                      className="min-w-0 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+                    />
+                  </div>
+                  {isPublisherManager && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((previous) => {
+                        const currencies = (previous.currencies ?? []).filter((_, itemIndex) => itemIndex !== index)
+                        return {
+                          ...previous,
+                          currencies,
+                          default_currency_code: currencies.some((item) => item.code === previous.default_currency_code)
+                            ? previous.default_currency_code
+                            : (currencies[0]?.code ?? ''),
+                        }
+                      })}
+                      className="px-3 py-2 text-red-700 border border-red-200 rounded-lg hover:bg-red-50"
+                    >
+                      {t('common.remove', 'Remove')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {isPublisherManager && (
+              <button
+                type="button"
+                onClick={() => setForm((previous) => ({
+                  ...previous,
+                  currencies: [...(previous.currencies ?? []), { code: '', name: '', symbol: '' }],
+                }))}
+                className="px-3 py-2 text-sm font-medium text-navy-700 border border-navy-200 rounded-lg hover:bg-navy-50"
+              >
+                {t('admin.addCurrency', 'Add currency')}
+              </button>
+            )}
           </div>
 
           <div className="border-t border-slate-200 pt-6 space-y-6">

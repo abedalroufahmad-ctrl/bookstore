@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\CurrencyAmount;
 use App\Models\Setting;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -275,7 +276,7 @@ class PayPalService
         $row = [
             'amount' => [
                 'currency_code' => $currency,
-                'value' => number_format($total, 2, '.', ''),
+                'value' => CurrencyAmount::decimalString($total, $currency),
             ],
             'custom_id' => substr(implode(',', $ids), 0, 127),
         ];

@@ -225,8 +225,41 @@ export function calculateDiscountedPrice(
     }
 }
 
-export function formatBookPrice(price: number, currencySymbol?: string): string {
+export function formatBookPrice(price: number, currencySymbol?: string, currencyCode?: string): string {
   const symbol = currencySymbol?.trim() || '$'
   const separator = symbol.length > 1 ? ' ' : ''
-  return `${symbol}${separator}${price.toFixed(2)}`
+  let fractionDigits = 2
+  if (currencyCode) {
+    try {
+      fractionDigits = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currencyCode,
+      }).resolvedOptions().maximumFractionDigits ?? 2
+    } catch {
+      fractionDigits = 2
+    }
+  }
+  return `${symbol}${separator}${price.toFixed(fractionDigits)}`
+}
+
+export function getBookPriceForCurrency(
+  price: number,
+  prices: Record<string, number> | undefined,
+  defaultCurrencyCode: string | undefined,
+  currencyCode: string,
+): number | null {
+  const explicitPrice = prices?.[currencyCode]
+  if (typeof explicitPrice === 'number' && Number.isFinite(explicitPrice)) return explicitPrice
+
+  return currencyCode === (defaultCurrencyCode || 'USD') ? price : null
+}
+
+export function getCurrencySymbol(
+  currencyCode: string,
+  currencies: { code: string; symbol: string }[] | undefined,
+  fallbackSymbol?: string,
+  defaultCurrencyCode = 'USD',
+): string {
+  return currencies?.find((currency) => currency.code === currencyCode)?.symbol
+    ?? (currencyCode === defaultCurrencyCode ? fallbackSymbol?.trim() || currencyCode : currencyCode)
 }

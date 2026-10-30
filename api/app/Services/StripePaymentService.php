@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Support\CurrencyAmount;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,7 @@ class StripePaymentService
         }
 
         $orderId = (string) $order->getKey();
+        $currencyCode = strtoupper((string) ($order->currency_code ?? config('services.stripe.currency', 'USD')));
         $response = $this->request()
             ->withHeaders(['Idempotency-Key' => 'order-'.$orderId.'-'.$expiresAt])
             ->asForm()
@@ -30,8 +32,8 @@ class StripePaymentService
                 'payment_method_types' => ['card'],
                 'line_items' => [[
                     'price_data' => [
-                        'currency' => strtolower((string) config('services.stripe.currency', 'USD')),
-                        'unit_amount' => (int) round((float) $order->total * 100),
+                        'currency' => strtolower($currencyCode),
+                        'unit_amount' => CurrencyAmount::minorUnits((float) $order->total, $currencyCode),
                         'product_data' => ['name' => 'Order '.$orderId],
                     ],
                     'quantity' => 1,
@@ -62,8 +64,8 @@ class StripePaymentService
             $this->request()->get('https://api.stripe.com/v1/checkout/sessions/'.rawurlencode($sessionId)),
             'retrieve checkout session'
         );
-        $expectedAmount = (int) round((float) $order->total * 100);
-        $expectedCurrency = strtolower((string) config('services.stripe.currency', 'USD'));
+        $expectedCurrency = strtoupper((string) ($order->currency_code ?? config('services.stripe.currency', 'USD')));
+        $expectedAmount = CurrencyAmount::minorUnits((float) $order->total, $expectedCurrency);
         $paymentIntent = $data['payment_intent'] ?? null;
 
         if (
@@ -74,7 +76,7 @@ class StripePaymentService
             || (string) ($data['client_reference_id'] ?? '') !== (string) $order->getKey()
             || (string) ($data['metadata']['order_id'] ?? '') !== (string) $order->getKey()
             || (int) ($data['amount_total'] ?? -1) !== $expectedAmount
-            || strtolower((string) ($data['currency'] ?? '')) !== $expectedCurrency
+            || strtoupper((string) ($data['currency'] ?? '')) !== $expectedCurrency
             || ! is_string($paymentIntent)
             || $paymentIntent === ''
         ) {

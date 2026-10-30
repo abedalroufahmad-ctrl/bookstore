@@ -4,8 +4,17 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { admin, type PosInvoice, type Warehouse } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { formatBookPrice } from '../lib/utils'
 
-type ReportBucket = { period?: string; total: number; count: number }
+type ReportBucket = { period?: string; total: number | null; totals_by_currency?: Record<string, number>; count: number }
+
+function formatBucketTotal(bucket: ReportBucket | undefined): string {
+  if (!bucket) return 'USD 0.00'
+  const totals = bucket.totals_by_currency ?? (bucket.total !== null ? { USD: bucket.total } : {})
+  return Object.entries(totals)
+    .map(([currencyCode, amount]) => formatBookPrice(Number(amount), currencyCode, currencyCode))
+    .join(' · ') || 'USD 0.00'
+}
 
 function extractList<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) return payload as T[]
@@ -112,7 +121,7 @@ export function AdminPosReports() {
         {summaryCards.map((card) => (
           <div key={card.key} className="bg-white p-4 rounded-lg border border-slate-200 text-center">
             <div className="text-sm text-slate-500 mb-1">{card.label}</div>
-            <div className="text-xl font-bold text-navy-900">${Number(card.data?.total ?? 0).toFixed(2)}</div>
+            <div className="text-xl font-bold text-navy-900">{formatBucketTotal(card.data)}</div>
             <div className="text-xs text-slate-400 mt-1">
               {t('admin.invoicesCount', { count: card.data?.count ?? 0 })}
             </div>
@@ -142,7 +151,7 @@ export function AdminPosReports() {
             {periods.map((r) => (
               <div key={r.period} className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
                 <div className="text-sm text-slate-500 font-mono mb-1">{r.period}</div>
-                <div className="text-xl font-bold text-navy-900">${Number(r.total).toFixed(2)}</div>
+                <div className="text-xl font-bold text-navy-900">{formatBucketTotal(r)}</div>
                 <div className="text-xs text-slate-400">{t('admin.invoicesCount', { count: r.count ?? 0 })}</div>
               </div>
             ))}
@@ -187,7 +196,7 @@ export function AdminPosReports() {
                     <td className="px-4 py-2">{inv.created_at ? formatDateTime(inv.created_at) : '-'}</td>
                     <td className="px-4 py-2">{inv.customer_name || t('admin.walkInCustomer')}</td>
                     <td className="px-4 py-2">{warehouses.find((w) => String(w._id) === String(inv.warehouse_id))?.name || inv.warehouse_id}</td>
-                    <td className="px-4 py-2 text-end font-medium">${Number(inv.total ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-end font-medium">{formatBookPrice(Number(inv.total ?? 0), inv.currency_code ?? 'USD', inv.currency_code ?? 'USD')}</td>
                     <td className="px-4 py-2 text-end print:hidden">
                       <Link
                         to={`/admin/pos/invoices/${invoiceId}`}

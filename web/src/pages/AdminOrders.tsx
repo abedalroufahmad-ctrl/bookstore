@@ -5,7 +5,7 @@ import { admin, type Order, type Employee } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
-import { paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
+import { formatBookPrice, paymentMethodLabel, paymentStatusLabel } from '../lib/utils'
 
 const ORDER_STATUSES = [
   'pending_warehouse_review',
@@ -402,7 +402,7 @@ export function AdminOrders() {
                     {t(`admin.orderStatus.${order.status}`, order.status)}
                   </td>
                   <td className="px-4 py-2">{paymentStatusLabel(order.payment_status, t)}</td>
-                  <td className="px-4 py-2">${order.total?.toFixed(2)}</td>
+                  <td className="px-4 py-2">{formatBookPrice(Number(order.total ?? 0), order.currency_code ?? 'USD', order.currency_code ?? 'USD')}</td>
                   <td className="px-4 py-2">
                     {order.employee?.name ?? order.employee_id ?? (
                       <span className="text-slate-500">{t('admin.unassigned')}</span>
@@ -629,18 +629,18 @@ function OrderDetailModal({
               <span className="text-sm font-medium text-slate-600">
                 {t('admin.total')}:
               </span>{' '}
-              ${displayOrder.total?.toFixed(2)}
+              {formatBookPrice(Number(displayOrder.total ?? 0), displayOrder.currency_code ?? 'USD', displayOrder.currency_code ?? 'USD')}
               {displayOrder.books_subtotal != null && (
                 <span className="block text-xs text-slate-500 mt-1">
-                  {t('orders.booksSubtotal', 'Books')}: ${displayOrder.books_subtotal.toFixed(2)} +{' '}
-                  {t('orders.shippingFee', 'Shipping')}: ${(displayOrder.shipping_fee ?? 0).toFixed(2)}
+                  {t('orders.booksSubtotal', 'Books')}: {formatBookPrice(displayOrder.books_subtotal, displayOrder.currency_code ?? 'USD', displayOrder.currency_code ?? 'USD')} +{' '}
+                  {t('orders.shippingFee', 'Shipping')}: {formatBookPrice(displayOrder.shipping_fee ?? 0, displayOrder.currency_code ?? 'USD', displayOrder.currency_code ?? 'USD')}
                 </span>
               )}
               {displayOrder.publisher_payout_amount != null && (
                 <span className="block text-xs text-slate-500 mt-1">
-                  {t('admin.publisherPayoutAmount')}: ${Number(displayOrder.publisher_payout_amount).toFixed(2)}
+                  {t('admin.publisherPayoutAmount')}: {formatBookPrice(Number(displayOrder.publisher_payout_amount), displayOrder.currency_code ?? 'USD', displayOrder.currency_code ?? 'USD')}
                   {' · '}
-                  {t('admin.platformCommissionAmount')}: ${Number(displayOrder.platform_commission_amount ?? 0).toFixed(2)}
+                  {t('admin.platformCommissionAmount')}: {formatBookPrice(Number(displayOrder.platform_commission_amount ?? 0), displayOrder.currency_code ?? 'USD', displayOrder.currency_code ?? 'USD')}
                   {displayOrder.platform_commission_percent != null
                     ? ` (${Number(displayOrder.platform_commission_percent)}%)`
                     : ''}
@@ -811,7 +811,7 @@ function OrderDetailModal({
                         const title =
                           item.book_title ??
                           `${t('common.book')} (${item.book_id?.slice(-8)})`
-                        const linePrice = `${item.quantity} × $${item.price?.toFixed(2)}`
+                        const linePrice = `${item.quantity} × ${formatBookPrice(Number(item.price ?? 0), displayOrder.currency_code ?? 'USD', displayOrder.currency_code ?? 'USD')}`
                         return (
                           <tr key={i} className="text-slate-800 align-top">
                             <td className="min-w-0 px-3 py-2 break-words whitespace-normal align-top font-medium">

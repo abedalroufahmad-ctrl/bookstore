@@ -24,7 +24,8 @@ class OrderController extends BaseApiController
                 $customer,
                 $request->validated('shipping_address'),
                 $request->validated('payment_method'),
-                $request->validated('payment_info')
+                $request->validated('payment_info'),
+                $request->validated('currency_code', 'USD')
             );
 
             return $this->successResponse([

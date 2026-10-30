@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { admin, type PosInvoice, type Warehouse } from '../lib/api'
 import { useSettings } from '../contexts/settingsContextCore'
 import { formatWeight } from '../contexts/settingsUtils'
+import { formatBookPrice } from '../lib/utils'
 
 function unwrapInvoice(payload: unknown): PosInvoice | null {
   if (!payload || typeof payload !== 'object') return null
@@ -90,6 +91,7 @@ export function AdminPosInvoice() {
     data.warehouse
     ?? warehouses.find((w) => String(w._id) === String(data.warehouse_id))
   const warehouseName = warehouse?.name ?? data.warehouse_id
+  const currencyCode = data.currency_code ?? 'USD'
   const publisherName =
     (typeof warehouse?.publisher === 'object' && warehouse?.publisher?.name)
       ? warehouse.publisher.name
@@ -136,7 +138,7 @@ export function AdminPosInvoice() {
                 <td className="py-2 text-end text-slate-600">
                   {lineW > 0 ? formatWeight(lineW, settings.weight_unit) : '—'}
                 </td>
-                <td className="py-2 text-end">${(Number(item.price) * Number(item.quantity ?? 0)).toFixed(2)}</td>
+                <td className="py-2 text-end">{formatBookPrice(Number(item.price) * Number(item.quantity ?? 0), currencyCode, currencyCode)}</td>
               </tr>
             )
           })}
@@ -145,16 +147,16 @@ export function AdminPosInvoice() {
           <tr className="text-slate-600">
             <td className="text-start py-2" colSpan={2}>{t('orders.booksSubtotal', 'Books subtotal')}</td>
             <td className="text-end py-2">
-              ${(Number(data.books_subtotal ?? items.reduce((s, i) => s + Number(i.price) * Number(i.quantity ?? 0), 0))).toFixed(2)}
+              {formatBookPrice(Number(data.books_subtotal ?? items.reduce((s, i) => s + Number(i.price) * Number(i.quantity ?? 0), 0)), currencyCode, currencyCode)}
             </td>
           </tr>
           <tr className="text-slate-600">
             <td className="text-start py-2" colSpan={2}>{t('orders.shippingFee', 'Shipping fee')}</td>
-            <td className="text-end py-2">${Number(data.shipping_fee ?? 0).toFixed(2)}</td>
+            <td className="text-end py-2">{formatBookPrice(Number(data.shipping_fee ?? 0), currencyCode, currencyCode)}</td>
           </tr>
           <tr>
             <th className="text-start py-4 text-lg" colSpan={2}>{t('orders.total')}</th>
-            <th className="text-end py-4 text-lg">${Number(data.total ?? 0).toFixed(2)}</th>
+            <th className="text-end py-4 text-lg">{formatBookPrice(Number(data.total ?? 0), currencyCode, currencyCode)}</th>
           </tr>
           {totalWeightLabel && (
             <tr className="text-slate-600">

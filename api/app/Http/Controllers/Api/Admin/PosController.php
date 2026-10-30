@@ -67,7 +67,7 @@ class PosController extends BaseApiController
 
         $employee = auth('employee')->user();
         $warehouseId = (string) $validated['warehouse_id'];
-        $warehouse = Warehouse::find($warehouseId);
+        $warehouse = Warehouse::with('publisher')->find($warehouseId);
         if (! $warehouse) {
             return $this->errorResponse('Warehouse not found.', 404);
         }
@@ -83,7 +83,8 @@ class PosController extends BaseApiController
                 $validated['items'],
                 $warehouseId,
                 $employee?->getKey(),
-                $customerName !== '' ? $customerName : null
+                $customerName !== '' ? $customerName : null,
+                strtoupper((string) (data_get($warehouse->publisher?->settings, 'default_currency_code') ?: 'USD'))
             );
 
             return $this->successResponse(

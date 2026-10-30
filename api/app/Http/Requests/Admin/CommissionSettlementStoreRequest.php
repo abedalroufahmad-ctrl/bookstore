@@ -15,6 +15,7 @@ class CommissionSettlementStoreRequest extends BaseFormRequest
     {
         return [
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'currency_code' => ['sometimes', 'string', 'regex:/^[A-Z]{3}$/'],
             'note' => ['nullable', 'string', 'max:1000'],
             'reference' => ['nullable', 'string', 'max:255'],
         ];

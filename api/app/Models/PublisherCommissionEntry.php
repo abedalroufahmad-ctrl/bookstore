@@ -20,6 +20,7 @@ class PublisherCommissionEntry extends Model
         'order_id',
         'type',
         'amount',
+        'currency_code',
         'note',
         'reference',
         'created_by',

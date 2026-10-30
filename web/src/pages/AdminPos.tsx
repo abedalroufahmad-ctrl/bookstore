@@ -86,7 +86,8 @@ export function AdminPos() {
   const currencySymbol =
     selectedWarehouse?.publisher?.public_settings?.currency_symbol
     ?? publishers.find((publisher) => publisher._id === selectedPublisherId)?.public_settings?.currency_symbol
-  const formatPrice = (price: number) => formatBookPrice(price, currencySymbol)
+  const currencyCode = selectedWarehouse?.publisher?.public_settings?.default_currency_code ?? 'USD'
+  const formatPrice = (price: number) => formatBookPrice(price, currencySymbol ?? currencyCode, currencyCode)
 
   const filteredWarehouses = useMemo(() => {
     if (!publisherFilter) return warehouses
@@ -200,7 +201,9 @@ export function AdminPos() {
     const invoiceCurrencySymbol =
       createdWarehouse?.publisher?.public_settings?.currency_symbol
       ?? publishers.find((publisher) => publisher._id === invoicePublisherId)?.public_settings?.currency_symbol
-    const formatInvoicePrice = (price: number) => formatBookPrice(price, invoiceCurrencySymbol)
+    const invoiceCurrencyCode = createdInvoice.currency_code ?? 'USD'
+    const formatInvoicePrice = (price: number) =>
+      formatBookPrice(price, invoiceCurrencySymbol ?? invoiceCurrencyCode, invoiceCurrencyCode)
     const createdPublisherName = createdWarehouse?.publisher?.name
     return (
       <div className="space-y-4">

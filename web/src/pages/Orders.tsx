@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { orders } from '../lib/api'
 import { useAuth } from '../contexts/authContextCore'
 import { Pagination } from '../components/Pagination'
-import { paymentStatusLabel } from '../lib/utils'
+import { formatBookPrice, paymentStatusLabel } from '../lib/utils'
 
 export function Orders() {
   const { userType } = useAuth()
@@ -33,7 +33,7 @@ export function Orders() {
     <div>
       <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">{t('orders.title')}</h1>
       <div className="space-y-4">
-        {items.map((order: { _id: string; status: string; total: number; payment_status?: string; payment_method?: string; created_at?: string }) => (
+        {items.map((order: { _id: string; status: string; total: number; currency_code?: string; payment_status?: string; payment_method?: string; created_at?: string }) => (
           <Link
             key={order._id}
             to={`/orders/${order._id}`}
@@ -45,7 +45,7 @@ export function Orders() {
                   {t('orders.order')} #{order._id}
                 </p>
                 <p className="text-sm text-slate-500">
-                  ${order.total?.toFixed(2)} · {t(`admin.orderStatus.${order.status}`, order.status)}
+                  {formatBookPrice(Number(order.total ?? 0), order.currency_code ?? 'USD', order.currency_code ?? 'USD')} · {t(`admin.orderStatus.${order.status}`, order.status)}
                   {order.payment_status && (
                     <span className="ml-2 text-slate-600">
                       · {t('orders.paymentStatus')}: {paymentStatusLabel(order.payment_status, t)}

@@ -29,6 +29,7 @@ class Order extends Model
         'shipping_fee',
         'shipping_method',
         'total',
+        'currency_code',
         'shipping_address',
         'payment_info',
         'payment_method',

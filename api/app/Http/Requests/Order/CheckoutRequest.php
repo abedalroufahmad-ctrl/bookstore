@@ -22,6 +22,7 @@ class CheckoutRequest extends BaseFormRequest
             'shipping_address.country' => ['required', 'string', 'max:100'],
             'shipping_address.postal_code' => ['nullable', 'string', 'max:20'],
             'payment_method' => ['required', 'string', 'max:50'],
+            'currency_code' => ['sometimes', 'string', 'regex:/^[A-Z]{3}$/'],
             // Non-sensitive payment metadata only — never accept PAN/CVV/full card data.
             'payment_info' => ['nullable', 'array'],
             'payment_info.provider' => ['sometimes', 'nullable', 'string', 'max:50'],

@@ -17,6 +17,7 @@ const emptyForm: BookFormData = {
   warehouse_id: '',
   warehouse_ids: [],
   price: 0,
+  prices: {},
   isbn: '',
   stock_quantity: 0,
   description: '',
@@ -68,6 +69,7 @@ export function AdminBookForm() {
     const isEdit = Boolean(id)
 
   const [form, setForm] = useState<BookFormData>(emptyForm)
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const {
     searchInput: authorSearch,
@@ -269,8 +271,16 @@ export function AdminBookForm() {
   const showCreateCategory =
     categorySearch.trim().length > 0 && !exactMatchCategory && !addingCategory
 
-  const publisherList = extractList<{ _id: string; name: string }>(publishersData)
-  const searchPublisherList = extractList<{ _id: string; name: string }>(publishersSearchData)
+  const publisherList = extractList<{
+    _id: string
+    name: string
+    public_settings?: {
+      currency_symbol?: string
+      default_currency_code?: string
+      currencies?: { code: string; name: string; symbol: string }[]
+    }
+  }>(publishersData)
+  const searchPublisherList = extractList<typeof publisherList[number]>(publishersSearchData)
   const rawBookPublishers = rawBook?.publishers ?? []
   const bookPublishers: { _id: string; name: string }[] = rawBookPublishers.map((p) => ({
     _id: normalizeId(p._id ?? p.id) ?? '',
@@ -299,6 +309,18 @@ export function AdminBookForm() {
   const filteredPublishers = searchPublisherList.filter(
     (c) => !(form.publisher_ids ?? []).includes(c._id)
   )
+  const pricingPublisherId = form.publisher_id || form.publisher_ids?.[0] || ''
+  const pricingPublisher =
+    publisherList.find((publisher) => publisher._id === pricingPublisherId)
+    ?? searchPublisherList.find((publisher) => publisher._id === pricingPublisherId)
+  const currencyOptions = pricingPublisher?.public_settings?.currencies ?? []
+  const priceCurrencyOptions = currencyOptions.length > 0
+    ? currencyOptions
+    : [{ code: 'USD', name: 'US Dollar', symbol: pricingPublisher?.public_settings?.currency_symbol ?? '$' }]
+  const defaultCurrencyCode =
+    pricingPublisher?.public_settings?.default_currency_code
+    ?? currencyOptions[0]?.code
+    ?? 'USD'
 
   useEffect(() => {
     if (bookData?.data) {
@@ -313,6 +335,7 @@ export function AdminBookForm() {
         warehouse_id: warehouseId,
         warehouse_ids: warehouseId ? [warehouseId] : [],
         price: b.price ?? 0,
+        prices: b.prices ?? {},
         isbn: b.isbn ?? '',
         stock_quantity: b.stock_quantity ?? 0,
         description: b.description ?? '',
@@ -336,6 +359,16 @@ export function AdminBookForm() {
         condition: b.condition === 'used' ? 'used' : 'new',
         is_visible: b.is_visible !== false,
         is_sold: Boolean(b.is_sold),
+      })
+      const defaultCode = b.publisher?.public_settings?.default_currency_code ?? 'USD'
+      const enteredPrices = Object.fromEntries(
+        Object.entries(b.prices ?? {}).map(([code, value]) => [code, String(value)])
+      )
+      setPriceInputs({
+        ...enteredPrices,
+        ...(!Object.prototype.hasOwnProperty.call(enteredPrices, defaultCode)
+          ? { [defaultCode]: String(b.price ?? 0) }
+          : {}),
       })
     }
   }, [bookData])
@@ -453,8 +486,20 @@ export function AdminBookForm() {
       ? Array.from(new Set([managedPublisherId, ...(form.publisher_ids ?? [])]))
       : (form.publisher_ids ?? [])
 
+    const prices = Object.fromEntries(
+      priceCurrencyOptions
+        .filter((currency) => priceInputs[currency.code]?.trim() !== '')
+        .map((currency) => [currency.code, Number(priceInputs[currency.code])])
+    )
+    if (!Object.prototype.hasOwnProperty.call(prices, defaultCurrencyCode)) {
+      setError(t('admin.defaultCurrencyPriceRequired', 'Enter a price in the publisher default currency.'))
+      return
+    }
+
     const payload: BookFormData = {
       ...form,
+      price: prices[defaultCurrencyCode],
+      prices,
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
       category_id: form.category_id,
       warehouse_ids: isEdit
@@ -794,20 +839,34 @@ export function AdminBookForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('admin.price')} *
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            {t('admin.bookPrices', 'Book prices by currency')} *
           </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.price || ''}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, price: parseFloat(e.target.value) || 0 }))
-            }
-            required
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {priceCurrencyOptions.map((currency) => (
+              <label key={currency.code} className="block text-sm text-slate-600">
+                {currency.name} ({currency.code}, {currency.symbol})
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={priceInputs[currency.code] ?? ''}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setPriceInputs((previous) => ({ ...previous, [currency.code]: value }))
+                    if (currency.code === defaultCurrencyCode) {
+                      setForm((previous) => ({ ...previous, price: Number(value) || 0 }))
+                    }
+                  }}
+                  required={currency.code === defaultCurrencyCode}
+                  className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+                />
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {t('admin.bookPricesHint', 'Enter at least the default currency price. Other currencies are optional.')}
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">

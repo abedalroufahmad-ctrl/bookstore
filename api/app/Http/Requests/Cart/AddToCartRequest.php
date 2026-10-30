@@ -16,6 +16,7 @@ class AddToCartRequest extends BaseFormRequest
         return [
             'book_id' => ['required', 'string'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:999'],
+            'currency_code' => ['sometimes', 'string', 'regex:/^[A-Z]{3}$/'],
         ];
     }
 }

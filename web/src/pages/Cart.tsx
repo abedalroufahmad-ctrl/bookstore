@@ -1,43 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { cart } from '../lib/api'
+import { cart, type CartItemDetail } from '../lib/api'
 import { useAuth } from '../contexts/authContextCore'
-
-interface CartItem {
-  book_id: string
-  quantity: number
-  price: number
-  book?: {
-    title?: string
-    warehouse?: { id?: string; name?: string }
-    discount_percent?: number
-  }
-}
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
+import { formatBookPrice } from '../lib/utils'
 
 export function CartPage() {
   const { userType } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+  const { currencyCode } = useCurrencyPreference()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cart'],
+    queryKey: ['cart', currencyCode],
     queryFn: async () => {
-      const res = await cart.get()
+      const res = await cart.get(currencyCode)
       return res.data
     },
     enabled: userType === 'customer' || userType === 'employee',
   })
 
   const removeItem = useMutation({
-    mutationFn: (bookId: string) => cart.removeItem(bookId),
+    mutationFn: (bookId: string) => cart.removeItem(bookId, currencyCode),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   })
 
   const updateQty = useMutation({
     mutationFn: ({ bookId, qty }: { bookId: string; qty: number }) =>
-      cart.updateItem(bookId, qty),
+      cart.updateItem(bookId, qty, currencyCode),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   })
 
@@ -48,8 +40,8 @@ export function CartPage() {
 
   if (isLoading) return <div className="text-center py-12">{t('cart.loading')}</div>
 
-  const items = data?.data?.items ?? []
-  const total = data?.data?.total ?? 0
+  const items: CartItemDetail[] = data?.data?.items ?? []
+  const total = data?.data?.total
 
   if (items.length === 0) {
     return (
@@ -60,14 +52,16 @@ export function CartPage() {
     )
   }
 
-  const groupedItems = items.reduce((acc: Record<string, { name: string; items: CartItem[]; subtotal: number }>, item: CartItem) => {
+  const groupedItems = items.reduce((acc: Record<string, { name: string; items: CartItemDetail[]; subtotal: number }>, item) => {
     const warehouseId = item.book?.warehouse?.id ?? 'unknown'
     const warehouseName = item.book?.warehouse?.name ?? t('cart.unknownWarehouse', 'Unknown Warehouse')
     if (!acc[warehouseId]) {
       acc[warehouseId] = { name: warehouseName, items: [], subtotal: 0 }
     }
     acc[warehouseId].items.push(item)
-    acc[warehouseId].subtotal += (item.price ?? 0) * (item.quantity ?? 0)
+    if (item.price != null) {
+      acc[warehouseId].subtotal += item.price * (item.quantity ?? 0)
+    }
     return acc
   }, {})
 
@@ -87,12 +81,14 @@ export function CartPage() {
                 <span>🏭</span> {group.name}
               </h2>
               <span className="text-sm font-bold text-[var(--color-primary)]">
-                ${group.subtotal.toFixed(2)}
+                {group.items.some((item) => !item.currency_available)
+                  ? t('cart.currencyUnavailable', 'Unavailable in {{currency}}', { currency: currencyCode })
+                  : formatBookPrice(group.subtotal, currencyCode, currencyCode)}
               </span>
             </div>
             
             <div className="p-4 space-y-4">
-              {group.items.map((item: CartItem) => (
+              {group.items.map((item) => (
                 <div
                   key={item.book_id}
                   className="flex items-center justify-between pb-4 border-b border-slate-100 last:border-0 last:pb-0"
@@ -100,7 +96,15 @@ export function CartPage() {
                   <div>
                     <p className="font-medium">{item.book?.title ?? t('common.book')}</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-slate-500">${item.price?.toFixed(2)} × {item.quantity}</p>
+                      {!item.currency_available ? (
+                        <p className="text-sm text-red-600">
+                          {t('cart.currencyUnavailable', 'Unavailable in {{currency}}', { currency: currencyCode })}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-500">
+                          {formatBookPrice(item.price ?? 0, currencyCode, currencyCode)} × {item.quantity}
+                        </p>
+                      )}
                       {item.book?.discount_percent && item.book.discount_percent > 0 ? (
                         <span className="text-[10px] bg-[var(--color-primary-light)] text-[var(--color-primary)] px-1 rounded font-bold">
                           {t('discount.special', { percent: item.book.discount_percent })}
@@ -111,7 +115,7 @@ export function CartPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity - 1 })}
-                      disabled={item.quantity <= 1}
+                      disabled={item.quantity <= 1 || !item.currency_available}
                       className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center"
                     >
                       −
@@ -119,7 +123,8 @@ export function CartPage() {
                     <span className="w-6 text-center">{item.quantity}</span>
                     <button
                       onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity + 1 })}
-                      className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center"
+                      disabled={!item.currency_available}
+                      className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center"
                     >
                       +
                     </button>
@@ -139,7 +144,9 @@ export function CartPage() {
       <div className="mt-8 flex justify-between items-center bg-slate-50 p-6 rounded-xl border border-slate-200">
         <div>
           <p className="text-sm text-slate-500 mb-1">{t('cart.grandTotal', 'Total across all warehouses')}</p>
-          <p className="text-2xl font-bold text-[var(--color-text)]">${total.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-[var(--color-text)]">
+            {total == null ? '—' : formatBookPrice(total, currencyCode, currencyCode)}
+          </p>
         </div>
         <Link
           to="/checkout"

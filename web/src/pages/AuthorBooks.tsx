@@ -224,6 +224,9 @@ export function AuthorBooks() {
                             id={book._id}
                             title={book.title}
                             price={book.price}
+                            prices={book.prices}
+                            defaultCurrencyCode={book.publisher?.public_settings?.default_currency_code}
+                            currencyOptions={book.publisher?.public_settings?.currencies}
                             currencySymbol={book.publisher?.public_settings?.currency_symbol}
                             coverImage={book.cover_image}
                             coverImageThumb={book.cover_image_thumb}

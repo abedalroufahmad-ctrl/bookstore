@@ -4,22 +4,24 @@ import { cart } from '../lib/api'
 import { useAuth } from '../contexts/authContextCore'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useCurrencyPreference } from './useCurrencyPreference'
 
 export function useAddToCart() {
   const { userType } = useAuth()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { currencyCode } = useCurrencyPreference()
 
   const addToCartMutation = useMutation({
-    mutationFn: (bookId: string) => cart.addItem(bookId, 1),
+    mutationFn: (bookId: string) => cart.addItem(bookId, 1, currencyCode),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   })
 
   const { data: cartData } = useQuery({
-    queryKey: ['cart'],
+    queryKey: ['cart', currencyCode],
     queryFn: async () => {
-      const res = await cart.get()
+      const res = await cart.get(currencyCode)
       return res.data
     },
     enabled: userType === 'customer',

@@ -7,6 +7,7 @@ use App\Http\Requests\Order\PayPalQuotedOrdersRequest;
 use App\Models\Order;
 use App\Services\PayPalService;
 use App\Services\PublisherPayoutService;
+use App\Support\CurrencyAmount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,12 @@ class PayPalController extends BaseApiController
                 }
                 $orders[] = $order;
             }
+            $currencyCode = strtoupper((string) ($orders[0]->currency_code ?? config('paypal.currency', 'USD')));
+            foreach ($orders as $order) {
+                if (strtoupper((string) ($order->currency_code ?? config('paypal.currency', 'USD'))) !== $currencyCode) {
+                    return $this->errorResponse('PayPal orders must use the same currency.', 422);
+                }
+            }
 
             $customId = implode(',', $orderIds);
             if (strlen($customId) > 127) {
@@ -60,7 +67,7 @@ class PayPalController extends BaseApiController
             foreach ($orders as $order) {
                 $payee = $this->publisherPayoutService->paypalPayeeForOrder($order);
                 $units[] = [
-                    'amount' => number_format((float) $order->total, 2, '.', ''),
+                    'amount' => CurrencyAmount::decimalString((float) $order->total, $currencyCode),
                     'custom_id' => (string) $order->getKey(),
                     'reference_id' => (string) $order->getKey(),
                     'payee_email' => $payee['email'],
@@ -71,7 +78,7 @@ class PayPalController extends BaseApiController
             try {
                 $created = $this->payPalService->createCheckoutOrder(
                     $units,
-                    (string) config('paypal.currency'),
+                    $currencyCode,
                     $returnUrl,
                     $cancelUrl,
                     true
@@ -82,7 +89,7 @@ class PayPalController extends BaseApiController
                 ]);
                 $created = $this->payPalService->createCheckoutOrder(
                     $units,
-                    (string) config('paypal.currency'),
+                    $currencyCode,
                     $returnUrl,
                     $cancelUrl,
                     false
@@ -165,7 +172,7 @@ class PayPalController extends BaseApiController
                 return $this->redirectToOrder($orderId, 'not_completed');
             }
 
-            [$customId, $captureId, $capturedAmount] = $this->extractCustomCaptureAndAmount($details);
+            [$customId, $captureId, $capturedAmount, $capturedCurrency] = $this->extractCustomCaptureAndAmount($details);
             if ($customId === '') {
                 Log::warning('PayPal completed order missing custom_id');
 
@@ -174,6 +181,7 @@ class PayPalController extends BaseApiController
 
             $ids = array_values(array_filter(array_map('trim', explode(',', $customId))));
             $expected = 0.0;
+            $expectedCurrency = null;
             $ordersById = $this->loadOrdersById($ids);
             foreach ($ids as $orderId) {
                 $order = $ordersById[$orderId] ?? null;
@@ -182,10 +190,23 @@ class PayPalController extends BaseApiController
 
                     return $this->redirectToOrder($orderId, 'order_mismatch');
                 }
+                $orderCurrency = strtoupper((string) ($order->currency_code ?? config('paypal.currency', 'USD')));
+                if ($expectedCurrency !== null && $expectedCurrency !== $orderCurrency) {
+                    Log::warning('PayPal payment contains orders with different currencies', ['order_ids' => $ids]);
+
+                    return $this->redirectToOrder($orderId, 'currency_mismatch');
+                }
+                $expectedCurrency = $orderCurrency;
                 $expected += (float) $order->total;
             }
-            $expected = round($expected, 2);
-            if ($capturedAmount === null || abs($capturedAmount - $expected) > 0.01) {
+            $expectedCurrency ??= strtoupper((string) config('paypal.currency', 'USD'));
+            $expected = CurrencyAmount::round($expected, $expectedCurrency);
+            $tolerance = 1 / (10 ** CurrencyAmount::precision($expectedCurrency));
+            if (
+                $capturedAmount === null
+                || $capturedCurrency !== $expectedCurrency
+                || abs($capturedAmount - $expected) >= $tolerance
+            ) {
                 Log::warning('PayPal capture amount mismatch', [
                     'expected' => $expected,
                     'captured' => $capturedAmount,
@@ -213,19 +234,21 @@ class PayPalController extends BaseApiController
 
     /**
      * @param  array<string, mixed>  $orderPayload
-     * @return array{0: string, 1: string|null, 2: float|null}
+     * @return array{0: string, 1: string|null, 2: float|null, 3: string|null}
      */
     private function extractCustomCaptureAndAmount(array $orderPayload): array
     {
         $units = $orderPayload['purchase_units'] ?? [];
         if (! is_array($units) || $units === []) {
-            return ['', null, null];
+            return ['', null, null, null];
         }
 
         $ids = [];
         $captureId = null;
         $capturedAmount = 0.0;
         $hasAmount = false;
+        $capturedCurrency = null;
+        $hasMixedCurrencies = false;
         foreach ($units as $pu) {
             if (! is_array($pu)) {
                 continue;
@@ -255,6 +278,14 @@ class PayPalController extends BaseApiController
                     $captureId = $capture['id'];
                 }
                 $amountValue = $capture['amount']['value'] ?? null;
+                $currency = $capture['amount']['currency_code'] ?? null;
+                if (is_string($currency) && $currency !== '') {
+                    $currency = strtoupper($currency);
+                    if ($capturedCurrency !== null && $capturedCurrency !== $currency) {
+                        $hasMixedCurrencies = true;
+                    }
+                    $capturedCurrency = $currency;
+                }
                 if (is_numeric($amountValue)) {
                     $capturedAmount += (float) $amountValue;
                     $hasAmount = true;
@@ -264,7 +295,14 @@ class PayPalController extends BaseApiController
 
         $ids = array_values(array_unique($ids));
 
-        return [implode(',', $ids), $captureId, $hasAmount ? round($capturedAmount, 2) : null];
+        return [
+            implode(',', $ids),
+            $captureId,
+            $hasAmount && $capturedCurrency !== null
+                ? CurrencyAmount::round($capturedAmount, $capturedCurrency)
+                : null,
+            $hasMixedCurrencies ? null : $capturedCurrency,
+        ];
     }
 
     /**

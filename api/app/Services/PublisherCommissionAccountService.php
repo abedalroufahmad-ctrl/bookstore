@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Publisher;
 use App\Models\PublisherCommissionEntry;
 use App\Models\Warehouse;
+use App\Support\CurrencyAmount;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -30,7 +31,8 @@ class PublisherCommissionAccountService
             return $existing;
         }
 
-        $amount = round((float) ($order->platform_commission_amount ?? 0), 2);
+        $currencyCode = strtoupper((string) ($order->currency_code ?? 'USD'));
+        $amount = CurrencyAmount::round((float) ($order->platform_commission_amount ?? 0), $currencyCode);
         if ($amount <= 0) {
             return null;
         }
@@ -46,6 +48,7 @@ class PublisherCommissionAccountService
                 'order_id' => $orderId,
                 'type' => PublisherCommissionEntry::TYPE_SALE_ACCRUAL,
                 'amount' => $amount,
+                'currency_code' => $currencyCode,
                 'note' => null,
                 'reference' => null,
                 'created_by' => null,
@@ -62,7 +65,7 @@ class PublisherCommissionAccountService
             throw $e;
         }
 
-        $this->adjustPublisherBalances($publisherId, owedDelta: $amount, accruedDelta: $amount, paidDelta: 0);
+        $this->adjustPublisherBalances($publisherId, $currencyCode, owedDelta: $amount, accruedDelta: $amount, paidDelta: 0);
 
         return $entry;
     }
@@ -77,9 +80,11 @@ class PublisherCommissionAccountService
         float $amount,
         ?string $employeeId = null,
         ?string $note = null,
-        ?string $reference = null
+        ?string $reference = null,
+        string $currencyCode = 'USD'
     ): PublisherCommissionEntry {
-        $amount = round($amount, 2);
+        $currencyCode = strtoupper($currencyCode);
+        $amount = CurrencyAmount::round($amount, $currencyCode);
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Settlement amount must be greater than zero.');
         }
@@ -89,7 +94,8 @@ class PublisherCommissionAccountService
             throw new \InvalidArgumentException('Publisher not found.');
         }
 
-        $owed = round((float) ($publisher->commission_owed ?? 0), 2);
+        $balances = $this->publisherBalances($publisher);
+        $owed = CurrencyAmount::round((float) ($balances[$currencyCode]['commission_owed'] ?? 0), $currencyCode);
         if ($amount > $owed) {
             throw new \InvalidArgumentException(
                 sprintf('Settlement amount (%.2f) exceeds commission owed (%.2f).', $amount, $owed)
@@ -101,12 +107,13 @@ class PublisherCommissionAccountService
             'order_id' => null,
             'type' => PublisherCommissionEntry::TYPE_SETTLEMENT,
             'amount' => $amount,
+            'currency_code' => $currencyCode,
             'note' => $this->nullableTrim($note),
             'reference' => $this->nullableTrim($reference),
             'created_by' => $employeeId,
         ]);
 
-        $this->adjustPublisherBalances($publisherId, owedDelta: -$amount, accruedDelta: 0, paidDelta: $amount);
+        $this->adjustPublisherBalances($publisherId, $currencyCode, owedDelta: -$amount, accruedDelta: 0, paidDelta: $amount);
 
         return $entry;
     }
@@ -117,7 +124,8 @@ class PublisherCommissionAccountService
      *     commission_owed: float,
      *     commission_accrued_total: float,
      *     commission_paid_total: float,
-     *     platform_commission_percent: float
+     *     platform_commission_percent: float,
+     *     currency_balances: array<string, array{commission_owed: float, commission_accrued_total: float, commission_paid_total: float}>
      * }
      */
     public function getAccountSummary(string $publisherId): array
@@ -131,10 +139,11 @@ class PublisherCommissionAccountService
 
         return [
             'publisher_id' => $publisherId,
-            'commission_owed' => round((float) ($publisher->commission_owed ?? 0), 2),
-            'commission_accrued_total' => round((float) ($publisher->commission_accrued_total ?? 0), 2),
-            'commission_paid_total' => round((float) ($publisher->commission_paid_total ?? 0), 2),
+            'commission_owed' => CurrencyAmount::round((float) ($publisher->commission_owed ?? 0), 'USD'),
+            'commission_accrued_total' => CurrencyAmount::round((float) ($publisher->commission_accrued_total ?? 0), 'USD'),
+            'commission_paid_total' => CurrencyAmount::round((float) ($publisher->commission_paid_total ?? 0), 'USD'),
             'platform_commission_percent' => round((float) ($settings['platform_commission_percent'] ?? 0), 2),
+            'currency_balances' => $this->publisherBalances($publisher),
         ];
     }
 
@@ -147,7 +156,7 @@ class PublisherCommissionAccountService
     }
 
     /**
-     * @return array{orders: LengthAwarePaginator, total_sum: float}
+     * @return array{orders: LengthAwarePaginator, total_sum: float|null, totals_by_currency: array<string, float>}
      */
     public function getOrderTotals(
         string $publisherId,
@@ -168,16 +177,20 @@ class PublisherCommissionAccountService
             $query->whereBetween('created_at', [$start, $end]);
         }
 
-        $totalSum = (float) (clone $query)->sum('total');
-        $orders = $query->paginate(min(max($perPage, 1), 100), ['_id', 'total', 'created_at']);
+        $publisher = Publisher::query()->find($publisherId);
+        $currencyCodes = $this->queryCurrencyCodes($query, $publisher ? [$publisher] : []);
+        $totals = $this->sumByCurrency($query, $currencyCodes, 'total');
+        $orders = $query->paginate(min(max($perPage, 1), 100), ['_id', 'total', 'currency_code', 'created_at']);
         $orders->through(fn (Order $order) => [
             'total' => (float) $order->total,
+            'currency_code' => strtoupper((string) ($order->currency_code ?? 'USD')),
             'created_at' => $order->created_at,
         ]);
 
         return [
             'orders' => $orders,
-            'total_sum' => round($totalSum, 2),
+            'total_sum' => count($totals) === 1 ? reset($totals) : null,
+            'totals_by_currency' => $totals,
         ];
     }
 
@@ -185,7 +198,9 @@ class PublisherCommissionAccountService
      * @return array{
      *     publishers: list<array{id: string, name: string}>,
      *     orders: LengthAwarePaginator,
-     *     total_sum: float
+     *     total_sum: float|null,
+     *     commission_sum: float|null,
+     *     totals_by_currency: array<string, array{total: float, commission: float}>
      * }
      */
     public function getAdminOrderTotals(
@@ -228,11 +243,19 @@ class PublisherCommissionAccountService
             ->whereIn('warehouse_id', $warehouseIds)
             ->whereBetween('created_at', [$start, $end])
             ->orderByDesc('created_at');
-        $totalSum = (float) (clone $query)->sum('total');
-        $commissionSum = (float) (clone $query)->sum('platform_commission_amount');
+        $currencyCodes = $this->queryCurrencyCodes($query, $publishers->all());
+        $totalsByCurrency = [];
+        foreach ($currencyCodes as $currencyCode) {
+            $currencyQuery = $this->currencyQuery(clone $query, $currencyCode);
+            $totalsByCurrency[$currencyCode] = [
+                'total' => CurrencyAmount::round((float) (clone $currencyQuery)->sum('total'), $currencyCode),
+                'commission' => CurrencyAmount::round((float) (clone $currencyQuery)->sum('platform_commission_amount'), $currencyCode),
+            ];
+        }
         $orders = $query->paginate(min(max($perPage, 1), 100), [
             '_id',
             'total',
+            'currency_code',
             'warehouse_id',
             'platform_commission_amount',
         ]);
@@ -242,6 +265,7 @@ class PublisherCommissionAccountService
             return [
                 'total' => (float) $order->total,
                 'commission' => (float) ($order->platform_commission_amount ?? 0),
+                'currency_code' => strtoupper((string) ($order->currency_code ?? 'USD')),
                 'publisher_name' => $publisherNames[$ownerId] ?? '',
             ];
         });
@@ -249,8 +273,9 @@ class PublisherCommissionAccountService
         return [
             'publishers' => $publisherOptions,
             'orders' => $orders,
-            'total_sum' => round($totalSum, 2),
-            'commission_sum' => round($commissionSum, 2),
+            'total_sum' => count($totalsByCurrency) === 1 ? array_values($totalsByCurrency)[0]['total'] : null,
+            'commission_sum' => count($totalsByCurrency) === 1 ? array_values($totalsByCurrency)[0]['commission'] : null,
+            'totals_by_currency' => $totalsByCurrency,
         ];
     }
 
@@ -269,6 +294,7 @@ class PublisherCommissionAccountService
 
     private function adjustPublisherBalances(
         string $publisherId,
+        string $currencyCode,
         float $owedDelta,
         float $accruedDelta,
         float $paidDelta
@@ -278,16 +304,90 @@ class PublisherCommissionAccountService
             return;
         }
 
-        $publisher->commission_owed = round(max(0, (float) ($publisher->commission_owed ?? 0) + $owedDelta), 2);
-        $publisher->commission_accrued_total = round(
-            max(0, (float) ($publisher->commission_accrued_total ?? 0) + $accruedDelta),
-            2
-        );
-        $publisher->commission_paid_total = round(
-            max(0, (float) ($publisher->commission_paid_total ?? 0) + $paidDelta),
-            2
-        );
+        $balances = $this->publisherBalances($publisher);
+        $balance = $balances[$currencyCode] ?? [
+            'commission_owed' => 0.0,
+            'commission_accrued_total' => 0.0,
+            'commission_paid_total' => 0.0,
+        ];
+        $balance['commission_owed'] = CurrencyAmount::round(max(0, $balance['commission_owed'] + $owedDelta), $currencyCode);
+        $balance['commission_accrued_total'] = CurrencyAmount::round(max(0, $balance['commission_accrued_total'] + $accruedDelta), $currencyCode);
+        $balance['commission_paid_total'] = CurrencyAmount::round(max(0, $balance['commission_paid_total'] + $paidDelta), $currencyCode);
+        $balances[$currencyCode] = $balance;
+        $publisher->commission_balances = $balances;
+        $publisher->commission_owed = $balances['USD']['commission_owed'] ?? 0;
+        $publisher->commission_accrued_total = $balances['USD']['commission_accrued_total'] ?? 0;
+        $publisher->commission_paid_total = $balances['USD']['commission_paid_total'] ?? 0;
         $publisher->save();
+    }
+
+    /**
+     * @return array<string, array{commission_owed: float, commission_accrued_total: float, commission_paid_total: float}>
+     */
+    private function publisherBalances(Publisher $publisher): array
+    {
+        $balances = is_array($publisher->commission_balances) ? $publisher->commission_balances : [];
+        if ($balances === [] && (
+            (float) ($publisher->commission_owed ?? 0) !== 0.0
+            || (float) ($publisher->commission_accrued_total ?? 0) !== 0.0
+            || (float) ($publisher->commission_paid_total ?? 0) !== 0.0
+        )) {
+            $balances['USD'] = [
+                'commission_owed' => CurrencyAmount::round((float) ($publisher->commission_owed ?? 0), 'USD'),
+                'commission_accrued_total' => CurrencyAmount::round((float) ($publisher->commission_accrued_total ?? 0), 'USD'),
+                'commission_paid_total' => CurrencyAmount::round((float) ($publisher->commission_paid_total ?? 0), 'USD'),
+            ];
+        }
+
+        foreach ($balances as $code => $balance) {
+            $balances[$code] = [
+                'commission_owed' => CurrencyAmount::round((float) ($balance['commission_owed'] ?? 0), (string) $code),
+                'commission_accrued_total' => CurrencyAmount::round((float) ($balance['commission_accrued_total'] ?? 0), (string) $code),
+                'commission_paid_total' => CurrencyAmount::round((float) ($balance['commission_paid_total'] ?? 0), (string) $code),
+            ];
+        }
+
+        return $balances;
+    }
+
+    /**
+     * @param  array<int, Publisher>  $publishers
+     * @return list<string>
+     */
+    private function queryCurrencyCodes($query, array $publishers): array
+    {
+        $codes = ['USD'];
+        foreach ($publishers as $publisher) {
+            foreach (($publisher->settings['currencies'] ?? []) as $currency) {
+                if (is_array($currency) && isset($currency['code'])) {
+                    $codes[] = strtoupper((string) $currency['code']);
+                }
+            }
+        }
+        $codes = array_merge($codes, (clone $query)->distinct('currency_code')->pluck('currency_code')->all());
+
+        return array_values(array_unique(array_filter($codes, static fn ($code) => is_string($code) && preg_match('/^[A-Z]{3}$/', $code))));
+    }
+
+    private function sumByCurrency($query, array $currencyCodes, string $field): array
+    {
+        $totals = [];
+        foreach ($currencyCodes as $currencyCode) {
+            $totals[$currencyCode] = CurrencyAmount::round(
+                (float) $this->currencyQuery(clone $query, $currencyCode)->sum($field),
+                $currencyCode
+            );
+        }
+        $totals = array_filter($totals, static fn ($amount) => $amount !== 0.0);
+
+        return $totals;
+    }
+
+    private function currencyQuery($query, string $currencyCode)
+    {
+        return $currencyCode === 'USD'
+            ? $query->where(fn ($q) => $q->where('currency_code', 'USD')->orWhereNull('currency_code'))
+            : $query->where('currency_code', $currencyCode);
     }
 
     private function nullableTrim(?string $value): ?string
