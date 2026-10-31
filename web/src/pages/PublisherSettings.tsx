@@ -2,13 +2,26 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { api, admin, type PublisherCommissionEntry } from '../lib/api'
+import { useAuth } from '../contexts/authContextCore'
+import { api, admin, type CurrencyOption, type PublisherCommissionEntry } from '../lib/api'
+import { Pagination } from '../components/Pagination'
+import { formatBookPrice } from '../lib/utils'
+
+type OrderTotalsPeriod = 'all' | 'day' | 'month' | 'year'
+
+function todayDate(): string {
+  const now = new Date()
+  const offset = now.getTimezoneOffset() * 60_000
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
 
 interface PublisherSettingsData {
   support_email?: string
   support_phone?: string
   return_policy?: string
+  currency_symbol?: string
+  currencies?: CurrencyOption[]
+  default_currency_code?: string
   default_discount?: number
   payment_methods?: string[]
   paypal_email?: string
@@ -41,6 +54,9 @@ export function PublisherSettings() {
     support_email: '',
     support_phone: '',
     return_policy: '',
+    currency_symbol: '$',
+    currencies: [{ code: 'USD', name: 'US Dollar', symbol: '$' }],
+    default_currency_code: 'USD',
     default_discount: 0,
     payment_methods: [],
     paypal_email: '',
@@ -52,10 +68,14 @@ export function PublisherSettings() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [settleAmount, setSettleAmount] = useState('')
+  const [settleCurrencyCode, setSettleCurrencyCode] = useState('USD')
   const [settleReference, setSettleReference] = useState('')
   const [settleNote, setSettleNote] = useState('')
   const [settleError, setSettleError] = useState('')
   const [settleMessage, setSettleMessage] = useState('')
+  const [ordersPeriod, setOrdersPeriod] = useState<OrderTotalsPeriod>('day')
+  const [ordersDate, setOrdersDate] = useState(todayDate)
+  const [ordersPage, setOrdersPage] = useState(1)
 
   const { data: globalSettings, isLoading: isLoadingGlobal } = useQuery({
     queryKey: ['admin-settings'],
@@ -84,6 +104,11 @@ export function PublisherSettings() {
     }
     return []
   })()
+  const collectionAccount = globalSettings?.data as {
+    commission_collection_paypal_email?: string
+    commission_collection_bank_name?: string
+    commission_collection_bank_account_number?: string
+  } | undefined
 
   const { data, isLoading } = useQuery({
     queryKey: ['publisher-settings', targetId],
@@ -103,12 +128,31 @@ export function PublisherSettings() {
     enabled: !!targetId,
   })
 
+  const { data: orderTotalsData, isLoading: isLoadingOrderTotals, error: orderTotalsError } = useQuery({
+    queryKey: ['publisher-order-totals', targetId, ordersPeriod, ordersDate, ordersPage],
+    queryFn: async () => {
+      const res = await admin.publishers.orderTotals(String(targetId), {
+        period: ordersPeriod,
+        ...(ordersPeriod !== 'all' ? { date: ordersDate } : {}),
+        page: ordersPage,
+        per_page: 25,
+      })
+      return res.data.data
+    },
+    enabled: !!targetId,
+  })
+
   useEffect(() => {
     if (data?.data) {
       setForm({
         support_email: data.data.support_email ?? '',
         support_phone: data.data.support_phone ?? '',
         return_policy: data.data.return_policy ?? '',
+        currency_symbol: data.data.currency_symbol ?? '$',
+        currencies: Array.isArray(data.data.currencies) && data.data.currencies.length > 0
+          ? data.data.currencies
+          : [{ code: 'USD', name: 'US Dollar', symbol: data.data.currency_symbol ?? '$' }],
+        default_currency_code: data.data.default_currency_code ?? 'USD',
         default_discount: Number(data.data.default_discount) || 0,
         payment_methods: Array.isArray(data.data.payment_methods) ? data.data.payment_methods : [],
         paypal_email: data.data.paypal_email ?? '',
@@ -127,6 +171,8 @@ export function PublisherSettings() {
       setMessage(t('admin.settingsSaved', 'Settings saved successfully!'))
       setError('')
       queryClient.invalidateQueries({ queryKey: ['publisher-settings', targetId] })
+      queryClient.invalidateQueries({ queryKey: ['public-currency-options'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-publishers'] })
       setTimeout(() => setMessage(''), 3000)
     },
     onError: (err: unknown) => {
@@ -137,7 +183,7 @@ export function PublisherSettings() {
   })
 
   const settleMutation = useMutation({
-    mutationFn: (payload: { amount: number; note?: string; reference?: string }) =>
+    mutationFn: (payload: { amount: number; currency_code: string; note?: string; reference?: string }) =>
       admin.publishers.recordCommissionSettlement(String(targetId), payload),
     onSuccess: () => {
       setSettleMessage(t('admin.commissionTransferRecorded', 'Transfer recorded. Thank you.'))
@@ -173,6 +219,9 @@ export function PublisherSettings() {
     }
     settleMutation.mutate({
       amount,
+      currency_code: Object.keys(commissionData?.account?.currency_balances ?? {}).includes(settleCurrencyCode)
+        ? settleCurrencyCode
+        : Object.keys(commissionData?.account?.currency_balances ?? {})[0] ?? form.default_currency_code ?? 'USD',
       note: settleNote.trim() || undefined,
       reference: settleReference.trim() || undefined,
     })
@@ -191,9 +240,29 @@ export function PublisherSettings() {
   }
 
   const account = commissionData?.account
+  const currencyBalances = Object.entries(account?.currency_balances ?? {})
+  const displayedBalances = currencyBalances.length > 0
+    ? currencyBalances
+    : [[form.default_currency_code ?? 'USD', {
+        commission_owed: Number(account?.commission_owed ?? 0),
+        commission_accrued_total: Number(account?.commission_accrued_total ?? 0),
+        commission_paid_total: Number(account?.commission_paid_total ?? 0),
+      }] as [string, { commission_owed: number; commission_accrued_total: number; commission_paid_total: number }]]
+  const selectedSettlementCurrency = displayedBalances.some(([code]) => code === settleCurrencyCode)
+    ? settleCurrencyCode
+    : displayedBalances[0]?.[0] ?? 'USD'
+  const selectedCurrencyBalance = displayedBalances.find(([code]) => code === selectedSettlementCurrency)?.[1]
   const ledgerItems: PublisherCommissionEntry[] = Array.isArray(commissionData?.ledger?.data)
     ? commissionData.ledger.data
     : []
+  const orderTotals = orderTotalsData?.orders
+  const orderTotalItems = orderTotals?.data ?? []
+  const dateInputType = ordersPeriod === 'day' ? 'date' : ordersPeriod === 'month' ? 'month' : 'number'
+  const dateInputValue = ordersPeriod === 'day'
+    ? ordersDate
+    : ordersPeriod === 'month'
+      ? ordersDate.slice(0, 7)
+      : ordersDate.slice(0, 4)
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -219,6 +288,31 @@ export function PublisherSettings() {
       )}
 
       <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        {isPublisherManager && (
+          <div className="m-6 rounded-lg border border-navy-200 bg-navy-50 p-4 space-y-2">
+            <h2 className="font-semibold text-navy-900">
+              {t('admin.settings.commissionCollectionAccount', 'Site commission collection account')}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {t('admin.settings.commissionCollectionAccountHint', 'Use these account details to transfer commissions owed to the site.')}
+            </p>
+            {collectionAccount?.commission_collection_paypal_email && (
+              <p className="text-sm text-slate-700">
+                {t('admin.paypalEmail', 'PayPal email')}: {collectionAccount.commission_collection_paypal_email}
+              </p>
+            )}
+            {collectionAccount?.commission_collection_bank_name && (
+              <p className="text-sm text-slate-700">
+                {t('admin.bankName', 'Bank name')}: {collectionAccount.commission_collection_bank_name}
+              </p>
+            )}
+            {collectionAccount?.commission_collection_bank_account_number && (
+              <p className="text-sm text-slate-700">
+                {t('admin.bankAccountNumber', 'Bank account number')}: {collectionAccount.commission_collection_bank_account_number}
+              </p>
+            )}
+          </div>
+        )}
         <div className="px-6 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-navy-900">
             {t('admin.commissionAccount', 'Site commission account')}
@@ -236,30 +330,34 @@ export function PublisherSettings() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-lg bg-amber-50 border border-amber-100 p-4">
+                {displayedBalances.map(([code, balance]) => (
+                  <div key={code} className="contents">
+                    <div className="rounded-lg bg-amber-50 border border-amber-100 p-4">
                   <p className="text-xs uppercase tracking-wide text-amber-800/80">
-                    {t('admin.commissionOwed', 'Owed to site')}
+                    {t('admin.commissionOwed', 'Owed to site')} · {code}
                   </p>
                   <p className="text-2xl font-semibold text-amber-900 mt-1">
-                    ${Number(account?.commission_owed ?? 0).toFixed(2)}
+                    {formatBookPrice(Number(balance.commission_owed), code, code)}
                   </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
-                    {t('admin.commissionAccrued', 'Total accrued')}
+                    {t('admin.commissionAccrued', 'Total accrued')} · {code}
                   </p>
                   <p className="text-2xl font-semibold text-slate-800 mt-1">
-                    ${Number(account?.commission_accrued_total ?? 0).toFixed(2)}
+                    {formatBookPrice(Number(balance.commission_accrued_total), code, code)}
                   </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
-                    {t('admin.commissionPaid', 'Total transferred')}
+                    {t('admin.commissionPaid', 'Total transferred')} · {code}
                   </p>
                   <p className="text-2xl font-semibold text-slate-800 mt-1">
-                    ${Number(account?.commission_paid_total ?? 0).toFixed(2)}
+                    {formatBookPrice(Number(balance.commission_paid_total), code, code)}
                   </p>
                 </div>
+                  </div>
+                ))}
               </div>
 
               <form onSubmit={handleSettle} className="space-y-4 border border-slate-200 rounded-lg p-4 bg-slate-50">
@@ -277,6 +375,18 @@ export function PublisherSettings() {
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      {t('common.currency', 'Currency')}
+                    </label>
+                    <select
+                      value={selectedSettlementCurrency}
+                      onChange={(event) => setSettleCurrencyCode(event.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg"
+                    >
+                      {displayedBalances.map(([code]) => <option key={code} value={code}>{code}</option>)}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       {t('admin.transferAmount', 'Amount')}
@@ -318,7 +428,7 @@ export function PublisherSettings() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={settleMutation.isPending || Number(account?.commission_owed ?? 0) <= 0}
+                    disabled={settleMutation.isPending || Number(selectedCurrencyBalance?.commission_owed ?? 0) <= 0}
                     className="px-5 py-2.5 bg-navy-600 text-white font-medium rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50"
                   >
                     {settleMutation.isPending
@@ -361,7 +471,7 @@ export function PublisherSettings() {
                                 : t('admin.commissionTypeSale', 'Sale commission')}
                             </td>
                             <td className="px-3 py-2 text-right font-medium">
-                              ${Number(entry.amount).toFixed(2)}
+                              {formatBookPrice(Number(entry.amount), entry.currency_code ?? 'USD', entry.currency_code ?? 'USD')}
                             </td>
                             <td className="px-3 py-2 text-slate-500">
                               {entry.type === 'sale_accrual' && entry.order_id
@@ -375,6 +485,114 @@ export function PublisherSettings() {
                   </div>
                 )}
               </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-navy-900">
+            {t('admin.publisherOrderTotals', 'Publisher orders')}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            {t('admin.publisherOrderTotalsHint', 'Order totals for this publisher, filtered by date.')}
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="block text-sm font-medium text-slate-700">
+              {t('admin.period', 'Period')}
+              <select
+                value={ordersPeriod}
+                onChange={(event) => {
+                  setOrdersPeriod(event.target.value as OrderTotalsPeriod)
+                  setOrdersPage(1)
+                }}
+                className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+              >
+                <option value="all">{t('admin.allDates', 'All dates')}</option>
+                <option value="day">{t('admin.day', 'Day')}</option>
+                <option value="month">{t('admin.month', 'Month')}</option>
+                <option value="year">{t('admin.year', 'Year')}</option>
+              </select>
+            </label>
+            {ordersPeriod !== 'all' && (
+              <label className="block text-sm font-medium text-slate-700">
+                {t('admin.date', 'Date')}
+                <input
+                  type={dateInputType}
+                  min={ordersPeriod === 'year' ? 2000 : undefined}
+                  max={ordersPeriod === 'year' ? 2100 : undefined}
+                  value={dateInputValue}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    if (!value) return
+                    setOrdersDate(ordersPeriod === 'month' ? `${value}-01` : ordersPeriod === 'year' ? `${value}-01-01` : value)
+                    setOrdersPage(1)
+                  }}
+                  className="mt-1 block px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </label>
+            )}
+          </div>
+
+          {orderTotalsError && (
+            <p role="alert" className="text-sm text-red-700">
+              {t('admin.publisherOrderTotalsFailed', 'Could not load publisher order totals. Please try again.')}
+            </p>
+          )}
+          {isLoadingOrderTotals ? (
+            <p className="text-sm text-slate-500">{t('common.loading')}</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">{t('admin.date', 'Date')}</th>
+                      <th className="text-right px-3 py-2 font-medium">{t('admin.total', 'Total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderTotalItems.length > 0 ? orderTotalItems.map((order, index) => (
+                      <tr key={`${order.created_at ?? index}-${index}`} className="border-t border-slate-100">
+                        <td className="px-3 py-2 text-slate-600">
+                          {order.created_at ? new Date(order.created_at).toLocaleString() : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium">{formatBookPrice(Number(order.total), order.currency_code, order.currency_code)}</td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={2} className="px-3 py-4 text-center text-slate-500">
+                          {t('admin.publisherOrderTotalsEmpty', 'No orders found for this period.')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot className="border-t border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-800">
+                        {t('admin.periodTotal', 'Period total')}
+                      </th>
+                      <td className="px-3 py-3 text-right font-semibold text-slate-900">
+                        {Object.entries(orderTotalsData?.totals_by_currency ?? {})
+                          .map(([code, amount]) => formatBookPrice(Number(amount), code, code))
+                          .join(' · ') || '—'}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              {orderTotals && orderTotals.last_page > 1 && (
+                <Pagination
+                  currentPage={orderTotals.current_page}
+                  lastPage={orderTotals.last_page}
+                  total={orderTotals.total}
+                  perPage={orderTotals.per_page}
+                  onPageChange={setOrdersPage}
+                />
+              )}
             </>
           )}
         </div>
@@ -419,11 +637,127 @@ export function PublisherSettings() {
               max="100"
               value={form.default_discount}
               onChange={(e) => setForm({ ...form, default_discount: Number(e.target.value) })}
+              disabled={!isPublisherManager}
+              className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
+            />
+            <p className="text-sm text-slate-500 mt-1">
+              {isPublisherManager
+                ? t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')
+                : t('admin.defaultDiscountReadOnly', 'Only the publishing house manager can change this discount.')}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('admin.currencySymbol', 'Book price currency symbol')}
+            </label>
+            <input
+              type="text"
+              maxLength={8}
+              value={form.currency_symbol}
+              onChange={(e) => setForm({ ...form, currency_symbol: e.target.value })}
               className="w-full max-w-[200px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
             />
             <p className="text-sm text-slate-500 mt-1">
-              {t('admin.defaultDiscountHint', 'This discount will be applied to all your books unless overridden.')}
+              {t('admin.currencySymbolHint', 'For example $, €, or JD. This changes the displayed symbol only; prices are not converted.')}
             </p>
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-slate-200 p-4">
+            <div>
+              <h2 className="font-semibold text-slate-800">{t('admin.currencies', 'Supported currencies')}</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {t('admin.currenciesHint', 'Set the currencies customers may choose and enter a separate price for each book. No exchange-rate conversion is used.')}
+              </p>
+            </div>
+            <label className="block max-w-sm text-sm font-medium text-slate-700">
+              {t('admin.defaultCurrency', 'Default currency for existing book prices')}
+              <select
+                value={form.default_currency_code ?? 'USD'}
+                onChange={(event) => setForm({ ...form, default_currency_code: event.target.value })}
+                disabled={!isPublisherManager}
+                className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+              >
+                {(form.currencies ?? []).map((currency) => (
+                  <option key={currency.code} value={currency.code}>{currency.code} — {currency.name}</option>
+                ))}
+              </select>
+            </label>
+            <div className="space-y-3">
+              {(form.currencies ?? []).map((currency, index) => (
+                <div key={`${currency.code}-${index}`} className="space-y-2">
+                  <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+                    <input
+                      aria-label={t('admin.currencyCode', 'Currency code')}
+                      value={currency.code}
+                      onChange={(event) => setForm((previous) => ({
+                        ...previous,
+                        currencies: (previous.currencies ?? []).map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, code: event.target.value.toUpperCase() } : item),
+                      }))}
+                      disabled={!isPublisherManager}
+                      maxLength={3}
+                      placeholder="USD"
+                      className="min-w-0 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+                    />
+                    <input
+                      aria-label={t('admin.currencyName', 'Currency name')}
+                      value={currency.name}
+                      onChange={(event) => setForm((previous) => ({
+                        ...previous,
+                        currencies: (previous.currencies ?? []).map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, name: event.target.value } : item),
+                      }))}
+                      disabled={!isPublisherManager}
+                      placeholder={t('admin.currencyName', 'Currency name')}
+                      className="min-w-0 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+                    />
+                    <input
+                      aria-label={t('admin.currencySymbol', 'Currency symbol')}
+                      value={currency.symbol}
+                      onChange={(event) => setForm((previous) => ({
+                        ...previous,
+                        currencies: (previous.currencies ?? []).map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, symbol: event.target.value } : item),
+                      }))}
+                      disabled={!isPublisherManager}
+                      placeholder="$"
+                      className="min-w-0 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-70"
+                    />
+                  </div>
+                  {isPublisherManager && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((previous) => {
+                        const currencies = (previous.currencies ?? []).filter((_, itemIndex) => itemIndex !== index)
+                        return {
+                          ...previous,
+                          currencies,
+                          default_currency_code: currencies.some((item) => item.code === previous.default_currency_code)
+                            ? previous.default_currency_code
+                            : (currencies[0]?.code ?? ''),
+                        }
+                      })}
+                      className="px-3 py-2 text-red-700 border border-red-200 rounded-lg hover:bg-red-50"
+                    >
+                      {t('common.remove', 'Remove')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {isPublisherManager && (
+              <button
+                type="button"
+                onClick={() => setForm((previous) => ({
+                  ...previous,
+                  currencies: [...(previous.currencies ?? []), { code: '', name: '', symbol: '' }],
+                }))}
+                className="px-3 py-2 text-sm font-medium text-navy-700 border border-navy-200 rounded-lg hover:bg-navy-50"
+              >
+                {t('admin.addCurrency', 'Add currency')}
+              </button>
+            )}
           </div>
 
           <div className="border-t border-slate-200 pt-6 space-y-6">
@@ -437,6 +771,11 @@ export function PublisherSettings() {
                   'Customers pay this publishing house directly when an account is set. Project management keeps the agreed percentage of book revenue.',
                 )}
               </p>
+              {!isPublisherManager && (
+                <p className="text-sm text-slate-500 mt-1">
+                  {t('admin.payoutAccountsReadOnly', 'Only the publishing house manager can edit these payout accounts.')}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -448,6 +787,7 @@ export function PublisherSettings() {
                   type="email"
                   value={form.paypal_email}
                   onChange={(e) => setForm({ ...form, paypal_email: e.target.value })}
+                  disabled={!isPublisherManager}
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
                   placeholder="publisher@paypal.com"
                 />
@@ -460,7 +800,8 @@ export function PublisherSettings() {
                   type="text"
                   value={form.paypal_merchant_id}
                   onChange={(e) => setForm({ ...form, paypal_merchant_id: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  disabled={!isPublisherManager}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
                 />
                 <p className="text-sm text-slate-500 mt-1">
                   {t('admin.paypalMerchantIdHint', 'Optional. Use if PayPal provided a merchant ID for this house.')}
@@ -477,7 +818,8 @@ export function PublisherSettings() {
                   type="text"
                   value={form.bank_name}
                   onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  disabled={!isPublisherManager}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
                 />
               </div>
               <div>
@@ -489,7 +831,8 @@ export function PublisherSettings() {
                   value={form.bank_account_number}
                   onChange={(e) => setForm({ ...form, bank_account_number: e.target.value })}
                   autoComplete="off"
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  disabled={!isPublisherManager}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 disabled:opacity-70"
                 />
               </div>
             </div>

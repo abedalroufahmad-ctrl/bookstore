@@ -3,9 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { books, cart } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
-import { useSettings, formatWeight } from '../contexts/SettingsContext'
-import { calculateDiscountedPrice, resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
+import { useAuth } from '../contexts/authContextCore'
+import { useSettings } from '../contexts/settingsContextCore'
+import { formatWeight } from '../contexts/settingsUtils'
+import { calculateDiscountedPrice, formatBookPrice, getBookPriceForCurrency, getCurrencySymbol, resolveCoverUrl, getPublisherEntries, getWarehouseId } from '../lib/utils'
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
 
 const InfoRow = ({ label, value, alwaysShow }: { label: string; value: React.ReactNode; alwaysShow?: boolean }) => {
   const show = alwaysShow || (value != null && value !== '')
@@ -22,6 +24,7 @@ export function BookDetail() {
   const navigate = useNavigate()
   const { userType } = useAuth()
   const { settings } = useSettings()
+  const { currencyCode } = useCurrencyPreference()
   const [showOriginal, setShowOriginal] = useState(false)
   const { t, i18n } = useTranslation()
 
@@ -52,7 +55,7 @@ export function BookDetail() {
       return
     }
     try {
-      await cart.addItem(id!, 1)
+      await cart.addItem(id!, 1, currencyCode)
       navigate('/cart')
     } catch {
       alert(t('common.error'))
@@ -63,6 +66,14 @@ export function BookDetail() {
   if (error || !data?.data) return <div className="text-center py-12" style={{ color: 'var(--color-discount)' }}>{t('common.notFound')}</div>
 
   const book = data.data
+  const defaultCurrencyCode = book.publisher?.public_settings?.default_currency_code ?? 'USD'
+  const selectedPrice = getBookPriceForCurrency(book.price, book.prices, defaultCurrencyCode, currencyCode)
+  const currencySymbol = getCurrencySymbol(
+    currencyCode,
+    book.publisher?.public_settings?.currencies,
+    book.publisher?.public_settings?.currency_symbol,
+    defaultCurrencyCode,
+  )
   const authors = Array.isArray(book.authors) ? book.authors : []
   const category = book.category
   const warehouse = book.warehouse
@@ -77,11 +88,9 @@ export function BookDetail() {
   const originalUrl = book.cover_image
   const hasOriginal = originalUrl && originalUrl !== thumbUrl
 
-  const { finalPrice, discountUsed } = calculateDiscountedPrice(
-    book.price,
-    book.discount_percent,
-    settings.global_discount
-  )
+  const { finalPrice, discountUsed } = selectedPrice === null
+    ? { finalPrice: 0, discountUsed: 0 }
+    : calculateDiscountedPrice(selectedPrice, book.discount_percent, settings.global_discount)
 
   return (
     <div className="max-w-4xl">
@@ -145,11 +154,13 @@ export function BookDetail() {
           <div className="flex items-baseline gap-3 mb-6">
             {discountUsed > 0 && (
               <span className="text-xl line-through" style={{ color: 'var(--color-text-muted)' }}>
-                ${book.price.toFixed(2)}
+                {formatBookPrice(selectedPrice ?? 0, currencySymbol, currencyCode)}
               </span>
             )}
             <span className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
-              ${finalPrice.toFixed(2)}
+              {selectedPrice === null
+                ? t('bookDetail.currencyUnavailable', 'Not offered in this currency')
+                : formatBookPrice(finalPrice, currencySymbol, currencyCode)}
             </span>
             {discountUsed > 0 && (
               <span
@@ -275,8 +286,9 @@ export function BookDetail() {
             book.stock_quantity > 0 && (
             <button
               onClick={addToCart}
+              disabled={selectedPrice === null}
               className="px-6 py-2.5 rounded-lg font-medium text-white transition-colors hover:opacity-90"
-              style={{ background: 'var(--color-primary)' }}
+              style={{ background: 'var(--color-primary)', opacity: selectedPrice === null ? 0.5 : 1 }}
             >
               {t('bookDetail.addToCart')}
             </button>

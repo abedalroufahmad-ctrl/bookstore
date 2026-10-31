@@ -18,6 +18,7 @@ class _AdminPublisherSettingsScreenState
   final _supportEmailCtrl = TextEditingController();
   final _supportPhoneCtrl = TextEditingController();
   final _returnPolicyCtrl = TextEditingController();
+  final _currencySymbolCtrl = TextEditingController();
   final _discountCtrl = TextEditingController();
   final _paypalEmailCtrl = TextEditingController();
   final _paypalMerchantCtrl = TextEditingController();
@@ -58,6 +59,7 @@ class _AdminPublisherSettingsScreenState
     _supportEmailCtrl.dispose();
     _supportPhoneCtrl.dispose();
     _returnPolicyCtrl.dispose();
+    _currencySymbolCtrl.dispose();
     _discountCtrl.dispose();
     _paypalEmailCtrl.dispose();
     _paypalMerchantCtrl.dispose();
@@ -99,6 +101,7 @@ class _AdminPublisherSettingsScreenState
     _supportEmailCtrl.text = '${data['support_email'] ?? ''}';
     _supportPhoneCtrl.text = '${data['support_phone'] ?? ''}';
     _returnPolicyCtrl.text = '${data['return_policy'] ?? ''}';
+    _currencySymbolCtrl.text = '${data['currency_symbol'] ?? r'$'}';
     _discountCtrl.text = '${data['default_discount'] ?? 0}';
     _paypalEmailCtrl.text = '${data['paypal_email'] ?? ''}';
     _paypalMerchantCtrl.text = '${data['paypal_merchant_id'] ?? ''}';
@@ -174,6 +177,7 @@ class _AdminPublisherSettingsScreenState
       'support_email': _supportEmailCtrl.text.trim(),
       'support_phone': _supportPhoneCtrl.text.trim(),
       'return_policy': _returnPolicyCtrl.text.trim(),
+      'currency_symbol': _currencySymbolCtrl.text.trim(),
       'default_discount': discount,
       'payment_methods': _selectedPaymentMethods,
       'paypal_email': _paypalEmailCtrl.text.trim(),
@@ -385,6 +389,15 @@ class _AdminPublisherSettingsScreenState
                       decoration: InputDecoration(
                         labelText: t.adminDefaultDiscount,
                         helperText: t.adminDefaultDiscountHint,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _currencySymbolCtrl,
+                      maxLength: 8,
+                      decoration: InputDecoration(
+                        labelText: t.adminCurrencySymbol,
+                        helperText: t.adminCurrencySymbolHint,
                       ),
                     ),
                     const SizedBox(height: 16),

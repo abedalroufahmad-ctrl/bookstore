@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
 import '../utils/print_page.dart' if (dart.library.js_interop) '../utils/print_page_web.dart';
+import '../utils/price_format.dart';
 import '../utils/weight_format.dart';
 import '../widgets/decode_size.dart';
 import '../widgets/pos_section_nav.dart';
@@ -24,10 +25,13 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
   List<dynamic> _warehouses = [];
   List<Publisher> _publishers = [];
   List<Book> _books = [];
+  final ScrollController _booksScrollController = ScrollController();
   bool _loadingBooks = false;
+  bool _loadingMoreBooks = false;
+  bool _hasMoreBooks = true;
+  String? _booksLoadError;
   String _searchQuery = '';
   int _page = 1;
-  int _lastPage = 1;
   int _booksRequestSeq = 0;
 
   final List<_PosCartItem> _cart = [];
@@ -41,12 +45,16 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
   @override
   void initState() {
     super.initState();
+    _booksScrollController.addListener(_onBooksScroll);
     _loadLookups();
     _loadShippingFee();
   }
 
   @override
   void dispose() {
+    _booksScrollController
+      ..removeListener(_onBooksScroll)
+      ..dispose();
     _customerNameCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
@@ -121,7 +129,16 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
   Future<void> _loadBooks() async {
     if (_warehouseId.isEmpty) return;
     final seq = ++_booksRequestSeq;
-    setState(() => _loadingBooks = true);
+    setState(() {
+      _loadingBooks = true;
+      _loadingMoreBooks = false;
+      _hasMoreBooks = true;
+      _booksLoadError = null;
+      _books = [];
+    });
+    if (_booksScrollController.hasClients) {
+      _booksScrollController.jumpTo(0);
+    }
     final res = await ApiService.instance.adminPosBooks(
       page: _page,
       search: _searchQuery.trim().isEmpty ? null : _searchQuery.trim(),
@@ -132,8 +149,55 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     if (!mounted || seq != _booksRequestSeq) return;
     setState(() {
       _loadingBooks = false;
-      _books = res.data?.items ?? [];
-      _lastPage = res.data?.lastPage ?? 1;
+      if (res.success && res.data != null) {
+        _books = res.data!.items;
+        _page = res.data!.currentPage;
+        _hasMoreBooks = res.data!.hasMore;
+      } else {
+        _booksLoadError = res.message;
+      }
+    });
+  }
+
+  void _onBooksScroll() {
+    if (!_booksScrollController.hasClients ||
+        !_hasMoreBooks ||
+        _loadingBooks ||
+        _loadingMoreBooks) {
+      return;
+    }
+    if (_booksScrollController.position.extentAfter < 300) {
+      _loadMoreBooks();
+    }
+  }
+
+  Future<void> _loadMoreBooks() async {
+    if (_warehouseId.isEmpty || !_hasMoreBooks || _loadingBooks || _loadingMoreBooks) {
+      return;
+    }
+    final seq = ++_booksRequestSeq;
+    final nextPage = _page + 1;
+    setState(() {
+      _loadingMoreBooks = true;
+      _booksLoadError = null;
+    });
+    final res = await ApiService.instance.adminPosBooks(
+      page: nextPage,
+      search: _searchQuery.trim().isEmpty ? null : _searchQuery.trim(),
+      perPage: 12,
+      warehouseId: _warehouseId,
+      publisherId: _publisherId.isEmpty ? null : _publisherId,
+    );
+    if (!mounted || seq != _booksRequestSeq) return;
+    setState(() {
+      _loadingMoreBooks = false;
+      if (res.success && res.data != null) {
+        _books.addAll(res.data!.items);
+        _page = res.data!.currentPage;
+        _hasMoreBooks = res.data!.hasMore;
+      } else {
+        _booksLoadError = res.message;
+      }
     });
   }
 
@@ -159,6 +223,20 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     if (match.isNotEmpty) return (match.first['name'] ?? id ?? '').toString();
     return id ?? '-';
   }
+
+  String _warehouseCurrencySymbol(String? id) {
+    final warehouse = _warehouses.where((w) => w is Map && w['_id']?.toString() == id);
+    if (warehouse.isEmpty || warehouse.first is! Map) return r'$';
+    final publisher = (warehouse.first as Map)['publisher'];
+    if (publisher is! Map) return r'$';
+    final settings = publisher['public_settings'];
+    final symbol = settings is Map
+        ? settings['currency_symbol']?.toString().trim()
+        : null;
+    return symbol == null || symbol.isEmpty ? r'$' : symbol;
+  }
+
+  String get _currentCurrencySymbol => _warehouseCurrencySymbol(_warehouseId);
 
   String? _publisherNameForInvoice(Map<String, dynamic> inv) {
     final nested = inv['warehouse'];
@@ -270,7 +348,8 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  String _money(num value) => '\$${value.toDouble().toStringAsFixed(2)}';
+  String _money(num value, {String? currencySymbol}) =>
+      formatBookPrice(value, currencySymbol ?? _currentCurrencySymbol);
 
   Widget _buildInvoiceView() {
     final t = AppLocalizations.of(context);
@@ -278,6 +357,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
     final total = _asMoney(_createdInvoice!['total']);
     final created = _createdInvoice!['created_at']?.toString();
     final warehouseId = _createdInvoice!['warehouse_id']?.toString();
+    final invoiceCurrencySymbol = _warehouseCurrencySymbol(warehouseId);
     final publisherName = _publisherNameForInvoice(_createdInvoice!);
     return Scaffold(
       appBar: AppBar(
@@ -350,7 +430,10 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                         const SizedBox(width: 12),
                         SizedBox(
                           width: 72,
-                          child: Text(_money(price * qty), textAlign: TextAlign.end),
+                          child: Text(
+                            _money(price * qty, currencySymbol: invoiceCurrencySymbol),
+                            textAlign: TextAlign.end,
+                          ),
                         ),
                       ],
                     ),
@@ -366,7 +449,7 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                         : ((_createdInvoice!['items'] as List?) ?? []).fold<double>(0, (s, raw) {
                             final item = Map<String, dynamic>.from(raw as Map);
                             return s + _asMoney(item['price']) * (item['quantity'] as num? ?? 1);
-                          }))),
+                          }), currencySymbol: invoiceCurrencySymbol)),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -374,7 +457,12 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(t.shippingFeeLabel),
-                    Text(_money(_asMoney(_createdInvoice!['shipping_fee']))),
+                    Text(
+                      _money(
+                        _asMoney(_createdInvoice!['shipping_fee']),
+                        currencySymbol: invoiceCurrencySymbol,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -382,7 +470,10 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(t.ordersTotalLabel, style: theme.textTheme.titleLarge),
-                    Text(_money(total), style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary)),
+                    Text(
+                      _money(total, currencySymbol: invoiceCurrencySymbol),
+                      style: theme.textTheme.titleLarge?.copyWith(color: theme.colorScheme.primary),
+                    ),
                   ],
                 ),
                 Builder(
@@ -627,8 +718,22 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
           child: _loadingBooks
               ? const Center(child: CircularProgressIndicator())
               : _books.isEmpty
-                  ? Center(child: Text(t.adminNoItems))
+                  ? _booksLoadError != null
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_booksLoadError!.isEmpty ? t.error : _booksLoadError!),
+                              TextButton(
+                                onPressed: _loadBooks,
+                                child: Text(t.retry),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Center(child: Text(t.adminNoItems))
                   : GridView.builder(
+                      controller: _booksScrollController,
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 180,
@@ -636,8 +741,31 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
                       ),
-                      itemCount: _books.length,
+                      itemCount: _books.length + (_loadingMoreBooks || _booksLoadError != null ? 1 : 0),
                       itemBuilder: (ctx, i) {
+                        if (i == _books.length) {
+                          if (_booksLoadError != null) {
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _booksLoadError!.isEmpty ? t.error : _booksLoadError!,
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.labelSmall,
+                                  ),
+                                  TextButton(
+                                    onPressed: _loadMoreBooks,
+                                    child: Text(t.retry),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        }
                         final b = _books[i];
                         final cover = _coverUrl(b);
                         return InkWell(
@@ -695,33 +823,6 @@ class _AdminPosScreenState extends State<AdminPosScreen> {
                       },
                     ),
         ),
-        if (_lastPage > 1)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  onPressed: _page > 1
-                      ? () {
-                          setState(() => _page--);
-                          _loadBooks();
-                        }
-                      : null,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Text('$_page / $_lastPage'),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  onPressed: _page < _lastPage
-                      ? () {
-                          setState(() => _page++);
-                          _loadBooks();
-                        }
-                      : null,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-            ],
-          ),
       ],
     );
   }

@@ -113,6 +113,14 @@ class AppLocalizations {
 
   // ── Home ────────────────────────────────────────────────────────────────────
   String get heroTitle => _s('مرحباً بك في متجر الكتب', 'Welcome to Book Store');
+  String get homeHeroTitle => _s('متجرك الشامل للكتب', 'Your Comprehensive Book Store');
+  String get homeHeroBullet1 => _s('تصفح آلاف الكتب في جميع التصنيفات', 'Browse thousands of books across all categories');
+  String get homeHeroBullet2 => _s('اكتشف مؤلفين جدد والكتب الأكثر مبيعاً', 'Discover new authors and bestsellers');
+  String get homeHeroBullet3 => _s('خصومات خاصة على عناوين مختارة', 'Special discounts on selected titles');
+  String get homeHeroCta => _s('ابدأ الآن', 'Start Now');
+  String get homeBrowseBooks => _s('تصفح الكتب', 'Browse Books');
+  String get homeTopAuthors => _s('أفضل المؤلفين', 'Top Authors');
+  String get homeCategories => _s('التصنيفات', 'Categories');
   String get featuredBooks => _s('عروض مميزة', 'Featured Books');
   String get newestBooks => _s('أحدث الكتب', 'Newest Books');
   String get viewAll => _s('عرض الكل', 'View All');
@@ -284,6 +292,11 @@ class AppLocalizations {
   String get adminSupportEmail => _s('بريد الدعم', 'Support email');
   String get adminSupportPhone => _s('هاتف الدعم', 'Support phone');
   String get adminDefaultDiscount => _s('الخصم الافتراضي (%)', 'Default discount (%)');
+  String get adminCurrencySymbol => _s('رمز العملة لأسعار الكتب', 'Book price currency symbol');
+  String get adminCurrencySymbolHint => _s(
+        'مثال: \$ أو € أو JD. يغيّر الرمز المعروض فقط ولا يحوّل قيمة السعر.',
+        'Example: \$, €, or JD. Changes the displayed symbol only; prices are not converted.',
+      );
   String get adminDefaultDiscountHint => _s(
         'سيُطبَّق هذا الخصم على كل كتبك ما لم يُتجاوز بخصم خاص.',
         'Applied to all your books unless overridden.',

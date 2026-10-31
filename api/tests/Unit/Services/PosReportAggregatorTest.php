@@ -60,4 +60,17 @@ class PosReportAggregatorTest extends TestCase
         $this->assertSame('+03:00', $aggregator->resolveTimezone(null, 180)->getName());
         $this->assertSame('-05:00', $aggregator->resolveTimezone('not-a-zone', -300)->getName());
     }
+
+    public function test_report_totals_are_grouped_without_combining_currencies(): void
+    {
+        $aggregator = new PosReportAggregator;
+        $result = $aggregator->aggregate([
+            (object) ['total' => 10.25, 'currency_code' => 'USD', 'created_at' => '2026-09-02T18:59:10Z'],
+            (object) ['total' => 1200, 'currency_code' => 'JPY', 'created_at' => '2026-09-02T18:59:10Z'],
+        ], 'daily', new DateTimeZone('UTC'));
+
+        $bucket = $result['periods'][0];
+        $this->assertNull($bucket['total']);
+        $this->assertSame(['JPY' => 1200.0, 'USD' => 10.25], $bucket['totals_by_currency']);
+    }
 }

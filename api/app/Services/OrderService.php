@@ -13,6 +13,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Setting;
+use App\Support\CurrencyAmount;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -37,14 +38,21 @@ class OrderService extends BaseService implements OrderServiceInterface
         protected PublisherCommissionAccountService $commissionAccountService
     ) {}
 
-    public function createPosInvoice(array $items, string $warehouseId, ?string $employeeId = null, ?string $customerName = null): Order
+    public function createPosInvoice(
+        array $items,
+        string $warehouseId,
+        ?string $employeeId = null,
+        ?string $customerName = null,
+        string $currencyCode = 'USD'
+    ): Order
     {
         if (empty($items)) {
             throw new \InvalidArgumentException('Invoice items cannot be empty.');
         }
 
-        $doCreate = function () use ($items, $warehouseId, $employeeId, $customerName) {
-            $repricedItems = $this->cartService->repriceItems($items);
+        $currencyCode = strtoupper($currencyCode);
+        $doCreate = function () use ($items, $warehouseId, $employeeId, $customerName, $currencyCode) {
+            $repricedItems = $this->cartService->repriceItems($items, $currencyCode);
             if ($repricedItems === []) {
                 throw new \InvalidArgumentException('Some items are invalid or unavailable.');
             }
@@ -56,10 +64,10 @@ class OrderService extends BaseService implements OrderServiceInterface
             }
 
             $this->stockService->validateAndDeduct($repricedItems);
-            $booksSubtotal = $this->calculateItemsTotal($repricedItems);
-            $shippingFee = $this->invoiceShippingFee();
-            $total = round($booksSubtotal + $shippingFee, 2);
-            $payout = $this->publisherPayoutService->snapshotForWarehouse($warehouseId, $booksSubtotal);
+            $booksSubtotal = $this->calculateItemsTotal($repricedItems, $currencyCode);
+            $shippingFee = $this->invoiceShippingFee($currencyCode);
+            $total = CurrencyAmount::round($booksSubtotal + $shippingFee, $currencyCode);
+            $payout = $this->publisherPayoutService->snapshotForWarehouse($warehouseId, $booksSubtotal, $currencyCode);
 
             $order = null;
             try {
@@ -74,6 +82,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                     'shipping_fee' => $shippingFee,
                     'shipping_method' => 'pos',
                     'total' => $total,
+                    'currency_code' => $currencyCode,
                     'shipping_address' => [],
                     'payment_info' => [],
                     'payment_method' => 'cash',
@@ -84,7 +93,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                     'order_id' => $order->getKey(),
                     'user_id' => $employeeId,
                     'amount' => $total,
-                    'currency' => 'USD',
+                    'currency' => $currencyCode,
                     'method' => 'cash',
                     'status' => Payment::statusPaid(),
                     'transaction_id' => 'POS-'.$order->getKey().'-'.uniqid('', true),
@@ -116,7 +125,13 @@ class OrderService extends BaseService implements OrderServiceInterface
         return $doCreate();
     }
 
-    public function checkout(Customer $customer, array $shippingAddress, string $paymentMethod, ?array $paymentInfo = null): array
+    public function checkout(
+        Customer $customer,
+        array $shippingAddress,
+        string $paymentMethod,
+        ?array $paymentInfo = null,
+        string $currencyCode = 'USD'
+    ): array
     {
         $cart = $this->cartService->getOrCreateActiveCart($customer);
 
@@ -126,8 +141,9 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $paymentStatusPending = Payment::statusPending();
 
-        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatusPending) {
-            $repricedItems = $this->cartService->repriceItems($cart->items ?? []);
+        $currencyCode = strtoupper($currencyCode);
+        $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatusPending, $currencyCode) {
+            $repricedItems = $this->cartService->repriceItems($cart->items ?? [], $currencyCode);
             if ($repricedItems === []) {
                 throw new \InvalidArgumentException('Cart is empty.');
             }
@@ -151,10 +167,10 @@ class OrderService extends BaseService implements OrderServiceInterface
             $createdOrders = [];
             try {
                 foreach ($groupedByWarehouse as $warehouseId => $items) {
-                    $booksSubtotal = $this->calculateItemsTotal($items);
-                    $shippingFee = $this->invoiceShippingFee();
-                    $total = round($booksSubtotal + $shippingFee, 2);
-                    $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal);
+                    $booksSubtotal = $this->calculateItemsTotal($items, $currencyCode);
+                    $shippingFee = $this->invoiceShippingFee($currencyCode);
+                    $total = CurrencyAmount::round($booksSubtotal + $shippingFee, $currencyCode);
+                    $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal, $currencyCode);
 
                     $order = $this->orderRepository->create(array_merge([
                         'customer_id' => $customer->getKey(),
@@ -166,6 +182,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                         'shipping_fee' => $shippingFee,
                         'shipping_method' => null,
                         'total' => $total,
+                        'currency_code' => $currencyCode,
                         'shipping_address' => $shippingAddress,
                         'payment_info' => $paymentInfo ?? [],
                         'payment_method' => $paymentMethod,
@@ -212,13 +229,14 @@ class OrderService extends BaseService implements OrderServiceInterface
             throw new \InvalidArgumentException('Order must be awaiting warehouse pricing before submitting a quote.');
         }
 
+        $currencyCode = strtoupper((string) ($order->currency_code ?? 'USD'));
         $shippingFee = (float) ($data['shipping_fee'] ?? 0);
         if ($shippingFee < 0) {
             throw new \InvalidArgumentException('shipping_fee cannot be negative.');
         }
 
         $booksSubtotal = (float) ($order->books_subtotal ?? $this->calculateItemsTotal($order->items ?? []));
-        $total = round($booksSubtotal + $shippingFee, 2);
+        $total = CurrencyAmount::round($booksSubtotal + $shippingFee, $currencyCode);
         $payout = $this->publisherPayoutService->snapshotForOrder($order, $booksSubtotal);
 
         $update = array_merge([
@@ -227,6 +245,8 @@ class OrderService extends BaseService implements OrderServiceInterface
             'shipping_method' => isset($data['shipping_method']) ? (string) $data['shipping_method'] : ($order->shipping_method ?? null),
             'total' => $total,
             'status' => OrderStatus::AwaitingCustomerConfirmation->value,
+            'stripe_checkout_session_id' => null,
+            'stripe_checkout_session_expires_at' => null,
         ], $payout);
 
         if (! empty($data['payment_method']) && is_string($data['payment_method'])) {
@@ -256,8 +276,8 @@ class OrderService extends BaseService implements OrderServiceInterface
             throw new \InvalidArgumentException('Order is not waiting for customer confirmation.');
         }
 
-        if ((string) ($order->payment_method ?? '') === 'paypal') {
-            throw new \InvalidArgumentException('Complete PayPal payment to confirm PayPal orders.');
+        if (in_array((string) ($order->payment_method ?? ''), ['paypal', 'stripe', 'card'], true)) {
+            throw new \InvalidArgumentException('Complete online payment to confirm this order.');
         }
 
         $this->orderRepository->update($order->getKey(), [
@@ -284,6 +304,18 @@ class OrderService extends BaseService implements OrderServiceInterface
         if ($next === OrderStatus::Cancelled) {
             if (! $current->canBeCancelled()) {
                 throw new \InvalidArgumentException('Order cannot be cancelled from its current status.');
+            }
+
+            if ((string) ($order->payment_status ?? '') === Payment::statusPaid()) {
+                throw new \InvalidArgumentException('Paid orders cannot be cancelled. Contact support for assistance.');
+            }
+
+            if (
+                in_array((string) ($order->payment_method ?? ''), ['stripe', 'card'], true)
+                && (string) ($order->payment_status ?? '') !== Payment::statusPaid()
+                && (int) ($order->stripe_checkout_session_expires_at ?? 0) > now()->timestamp
+            ) {
+                throw new \InvalidArgumentException('Wait for the active card checkout session to expire before cancelling this order.');
             }
 
             $wasHeld = $this->orderHoldsStock($order);
@@ -403,7 +435,7 @@ class OrderService extends BaseService implements OrderServiceInterface
     /**
      * @param  array<int, array<string, mixed>>  $items
      */
-    private function calculateItemsTotal(array $items): float
+    private function calculateItemsTotal(array $items, string $currencyCode = 'USD'): float
     {
         $total = 0.0;
         foreach ($items as $item) {
@@ -412,16 +444,16 @@ class OrderService extends BaseService implements OrderServiceInterface
             $total += $price * $quantity;
         }
 
-        return round($total, 2);
+        return CurrencyAmount::round($total, $currencyCode);
     }
 
     /** Global shipping charge applied to every new POS invoice / online order. */
-    private function invoiceShippingFee(): float
+    private function invoiceShippingFee(string $currencyCode = 'USD'): float
     {
         $raw = Setting::get('invoice_shipping_fee', 0);
         $fee = is_numeric($raw) ? (float) $raw : 0.0;
 
-        return max(0.0, round($fee, 2));
+        return max(0.0, CurrencyAmount::round($fee, $currencyCode));
     }
 
     public function assignOrder(Order $order, string $employeeId, ?string $warehouseId = null): Order
@@ -564,8 +596,9 @@ class OrderService extends BaseService implements OrderServiceInterface
             'payment_status' => Payment::statusPaid(),
         ];
 
-        if ($order !== null && OrderStatus::normalizeStored((string) $order->status) === OrderStatus::AwaitingCustomerConfirmation
-            && (string) ($order->payment_method ?? '') === 'paypal') {
+        if ($order !== null
+            && OrderStatus::normalizeStored((string) $order->status) === OrderStatus::AwaitingCustomerConfirmation
+            && in_array((string) ($order->payment_method ?? ''), ['paypal', 'stripe', 'card'], true)) {
             $patch['status'] = OrderStatus::ResubmittedToWarehouse->value;
         }
 
@@ -670,5 +703,37 @@ class OrderService extends BaseService implements OrderServiceInterface
 
             throw new \InvalidArgumentException("Order {$id} cannot accept PayPal capture in status {$order->status}.");
         }
+    }
+
+    public function markSandboxPayPalOrderPaid(Order $order): void
+    {
+        if (app(PayPalService::class)->mode() !== 'sandbox') {
+            throw new \InvalidArgumentException('Simulated payments are only available in PayPal Sandbox.');
+        }
+
+        if ((string) $order->payment_method !== 'paypal'
+            || (string) $order->payment_status !== Payment::statusPending()
+            || OrderStatus::normalizeStored((string) $order->status) !== OrderStatus::AwaitingCustomerConfirmation) {
+            throw new \InvalidArgumentException('This order is not awaiting a PayPal sandbox payment.');
+        }
+
+        $orderId = (string) $order->getKey();
+        $payment = $this->paymentRepository->findByOrderId($orderId);
+        if ($payment) {
+            $this->paymentRepository->updateStatus(
+                (string) $payment->getKey(),
+                Payment::statusPaid(),
+                'SANDBOX-SIMULATED-'.$orderId
+            );
+        }
+
+        $this->orderRepository->update($orderId, [
+            'payment_status' => Payment::statusPaid(),
+            'status' => OrderStatus::ResubmittedToWarehouse->value,
+            'payment_info' => [
+                'provider' => 'paypal_sandbox_simulation',
+                'simulated' => true,
+            ],
+        ]);
     }
 }

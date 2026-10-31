@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\Carbon;
+use App\Support\CurrencyAmount;
 use DateTimeInterface;
 use DateTimeZone;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,8 +13,8 @@ class PosReportAggregator
     /**
      * @param  iterable<mixed>  $orders
      * @return array{
-     *     summary: array<string, array{period: string, total: float, count: int}>,
-     *     periods: list<array{period: string, total: float, count: int}>,
+     *     summary: array<string, array{period: string, total: float|null, totals_by_currency: array<string, float>, count: int}>,
+     *     periods: list<array{period: string, total: float|null, totals_by_currency: array<string, float>, count: int}>,
      *     type: string
      * }
      */
@@ -22,12 +23,16 @@ class PosReportAggregator
         $days = [];
         foreach ($orders as $order) {
             $total = (float) (is_object($order) ? ($order->total ?? 0) : ($order['total'] ?? 0));
+            $currencyCode = strtoupper((string) (is_object($order)
+                ? ($order->currency_code ?? 'USD')
+                : ($order['currency_code'] ?? 'USD')));
             $rawCreated = is_object($order) ? ($order->created_at ?? null) : ($order['created_at'] ?? null);
             $day = $this->toLocalCarbon($rawCreated, $timezone)?->format('Y-m-d');
 
             $key = $day ?? '';
-            $days[$key] ??= ['day' => $day, 'total' => 0.0, 'count' => 0];
-            $days[$key]['total'] += $total;
+            $days[$key] ??= ['day' => $day, 'totals_by_currency' => [], 'count' => 0];
+            $days[$key]['totals_by_currency'][$currencyCode] =
+                ($days[$key]['totals_by_currency'][$currencyCode] ?? 0.0) + $total;
             $days[$key]['count']++;
         }
 
@@ -38,7 +43,7 @@ class PosReportAggregator
      * Groups matching orders by local calendar day inside MongoDB, so reports never
      * load every invoice into PHP memory.
      *
-     * @return list<array{day: ?string, total: float, count: int}>
+     * @return list<array{day: ?string, currency_code: string, total: float, count: int}>
      */
     public function fetchDailyBuckets(Builder $query, DateTimeZone $timezone): array
     {
@@ -47,12 +52,15 @@ class PosReportAggregator
         $pipeline = [
             ['$match' => (object) $filter],
             ['$group' => [
-                '_id' => ['$dateToString' => [
-                    'format' => '%Y-%m-%d',
-                    'date' => '$created_at',
-                    'timezone' => $timezone->getName(),
-                    'onNull' => null,
-                ]],
+                '_id' => [
+                    'day' => ['$dateToString' => [
+                        'format' => '%Y-%m-%d',
+                        'date' => '$created_at',
+                        'timezone' => $timezone->getName(),
+                        'onNull' => null,
+                    ]],
+                    'currency_code' => ['$ifNull' => ['$currency_code', 'USD']],
+                ],
                 'total' => ['$sum' => ['$convert' => [
                     'input' => '$total', 'to' => 'double', 'onError' => 0, 'onNull' => 0,
                 ]]],
@@ -67,7 +75,8 @@ class PosReportAggregator
         $buckets = [];
         foreach ($cursor as $row) {
             $buckets[] = [
-                'day' => is_string($row['_id'] ?? null) ? $row['_id'] : null,
+                'day' => is_string(data_get($row, '_id.day')) ? data_get($row, '_id.day') : null,
+                'currency_code' => strtoupper((string) (data_get($row, '_id.currency_code') ?? 'USD')),
                 'total' => (float) ($row['total'] ?? 0),
                 'count' => (int) ($row['count'] ?? 0),
             ];
@@ -77,7 +86,7 @@ class PosReportAggregator
     }
 
     /**
-     * @param  iterable<array{day: ?string, total: float, count: int}>  $days  local Y-m-d buckets (day null = unknown date)
+     * @param  iterable<array{day: ?string, total?: float, totals_by_currency?: array<string, float>, currency_code?: string, count: int}>  $days  local Y-m-d buckets (day null = unknown date)
      */
     public function aggregateDailyBuckets(iterable $days, string $type, DateTimeZone $timezone): array
     {
@@ -91,17 +100,19 @@ class PosReportAggregator
         $yearKey = $now->format('Y');
 
         $summary = [
-            'today' => ['period' => $todayKey, 'total' => 0.0, 'count' => 0],
-            'month' => ['period' => $monthKey, 'total' => 0.0, 'count' => 0],
-            'year' => ['period' => $yearKey, 'total' => 0.0, 'count' => 0],
-            'all' => ['period' => 'all', 'total' => 0.0, 'count' => 0],
+            'today' => ['period' => $todayKey, 'totals_by_currency' => [], 'count' => 0],
+            'month' => ['period' => $monthKey, 'totals_by_currency' => [], 'count' => 0],
+            'year' => ['period' => $yearKey, 'totals_by_currency' => [], 'count' => 0],
+            'all' => ['period' => 'all', 'totals_by_currency' => [], 'count' => 0],
         ];
         $periods = [];
 
         foreach ($days as $bucket) {
-            $total = (float) $bucket['total'];
+            $totalsByCurrency = $bucket['totals_by_currency'] ?? [
+                strtoupper((string) ($bucket['currency_code'] ?? 'USD')) => (float) ($bucket['total'] ?? 0),
+            ];
             $count = (int) $bucket['count'];
-            $summary['all']['total'] += $total;
+            $this->addCurrencyTotals($summary['all']['totals_by_currency'], $totalsByCurrency);
             $summary['all']['count'] += $count;
 
             $day = $bucket['day'];
@@ -113,7 +124,7 @@ class PosReportAggregator
             $year = substr($day, 0, 4);
             foreach (['today' => $day === $todayKey, 'month' => $month === $monthKey, 'year' => $year === $yearKey] as $name => $hit) {
                 if ($hit) {
-                    $summary[$name]['total'] += $total;
+                    $this->addCurrencyTotals($summary[$name]['totals_by_currency'], $totalsByCurrency);
                     $summary[$name]['count'] += $count;
                 }
             }
@@ -123,29 +134,57 @@ class PosReportAggregator
                 'yearly' => $year,
                 default => $day,
             };
-            $periods[$key] ??= ['period' => $key, 'total' => 0.0, 'count' => 0];
-            $periods[$key]['total'] += $total;
+            $periods[$key] ??= ['period' => $key, 'totals_by_currency' => [], 'count' => 0];
+            $this->addCurrencyTotals($periods[$key]['totals_by_currency'], $totalsByCurrency);
             $periods[$key]['count'] += $count;
         }
 
         krsort($periods);
 
         foreach ($summary as &$bucket) {
-            $bucket['total'] = round((float) $bucket['total'], 2);
+            $bucket = $this->formatBucketTotals($bucket);
         }
         unset($bucket);
 
-        $periodList = array_map(static function (array $bucket): array {
-            $bucket['total'] = round((float) $bucket['total'], 2);
-
-            return $bucket;
-        }, array_values($periods));
+        $periodList = array_map(fn (array $bucket): array => $this->formatBucketTotals($bucket), array_values($periods));
 
         return [
             'summary' => $summary,
             'periods' => $periodList,
             'type' => $type,
         ];
+    }
+
+    /**
+     * @param  array<string, float>  $target
+     * @param  array<string, float>  $values
+     */
+    private function addCurrencyTotals(array &$target, array $values): void
+    {
+        foreach ($values as $currencyCode => $amount) {
+            $currencyCode = strtoupper((string) $currencyCode);
+            $target[$currencyCode] = ($target[$currencyCode] ?? 0.0) + (float) $amount;
+        }
+    }
+
+    /**
+     * @param  array{period: string, totals_by_currency: array<string, float>, count: int}  $bucket
+     * @return array{period: string, total: float|null, totals_by_currency: array<string, float>, count: int}
+     */
+    private function formatBucketTotals(array $bucket): array
+    {
+        $totals = [];
+        foreach ($bucket['totals_by_currency'] as $currencyCode => $amount) {
+            $rounded = CurrencyAmount::round((float) $amount, $currencyCode);
+            if ($rounded !== 0.0) {
+                $totals[$currencyCode] = $rounded;
+            }
+        }
+        ksort($totals);
+        $bucket['totals_by_currency'] = $totals;
+        $bucket['total'] = count($totals) === 1 ? reset($totals) : (count($totals) === 0 ? 0.0 : null);
+
+        return $bucket;
     }
 
     public function resolveTimezone(mixed $timezoneName, mixed $utcOffsetMinutes): DateTimeZone

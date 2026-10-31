@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { orders, settings, auth, cart } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
 
 type PaymentMethodOption = { id: string; name: string; enabled: boolean }
 
@@ -33,8 +34,12 @@ export function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<string>('')
   const { userType } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+  const { currencyCode } = useCurrencyPreference()
+  const paypalReturn = searchParams.has('paypal-error') || searchParams.has('paypal')
+  const paypalResult = searchParams.get('paypal') ?? 'error'
 
   const { data: profileData } = useQuery({
     queryKey: ['customer-me'],
@@ -58,9 +63,9 @@ export function Checkout() {
   }, [customer, initDone])
 
   const { data: cartData } = useQuery({
-    queryKey: ['cart'],
+    queryKey: ['cart', currencyCode],
     queryFn: async () => {
-      const res = await cart.get()
+      const res = await cart.get(currencyCode)
       return res.data
     },
     enabled: userType === 'customer' || userType === 'employee',
@@ -74,17 +79,60 @@ export function Checkout() {
     },
   })
 
+  const { data: customerOrdersData, isLoading: isLoadingCustomerOrders } = useQuery({
+    queryKey: ['orders', 'paypal-return'],
+    queryFn: async () => {
+      const res = await orders.list({ page: 1, per_page: 25 })
+      return res.data
+    },
+    enabled: paypalReturn && userType === 'customer',
+  })
+
+  useEffect(() => {
+    if (!paypalReturn || !customerOrdersData) return
+
+    const orderList = customerOrdersData.data.data
+    const customerOrders = Array.isArray(orderList) ? orderList as {
+      _id: string
+      payment_method?: string
+      payment_status?: string
+      status?: string
+    }[] : []
+    const order = customerOrders.find((item) =>
+      item.payment_method === 'paypal'
+      && item.payment_status !== 'paid'
+      && item.status === 'awaiting_customer_confirmation'
+    ) ?? customerOrders[0]
+
+    if (order && order._id) {
+      navigate(`/orders/${encodeURIComponent(order._id)}?paypal=${encodeURIComponent(paypalResult)}`, {
+        replace: true,
+      })
+      return
+    }
+
+    navigate('/orders', { replace: true })
+  }, [customerOrdersData, navigate, paypalReturn, paypalResult])
+
   const rawPaymentMethods = (settingsData?.data as { payment_methods?: unknown })?.payment_methods
-  const allMethods = useMemo(() => parsePaymentMethods(rawPaymentMethods), [rawPaymentMethods])
+  const allMethods = useMemo(
+    () => parsePaymentMethods(rawPaymentMethods).filter((method) => !['stripe', 'card'].includes(method.id.toLowerCase())),
+    [rawPaymentMethods]
+  )
+  const cartItems = useMemo(
+    () => (cartData?.data as {
+      items?: { book?: { publisher?: { settings?: { payment_methods?: string[] } } } }[]
+    } | undefined)?.items ?? [],
+    [cartData?.data],
+  )
   
   const enabledMethods = useMemo(() => {
     // 1. Get globally enabled methods
     let methods = allMethods.filter((m) => m.enabled)
 
     // 2. Intersect with publisher settings (if any publishers in cart restrict it)
-    const items = (cartData?.data as { items?: { book?: { publisher?: { settings?: { payment_methods?: string[] } } } }[] })?.items ?? []
     const publishers = new Set<{ settings?: { payment_methods?: string[] } }>()
-    items.forEach((item) => {
+    cartItems.forEach((item) => {
       if (item.book?.publisher) {
         publishers.add(item.book.publisher)
       }
@@ -100,7 +148,7 @@ export function Checkout() {
     })
 
     return methods
-  }, [allMethods, cartData])
+  }, [allMethods, cartItems])
 
   const defaultMethod = enabledMethods[0]?.id ?? ''
   const selectedMethod = enabledMethods.some((m) => m.id === paymentMethod) ? paymentMethod : defaultMethod
@@ -109,7 +157,8 @@ export function Checkout() {
     mutationFn: () =>
       orders.checkout(
         { address, city, country, postal_code: postalCode || undefined },
-        selectedMethod
+        selectedMethod,
+        currencyCode
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] })
@@ -121,10 +170,13 @@ export function Checkout() {
     navigate('/login')
     return null
   }
+  if (paypalReturn && userType === 'customer' && isLoadingCustomerOrders) {
+    return <div className="text-center py-12">{t('common.loading')}</div>
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (enabledMethods.length === 0) {
+    if (!cartData || cartItems.length === 0 || enabledMethods.length === 0 || cartData.data?.total == null) {
       return
     }
     checkout.mutate()
@@ -214,9 +266,12 @@ export function Checkout() {
             {(checkout.error as { response?: { data?: { message?: string } } })?.response?.data?.message || t('common.error')}
           </p>
         )}
+        {cartData && cartItems.length === 0 && (
+          <p className="text-red-600 text-sm">{t('cart.empty')}</p>
+        )}
         <button
           type="submit"
-          disabled={checkout.isPending || enabledMethods.length === 0}
+          disabled={!cartData || cartItems.length === 0 || checkout.isPending || enabledMethods.length === 0 || cartData.data?.total == null}
           className="w-full py-2.5 rounded-lg font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           style={{ background: 'var(--color-primary)' }}
         >

@@ -7,6 +7,7 @@ use App\Http\Requests\Order\PayPalQuotedOrdersRequest;
 use App\Models\Order;
 use App\Services\PayPalService;
 use App\Services\PublisherPayoutService;
+use App\Support\CurrencyAmount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +25,8 @@ class PayPalController extends BaseApiController
     public function start(PayPalQuotedOrdersRequest $request): JsonResponse
     {
         $returnUrl = (string) config('paypal.return_url');
-        $cancelUrl = (string) config('paypal.cancel_redirect');
-        if ($returnUrl === '' || $cancelUrl === '') {
+        $orderRedirect = (string) config('paypal.order_redirect');
+        if ($returnUrl === '' || $orderRedirect === '') {
             return $this->errorResponse('PayPal redirect URLs are not configured on the server.', 503);
         }
 
@@ -42,17 +43,31 @@ class PayPalController extends BaseApiController
                 }
                 $orders[] = $order;
             }
+            $currencyCode = strtoupper((string) ($orders[0]->currency_code ?? config('paypal.currency', 'USD')));
+            foreach ($orders as $order) {
+                if (strtoupper((string) ($order->currency_code ?? config('paypal.currency', 'USD'))) !== $currencyCode) {
+                    return $this->errorResponse('PayPal orders must use the same currency.', 422);
+                }
+            }
 
             $customId = implode(',', $orderIds);
             if (strlen($customId) > 127) {
                 return $this->errorResponse('Too many orders for a single PayPal payment.', 422);
             }
 
+            $returnUrl = $this->appendQuery($returnUrl, 'order_id', (string) $orders[0]->getKey());
+            $cancelUrl = str_replace(
+                '{ORDER_ID}',
+                rawurlencode((string) $orders[0]->getKey()),
+                $orderRedirect
+            );
+            $cancelUrl = $this->appendQuery($cancelUrl, 'paypal', 'cancelled');
+
             $units = [];
             foreach ($orders as $order) {
                 $payee = $this->publisherPayoutService->paypalPayeeForOrder($order);
                 $units[] = [
-                    'amount' => number_format((float) $order->total, 2, '.', ''),
+                    'amount' => CurrencyAmount::decimalString((float) $order->total, $currencyCode),
                     'custom_id' => (string) $order->getKey(),
                     'reference_id' => (string) $order->getKey(),
                     'payee_email' => $payee['email'],
@@ -63,7 +78,7 @@ class PayPalController extends BaseApiController
             try {
                 $created = $this->payPalService->createCheckoutOrder(
                     $units,
-                    (string) config('paypal.currency'),
+                    $currencyCode,
                     $returnUrl,
                     $cancelUrl,
                     true
@@ -74,7 +89,7 @@ class PayPalController extends BaseApiController
                 ]);
                 $created = $this->payPalService->createCheckoutOrder(
                     $units,
-                    (string) config('paypal.currency'),
+                    $currencyCode,
                     $returnUrl,
                     $cancelUrl,
                     false
@@ -101,6 +116,34 @@ class PayPalController extends BaseApiController
         ], 'Redirect to approval_url to complete payment.', 200);
     }
 
+    public function simulateSandboxPayment(string $id): JsonResponse
+    {
+        if ($this->payPalService->mode() !== 'sandbox') {
+            return $this->errorResponse('Simulated payments are only available in PayPal Sandbox.', 403);
+        }
+
+        $customer = auth('customer')->user();
+        $order = $customer
+            ? $this->orderService->getOrderById($id, (string) $customer->getKey())
+            : null;
+        if (! $order) {
+            return $this->errorResponse('Order not found.', 404);
+        }
+
+        try {
+            $this->orderService->markSandboxPayPalOrderPaid($order);
+        } catch (\InvalidArgumentException $e) {
+            return $this->domainErrorResponse($e);
+        }
+
+        $order->refresh();
+
+        return $this->successResponse(
+            $order->hideInternalPayouts(),
+            'Sandbox payment simulated. No PayPal transaction was created.'
+        );
+    }
+
     /**
      * Public redirect target after buyer approves payment in PayPal (return_url).
      */
@@ -108,14 +151,16 @@ class PayPalController extends BaseApiController
     {
         $token = $request->query('token');
         if (! is_string($token) || $token === '') {
-            return $this->redirectToConfiguredUrl((string) config('paypal.cancel_redirect'), 'paypal=missing_token');
+            return $this->redirectToOrder($request->query('order_id'), 'cancelled');
         }
 
         $successUrl = (string) config('paypal.success_redirect');
-        $failUrl = (string) config('paypal.cancel_redirect');
+        $fallbackOrderId = $request->query('order_id');
 
         try {
             $details = $this->payPalService->getOrder($token);
+            $customId = $this->extractOrderIds($details);
+            $orderId = $customId[0] ?? $fallbackOrderId;
             $status = is_string($details['status'] ?? null) ? $details['status'] : '';
 
             if ($status === 'APPROVED') {
@@ -124,44 +169,58 @@ class PayPalController extends BaseApiController
             }
 
             if ($status !== 'COMPLETED') {
-                return $this->redirectToConfiguredUrl($failUrl, 'paypal=not_completed');
+                return $this->redirectToOrder($orderId, 'not_completed');
             }
 
-            [$customId, $captureId, $capturedAmount] = $this->extractCustomCaptureAndAmount($details);
+            [$customId, $captureId, $capturedAmount, $capturedCurrency] = $this->extractCustomCaptureAndAmount($details);
             if ($customId === '') {
                 Log::warning('PayPal completed order missing custom_id');
 
-                return $this->redirectToConfiguredUrl($failUrl, 'paypal=no_custom_id');
+                return $this->redirectToOrder($orderId, 'no_custom_id');
             }
 
             $ids = array_values(array_filter(array_map('trim', explode(',', $customId))));
             $expected = 0.0;
+            $expectedCurrency = null;
             $ordersById = $this->loadOrdersById($ids);
             foreach ($ids as $orderId) {
                 $order = $ordersById[$orderId] ?? null;
                 if (! $order) {
                     Log::warning('PayPal capture referenced missing order', ['order_id' => $orderId]);
 
-                    return $this->redirectToConfiguredUrl($failUrl, 'paypal=order_mismatch');
+                    return $this->redirectToOrder($orderId, 'order_mismatch');
                 }
+                $orderCurrency = strtoupper((string) ($order->currency_code ?? config('paypal.currency', 'USD')));
+                if ($expectedCurrency !== null && $expectedCurrency !== $orderCurrency) {
+                    Log::warning('PayPal payment contains orders with different currencies', ['order_ids' => $ids]);
+
+                    return $this->redirectToOrder($orderId, 'currency_mismatch');
+                }
+                $expectedCurrency = $orderCurrency;
                 $expected += (float) $order->total;
             }
-            $expected = round($expected, 2);
-            if ($capturedAmount === null || abs($capturedAmount - $expected) > 0.01) {
+            $expectedCurrency ??= strtoupper((string) config('paypal.currency', 'USD'));
+            $expected = CurrencyAmount::round($expected, $expectedCurrency);
+            $tolerance = 1 / (10 ** CurrencyAmount::precision($expectedCurrency));
+            if (
+                $capturedAmount === null
+                || $capturedCurrency !== $expectedCurrency
+                || abs($capturedAmount - $expected) >= $tolerance
+            ) {
                 Log::warning('PayPal capture amount mismatch', [
                     'expected' => $expected,
                     'captured' => $capturedAmount,
                     'order_ids' => $ids,
                 ]);
 
-                return $this->redirectToConfiguredUrl($failUrl, 'paypal=amount_mismatch');
+                return $this->redirectToOrder($orderId, 'amount_mismatch');
             }
 
             $this->orderService->markPayPalOrdersPaid($ids, $captureId);
         } catch (\Throwable $e) {
             Log::error($e->getMessage(), ['exception' => $e]);
 
-            return $this->redirectToConfiguredUrl($failUrl, 'paypal=error');
+            return $this->redirectToOrder($fallbackOrderId, 'error');
         }
 
         if ($successUrl === '') {
@@ -175,19 +234,21 @@ class PayPalController extends BaseApiController
 
     /**
      * @param  array<string, mixed>  $orderPayload
-     * @return array{0: string, 1: string|null, 2: float|null}
+     * @return array{0: string, 1: string|null, 2: float|null, 3: string|null}
      */
     private function extractCustomCaptureAndAmount(array $orderPayload): array
     {
         $units = $orderPayload['purchase_units'] ?? [];
         if (! is_array($units) || $units === []) {
-            return ['', null, null];
+            return ['', null, null, null];
         }
 
         $ids = [];
         $captureId = null;
         $capturedAmount = 0.0;
         $hasAmount = false;
+        $capturedCurrency = null;
+        $hasMixedCurrencies = false;
         foreach ($units as $pu) {
             if (! is_array($pu)) {
                 continue;
@@ -217,6 +278,14 @@ class PayPalController extends BaseApiController
                     $captureId = $capture['id'];
                 }
                 $amountValue = $capture['amount']['value'] ?? null;
+                $currency = $capture['amount']['currency_code'] ?? null;
+                if (is_string($currency) && $currency !== '') {
+                    $currency = strtoupper($currency);
+                    if ($capturedCurrency !== null && $capturedCurrency !== $currency) {
+                        $hasMixedCurrencies = true;
+                    }
+                    $capturedCurrency = $currency;
+                }
                 if (is_numeric($amountValue)) {
                     $capturedAmount += (float) $amountValue;
                     $hasAmount = true;
@@ -226,7 +295,14 @@ class PayPalController extends BaseApiController
 
         $ids = array_values(array_unique($ids));
 
-        return [implode(',', $ids), $captureId, $hasAmount ? round($capturedAmount, 2) : null];
+        return [
+            implode(',', $ids),
+            $captureId,
+            $hasAmount && $capturedCurrency !== null
+                ? CurrencyAmount::round($capturedAmount, $capturedCurrency)
+                : null,
+            $hasMixedCurrencies ? null : $capturedCurrency,
+        ];
     }
 
     /**
@@ -243,13 +319,55 @@ class PayPalController extends BaseApiController
         return $byId;
     }
 
-    private function redirectToConfiguredUrl(string $base, string $querySuffix): RedirectResponse
+    private function redirectToOrder(mixed $orderId, string $result): RedirectResponse
     {
-        if ($base === '') {
-            return redirect()->away('/?'.$querySuffix);
-        }
-        $sep = str_contains($base, '?') ? '&' : '?';
+        $base = trim((string) config('paypal.order_redirect'));
+        if ($base === '' || ! is_string($orderId) || $orderId === '') {
+            $base = rtrim((string) config('paypal.success_redirect'), '/');
+            if ($base === '') {
+                return redirect()->away('/orders?paypal='.$result);
+            }
+            $base .= '?paypal='.$result;
 
-        return redirect()->away($base.$sep.$querySuffix);
+            return redirect()->away($base);
+        }
+
+        $url = str_replace('{ORDER_ID}', rawurlencode($orderId), $base);
+
+        return redirect()->away($this->appendQuery($url, 'paypal', $result));
+    }
+
+    /**
+     * @param  array<string, mixed>  $orderPayload
+     * @return list<string>
+     */
+    private function extractOrderIds(array $orderPayload): array
+    {
+        $units = $orderPayload['purchase_units'] ?? [];
+        if (! is_array($units)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($units as $unit) {
+            if (! is_array($unit) || ! is_string($unit['custom_id'] ?? null)) {
+                continue;
+            }
+            foreach (explode(',', $unit['custom_id']) as $id) {
+                $id = trim($id);
+                if ($id !== '') {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function appendQuery(string $url, string $key, string $value): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.rawurlencode($key).'='.rawurlencode($value);
     }
 }

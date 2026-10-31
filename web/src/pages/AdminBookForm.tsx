@@ -6,8 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { admin, warehousesPublic, type Book, type BookFormData } from '../lib/api'
 import { compressImageForUpload } from '../lib/compressImage'
 import { resolveCoverUrl } from '../lib/utils'
-import { useSettings, gramsToDisplay, displayToGrams } from '../contexts/SettingsContext'
-import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { gramsToDisplay, displayToGrams } from '../contexts/settingsUtils'
+import { useAuth } from '../contexts/authContextCore'
 
 const emptyForm: BookFormData = {
   title: '',
@@ -16,6 +17,7 @@ const emptyForm: BookFormData = {
   warehouse_id: '',
   warehouse_ids: [],
   price: 0,
+  prices: {},
   isbn: '',
   stock_quantity: 0,
   description: '',
@@ -67,6 +69,7 @@ export function AdminBookForm() {
     const isEdit = Boolean(id)
 
   const [form, setForm] = useState<BookFormData>(emptyForm)
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const {
     searchInput: authorSearch,
@@ -197,8 +200,12 @@ export function AdminBookForm() {
 
   const authorList = extractList<{ _id: string; name: string }>(authorsData)
   const searchAuthorList = extractList<{ _id: string; name: string }>(authorsSearchData)
-  const rawBook = bookData?.data as (Book & { authors?: Array<Record<string, unknown>> }) | undefined
-  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a: any) => {
+  const rawBook = bookData?.data as (Omit<Book, 'authors' | 'publishers' | 'publisher'> & {
+    authors?: Array<{ _id?: string; id?: string; name?: string; title?: string }>
+    publishers?: Array<{ _id?: string; id?: string; name?: string }>
+    publisher?: { _id?: string; id?: string; name?: string }
+  }) | undefined
+  const bookAuthors: { _id: string; name: string }[] = (rawBook?.authors ?? []).map((a) => {
     const id = normalizeId(a._id ?? a.id) ?? ''
     const name = (a.name ?? a.title) as string | undefined
     return { _id: id, name: name ?? '' }
@@ -264,14 +271,22 @@ export function AdminBookForm() {
   const showCreateCategory =
     categorySearch.trim().length > 0 && !exactMatchCategory && !addingCategory
 
-  const publisherList = extractList<{ _id: string; name: string }>(publishersData)
-  const searchPublisherList = extractList<{ _id: string; name: string }>(publishersSearchData)
-  const rawBookPublishers = ((rawBook as any)?.publishers as Array<{ _id?: string; id?: string; name?: string }> | undefined) ?? []
+  const publisherList = extractList<{
+    _id: string
+    name: string
+    public_settings?: {
+      currency_symbol?: string
+      default_currency_code?: string
+      currencies?: { code: string; name: string; symbol: string }[]
+    }
+  }>(publishersData)
+  const searchPublisherList = extractList<typeof publisherList[number]>(publishersSearchData)
+  const rawBookPublishers = rawBook?.publishers ?? []
   const bookPublishers: { _id: string; name: string }[] = rawBookPublishers.map((p) => ({
     _id: normalizeId(p._id ?? p.id) ?? '',
     name: p.name ?? '',
   })).filter((p) => p._id)
-  const rawBookPublisher = (rawBook as any)?.publisher as { _id?: string; id?: string; name?: string } | undefined
+  const rawBookPublisher = rawBook?.publisher
   if (rawBookPublisher) {
     const id = normalizeId(rawBookPublisher._id ?? rawBookPublisher.id)
     if (id && !bookPublishers.some((p) => p._id === id)) {
@@ -294,11 +309,23 @@ export function AdminBookForm() {
   const filteredPublishers = searchPublisherList.filter(
     (c) => !(form.publisher_ids ?? []).includes(c._id)
   )
+  const pricingPublisherId = form.publisher_id || form.publisher_ids?.[0] || ''
+  const pricingPublisher =
+    publisherList.find((publisher) => publisher._id === pricingPublisherId)
+    ?? searchPublisherList.find((publisher) => publisher._id === pricingPublisherId)
+  const currencyOptions = pricingPublisher?.public_settings?.currencies ?? []
+  const priceCurrencyOptions = currencyOptions.length > 0
+    ? currencyOptions
+    : [{ code: 'USD', name: 'US Dollar', symbol: pricingPublisher?.public_settings?.currency_symbol ?? '$' }]
+  const defaultCurrencyCode =
+    pricingPublisher?.public_settings?.default_currency_code
+    ?? currencyOptions[0]?.code
+    ?? 'USD'
 
   useEffect(() => {
     if (bookData?.data) {
       const b = bookData.data as Book & { authors?: Array<{ _id?: string; id?: string; name?: string }> }
-      const rawAuthorIds = b.author_ids ?? b.authors?.map((a: any) => a._id ?? a.id) ?? []
+      const rawAuthorIds = b.author_ids ?? b.authors?.map((a) => a._id) ?? []
       const authorIds = (Array.isArray(rawAuthorIds) ? rawAuthorIds : []).map((id) => normalizeId(id)).filter((id): id is string => id != null)
       const warehouseId = normalizeId(b.warehouse_id) ?? (b.warehouse as { _id?: string } | undefined)?._id ?? ''
       setForm({
@@ -308,6 +335,7 @@ export function AdminBookForm() {
         warehouse_id: warehouseId,
         warehouse_ids: warehouseId ? [warehouseId] : [],
         price: b.price ?? 0,
+        prices: b.prices ?? {},
         isbn: b.isbn ?? '',
         stock_quantity: b.stock_quantity ?? 0,
         description: b.description ?? '',
@@ -315,8 +343,8 @@ export function AdminBookForm() {
         publish_year: b.publish_year,
         publisher_id: normalizeId(b.publisher_id) ?? (b.publisher as { _id?: string } | undefined)?._id ?? '',
         publisher_ids: (() => {
-          const fromIds = Array.isArray((b as any).publisher_ids)
-            ? ((b as any).publisher_ids as unknown[]).map((id) => normalizeId(id)).filter((id): id is string => id != null)
+          const fromIds = Array.isArray(b.publisher_ids)
+            ? b.publisher_ids.map((id) => normalizeId(id)).filter((id): id is string => id != null)
             : []
           if (fromIds.length) return fromIds
           const single = normalizeId(b.publisher_id) ?? (b.publisher as { _id?: string } | undefined)?._id
@@ -331,6 +359,16 @@ export function AdminBookForm() {
         condition: b.condition === 'used' ? 'used' : 'new',
         is_visible: b.is_visible !== false,
         is_sold: Boolean(b.is_sold),
+      })
+      const defaultCode = b.publisher?.public_settings?.default_currency_code ?? 'USD'
+      const enteredPrices = Object.fromEntries(
+        Object.entries(b.prices ?? {}).map(([code, value]) => [code, String(value)])
+      )
+      setPriceInputs({
+        ...enteredPrices,
+        ...(!Object.prototype.hasOwnProperty.call(enteredPrices, defaultCode)
+          ? { [defaultCode]: String(b.price ?? 0) }
+          : {}),
       })
     }
   }, [bookData])
@@ -448,8 +486,20 @@ export function AdminBookForm() {
       ? Array.from(new Set([managedPublisherId, ...(form.publisher_ids ?? [])]))
       : (form.publisher_ids ?? [])
 
+    const prices = Object.fromEntries(
+      priceCurrencyOptions
+        .filter((currency) => priceInputs[currency.code]?.trim() !== '')
+        .map((currency) => [currency.code, Number(priceInputs[currency.code])])
+    )
+    if (!Object.prototype.hasOwnProperty.call(prices, defaultCurrencyCode)) {
+      setError(t('admin.defaultCurrencyPriceRequired', 'Enter a price in the publisher default currency.'))
+      return
+    }
+
     const payload: BookFormData = {
       ...form,
+      price: prices[defaultCurrencyCode],
+      prices,
       author_ids: form.author_ids.length ? form.author_ids : [(authorList[0]?._id) ?? ''],
       category_id: form.category_id,
       warehouse_ids: isEdit
@@ -789,20 +839,34 @@ export function AdminBookForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t('admin.price')} *
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            {t('admin.bookPrices', 'Book prices by currency')} *
           </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.price || ''}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, price: parseFloat(e.target.value) || 0 }))
-            }
-            required
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {priceCurrencyOptions.map((currency) => (
+              <label key={currency.code} className="block text-sm text-slate-600">
+                {currency.name} ({currency.code}, {currency.symbol})
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={priceInputs[currency.code] ?? ''}
+                  onChange={(event) => {
+                    const value = event.target.value
+                    setPriceInputs((previous) => ({ ...previous, [currency.code]: value }))
+                    if (currency.code === defaultCurrencyCode) {
+                      setForm((previous) => ({ ...previous, price: Number(value) || 0 }))
+                    }
+                  }}
+                  required={currency.code === defaultCurrencyCode}
+                  className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-navy-500"
+                />
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {t('admin.bookPricesHint', 'Enter at least the default currency price. Other currencies are optional.')}
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1276,7 +1340,7 @@ export function AdminBookForm() {
                   <p className="text-xs text-slate-500 mb-1">{t('admin.thumbnail')}</p>
                   <img
                     src={resolveCoverUrl(form.cover_image_thumb)}
-                    alt="Thumb"
+                    alt={t('admin.thumbnail')}
                     className="h-24 w-auto rounded border border-slate-200"
                   />
                 </div>
@@ -1286,7 +1350,7 @@ export function AdminBookForm() {
                   <p className="text-xs text-slate-500 mb-1">{t('admin.original')}</p>
                   <img
                     src={resolveCoverUrl(form.cover_image)}
-                    alt="Cover"
+                    alt={t('admin.original')}
                     className="max-h-24 w-auto rounded border border-slate-200"
                   />
                 </div>
