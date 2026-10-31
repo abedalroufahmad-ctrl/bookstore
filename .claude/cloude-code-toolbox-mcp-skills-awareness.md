@@ -1,6 +1,6 @@
 # Claude Code ToolBox — MCP & Skills awareness
 
-_Generated: 2026-10-29T09:21:33.785Z_
+_Generated: 2026-10-31T12:27:26.311Z_
 
 ## How to use this report
 
@@ -15,7 +15,7 @@ _Generated: 2026-10-29T09:21:33.785Z_
 
 Workspace `mcp.json` _(folder: bookstore)_
 
-- **/home/abedkh/Documents/vscode/bookstore/.mcp.json** — _File missing_
+- **/home/abedkh/Documents/dev/bookstore/.mcp.json** — _File missing_
 
 _No active workspace servers in mcp.json._
 
