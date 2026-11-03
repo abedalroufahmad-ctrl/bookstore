@@ -1,8 +1,8 @@
 # Bookstore App
 
-Flutter client (storefront and staff screens) for the Bookstore API.
+Flutter client for the bookstore platform. It handles customer browsing and checkout flows, guest access, and staff screens such as admin tools and direct-sales POS views, with a navy light/dark theme matching the web app.
 
-**Full documentation:** [project.md](../project.md)
+**Project docs:** [project.md](../project.md)
 
 ```bash
 flutter pub get
@@ -12,4 +12,4 @@ flutter build apk --dart-define=API_BASE_URL=https://api.example.com/api/v1
 flutter analyze
 ```
 
-The API URL is resolved from `--dart-define` in `lib/config.dart` (platform defaults in `config_io.dart` / `config_stub.dart`). Android allows plain HTTP only in debug builds.
+The API URL is resolved from `--dart-define` in `lib/config.dart` (platform defaults in `config_io.dart` and `config_stub.dart`). Other defines include `API_SCHEME` (`http` by default) and `API_PORT` (`8000` by default). Android allows plain HTTP only in debug builds; CI runs `dart analyze --fatal-infos`.
