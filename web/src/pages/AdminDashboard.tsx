@@ -1,6 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 
 export function AdminDashboard() {
   const { t } = useTranslation()
@@ -128,6 +128,15 @@ export function AdminDashboard() {
           >
             <h2 className="font-semibold text-navy-900">{t('admin.publisherSettings', 'Publisher Settings')}</h2>
             <p className="text-sm text-slate-500 mt-1">{t('admin.configurePublisher')}</p>
+          </Link>
+        )}
+        {isPublisherManager && (
+          <Link
+            to="/admin/publisher-reports"
+            className="block p-6 bg-white rounded-lg border border-slate-200 hover:shadow-md hover:border-navy-300 transition"
+          >
+            <h2 className="font-semibold text-navy-900">{t('admin.publisherReports')}</h2>
+            <p className="text-sm text-slate-500 mt-1">{t('admin.publisherReportsHint')}</p>
           </Link>
         )}
         {!isScopedWarehouseUser && (

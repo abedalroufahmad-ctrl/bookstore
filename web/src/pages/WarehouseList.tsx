@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { warehousesPublic as warehousesApi } from '../lib/api'
 import { Pagination } from '../components/Pagination'
-import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { catalogGridStyle } from '../contexts/settingsUtils'
 import type { Warehouse } from '../lib/api'
 
 export function WarehouseList() {

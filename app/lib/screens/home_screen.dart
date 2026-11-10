@@ -195,6 +195,108 @@ class _HomeScreenState extends State<HomeScreen> {
                             shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                           ),
                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  theme.colorScheme.primaryContainer,
+                                  theme.colorScheme.surface,
+                                  theme.scaffoldBackgroundColor,
+                                ],
+                              ),
+                              border: Border.all(color: theme.colorScheme.outline),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t.homeHeroTitle,
+                                  style: theme.textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                for (final bullet in [
+                                  t.homeHeroBullet1,
+                                  t.homeHeroBullet2,
+                                  t.homeHeroBullet3,
+                                ])
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('•  '),
+                                        Expanded(child: Text(bullet)),
+                                      ],
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                                FilledButton(
+                                  onPressed: () => Navigator.pushNamed(context, '/books'),
+                                  child: Text(t.homeHeroCta),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final columns = constraints.maxWidth >= 700 ? 5 : 2;
+                              final cardWidth =
+                                  (constraints.maxWidth - (columns - 1) * 12) / columns;
+                              final links = [
+                                (t.homeBrowseBooks, Icons.menu_book_outlined, '/books'),
+                                (t.homeTopAuthors, Icons.edit_outlined, '/authors'),
+                                (t.homeCategories, Icons.category_outlined, '/categories'),
+                                (t.navPublishers, Icons.account_balance_outlined, '/publishers'),
+                                (t.navWarehouses, Icons.warehouse_outlined, '/warehouses'),
+                              ];
+                              return Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  for (final link in links)
+                                    SizedBox(
+                                      width: cardWidth,
+                                      child: Card(
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(24),
+                                          onTap: () => Navigator.pushNamed(context, link.$3),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 20,
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Icon(link.$2, size: 28),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  link.$1,
+                                                  textAlign: TextAlign.center,
+                                                  style: theme.textTheme.labelLarge,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
                         if (featuredBooks.isNotEmpty) ...[
                           CarouselSlider(
                             options: CarouselOptions(

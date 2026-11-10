@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { publishersPublic as publishersApi, books as booksApi } from '../lib/api'
 import { getPublisherEntries, getWarehouseId } from '../lib/utils'
 import { BookCard } from '../components/BookCard'
-import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { catalogGridStyle } from '../contexts/settingsUtils'
 import { Pagination } from '../components/Pagination'
 import { useAddToCart } from '../hooks/useAddToCart'
 import type { Book, Publisher } from '../lib/api'
@@ -121,6 +122,10 @@ export function PublisherBooks() {
               id={book._id}
               title={book.title}
               price={book.price}
+              prices={book.prices}
+              defaultCurrencyCode={book.publisher?.public_settings?.default_currency_code}
+              currencyOptions={book.publisher?.public_settings?.currencies}
+              currencySymbol={book.publisher?.public_settings?.currency_symbol}
               coverImage={book.cover_image}
               coverImageThumb={book.cover_image_thumb}
               authorName={book.authors?.map((a) => a.name).join('، ')}

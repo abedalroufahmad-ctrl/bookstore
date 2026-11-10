@@ -22,6 +22,7 @@ class BookRepository implements BookRepositoryInterface
         '_id',
         'title',
         'price',
+        'prices',
         'stock_quantity',
         'isbn',
         'author_ids',
@@ -228,15 +229,22 @@ class BookRepository implements BookRepositoryInterface
         if (! empty($filters['search'])) {
             $search = trim((string) $filters['search']);
             if ($search !== '') {
+                $searchTerms = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
                 $publisherIds = Publisher::query()
                     ->where('name', 'like', "%{$search}%")
                     ->limit(50)
                     ->pluck('_id')
                     ->all();
 
-                $query->where(function ($q) use ($search, $publisherIds) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('isbn', 'like', "%{$search}%");
+                $query->where(function ($q) use ($searchTerms, $publisherIds) {
+                    $q->where(function ($bookQuery) use ($searchTerms) {
+                        foreach ($searchTerms as $term) {
+                            $bookQuery->where(function ($termQuery) use ($term) {
+                                $termQuery->where('title', 'like', "%{$term}%")
+                                    ->orWhere('isbn', 'like', "%{$term}%");
+                            });
+                        }
+                    });
 
                     if (! empty($publisherIds)) {
                         $q->orWhereIn('publisher_id', $publisherIds)

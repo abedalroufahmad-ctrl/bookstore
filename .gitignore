@@ -6,6 +6,8 @@
 /api/storage/logs/*.log
 /api/storage/app/tessdata/
 /api/storage/app/ocr-venv/
+/api/storage/app/public/covers/*
+!/api/storage/app/public/covers/.gitkeep
 /api/.env
 /api/vendor/
 .phpunit.result.cache
@@ -31,6 +33,12 @@ my-books.ods
 # Flutter app — Android build outputs (see also app/.gitignore)
 /app/android/build/
 /app/android/.gradle/
+
+# Python / tooling caches
+__pycache__/
+*.pyc
+.codacy/
+app/devtools_options.yaml
 
 # General
 .DS_Store

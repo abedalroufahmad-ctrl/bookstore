@@ -5,7 +5,7 @@ import { admin } from '../lib/api'
 import { Pagination } from '../components/Pagination'
 import { AdminListSearchBar } from '../components/AdminListSearchBar'
 import { useSearchCommit } from '../hooks/useSearchCommit'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 
 function extractList<T>(data: unknown): T[] {
   if (!data) return []
@@ -134,7 +134,10 @@ export function AdminEmployees() {
     publisher?: { _id: string; name: string }
   }
   const items = extractList<EmployeeItem>(employeesData)
-  const warehouses = extractList<{ _id: string; name: string; publisher_id?: string }>(warehousesData)
+  const warehouses = useMemo(
+    () => extractList<{ _id: string; name: string; publisher_id?: string }>(warehousesData),
+    [warehousesData],
+  )
   const publishers = extractList<{ _id: string; name: string }>(publishersData)
 
   const publisherNameForEmployee = (emp: EmployeeItem) => {

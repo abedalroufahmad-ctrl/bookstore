@@ -1,6 +1,6 @@
 # Bookstore — Project Documentation
 
-Full-stack online bookstore: catalog, cart, multi-warehouse orders, publisher and warehouse administration, walk-in point of sale (POS), and payments (cash on delivery, PayPal, Stripe webhook).
+Full-stack online bookstore: catalog, cart, multi-warehouse orders, publisher and warehouse administration, walk-in point of sale (POS), and payments (cash on delivery, PayPal, Stripe Checkout).
 
 > **This file is the main project documentation.**
 > The root, `web/` and `app/` READMEs are setup shortcuts; authentication details live in [AUTHENTICATION.md](./AUTHENTICATION.md).
@@ -12,8 +12,8 @@ Full-stack online bookstore: catalog, cart, multi-warehouse orders, publisher an
 | Area | Path | Stack / role |
 |------|------|----------------|
 | **REST API** | `api/` | Laravel 11 (PHP 8.2+), MongoDB via `mongodb/laravel-mongodb` 4, JWT via `tymon/jwt-auth` 2 — public catalog, customer cart/orders, admin, employee and POS APIs |
-| **Web SPA** | `web/` | React 19, Vite 7, TypeScript, Tailwind CSS 4, TanStack Query 5, React Router 7, i18next (AR/EN) — storefront + admin + POS |
-| **Mobile** | `app/` | Flutter (Dart 3.10+), Provider, `http`, `shared_preferences` — storefront, cart/checkout/orders, staff screens (admin, POS, warehouse quotes) |
+| **Web SPA** | `web/` | React 19, Vite 7, TypeScript, Tailwind CSS 4, TanStack Query 5, React Router 7, i18next (AR/EN), navy theme — storefront + admin + POS + publisher reports |
+| **Mobile** | `app/` | Flutter (Dart 3.10+), Provider (`Auth`, `Locale`, `Theme`, `Profile`), `http`, `shared_preferences` — storefront (guest landing), cart/checkout/orders, light/dark navy theme, staff screens (admin, POS, warehouse quotes) |
 
 **API base (dev):** `http://localhost:8000/api/v1`
 **HTML API notes:** `http://localhost:8000/docs.html` while `php artisan serve` is running.
@@ -32,11 +32,14 @@ flowchart LR
   end
   DB[(MongoDB)]
   PayPal[PayPal]
+  Stripe[Stripe]
   Web --> api
   Mobile --> api
   api --> DB
   api --> PayPal
+  api --> Stripe
   PayPal --> Webhooks
+  Stripe --> Webhooks
 ```
 
 ---
@@ -45,19 +48,20 @@ flowchart LR
 
 ### Storefront (customers)
 
-- Browse **books**, **categories**, **authors**, **warehouses** and **publishers** (public APIs, no login).
+- Browse **books**, **categories**, **authors**, **warehouses** and **publishers** (public APIs, no login). Flutter guests land on `/guest` before signing in.
 - Book cards and book detail link to the **publisher** (`/publishers/:id`) and **warehouse** (`/warehouses/:id`) book lists (web + Flutter).
 - Books are **new** or **used** (`condition`); used books can carry any stock quantity and are marked sold when their stock runs out.
-- Register / login, profile, logout.
-- **Cart** and **checkout**: shipping address; payment methods = global settings **intersected** with the allowed methods of every publisher in the cart.
+- **Prices**: each book has a default `price` plus an optional `prices` map (ISO currency → amount). Publishers define enabled `currencies`, `default_currency_code` and `currency_symbol` (exposed on `public_settings`). Web storefront remembers the shopper’s currency in `localStorage` (`bookstore.currency`); cart and checkout send `currency_code`.
+- Register / login, profile, logout. Customer login accepts `remember_me` (longer JWT; see [AUTHENTICATION.md](./AUTHENTICATION.md)).
+- **Cart** and **checkout**: shipping address; payment methods = global settings **intersected** with the allowed methods of every publisher in the cart. Stripe/card is **not** offered at this step.
 - Checkout **reserves stock immediately** (atomic, no overselling) and creates one order per warehouse in `pending_warehouse_review` with payment pending. Cancelling an order returns its stock exactly once.
-- **Orders**: list/detail, quote confirmation, PayPal payment after the warehouse quote.
+- **Orders**: list/detail, quote confirmation, then PayPal (`POST /customers/orders/paypal/start`) or Stripe Checkout (`POST /customers/orders/{id}/stripe/start` + `…/stripe/verify`) after the warehouse quote. Sandbox-only: `POST /customers/orders/{id}/paypal/simulate` marks PayPal paid without calling PayPal.
 
 ### Order lifecycle
 
 1. Customer checks out → `pending_warehouse_review` (stock reserved).
 2. Warehouse staff quote (shipping fee, method, payment method) → `awaiting_customer_confirmation`.
-3. Customer confirms (or pays via PayPal) → `resubmitted_to_warehouse`.
+3. Customer confirms, or pays via PayPal or Stripe, → `resubmitted_to_warehouse`.
 4. Staff → `processing_fulfillment` → `shipped_collecting_payment`.
 5. → `completed` (COD is marked paid on completion).
 
@@ -71,13 +75,14 @@ Roles: `manager`, `publisher_manager`, `warehouse_manager`, `shipping`, `account
 |------------|--------|
 | Books / authors / categories | CRUD; bulk delete; spreadsheet import; cover & author photo upload; **cover analysis** (barcode ISBN + OCR.space text recognition to prefill the book form) |
 | **Publishers** | CRUD (managers); each publisher owns **multiple warehouses** |
-| **Publisher settings** | Support contact, return policy, default discount, enabled payment methods, **payout accounts** (PayPal email / merchant ID, bank) and the **agreed platform commission %**. Readable/editable only by managers and that publisher's own manager; only managers can change the commission. **Site commission account** shows owed / accrued / transferred balances; publisher managers mark manual transfers to the site. Public/cart responses expose only `public_settings` (payment methods, support contact, return policy). |
+| **Publisher settings** | Support contact, return policy, default discount, **currencies** / default currency / price symbol, enabled payment methods, **payout accounts** (PayPal email / merchant ID, bank) and the **agreed platform commission %**. Readable/editable only by managers and that publisher's own manager; only managers can change the commission; publisher managers own payout accounts and the currency list. **Site commission account** shows owed / accrued / transferred balances; publisher managers mark manual transfers to the site. Public/cart responses expose only `public_settings` (payment methods, support contact, return policy, currencies). |
+| **Publisher reports** | Web `/admin/publisher-reports`: scoped counts plus order revenue by currency (`GET /admin/publishers/{id}/order-totals`). Site-wide totals: `GET /admin/settings/order-totals` (managers). |
 | Warehouses | Belong to a publisher; `warehouse_manager` is scoped to assigned warehouse(s) |
 | **Publisher manager** | Scoped to their publisher's warehouses, books, employees and orders |
 | Customers / employees | Admin management; filter employees by role, publisher and warehouse; convert customer → employee; warehouse managers, shipping and direct-sales staff can have multiple warehouses |
-| **Direct sales (POS)** | Walk-in invoices with optional customer name (no customer login). Staff pick books, create and print the invoice. Default catalog is the employee's own warehouse. Managers, publisher managers, warehouse managers and direct-sales staff (own invoices only) can review invoices. Reports show **today**, **this month**, **this year** and **all time** totals plus a day/month/year breakdown in the viewer's timezone. |
+| **Direct sales (POS)** | Walk-in invoices with optional customer name (no customer login). Staff pick books, create and print the invoice. Default catalog is the employee's own warehouse. Managers, publisher managers, warehouse managers and direct-sales staff (own invoices only) can review invoices. Reports show **today**, **this month**, **this year** and **all time** totals **by currency** plus a day/month/year breakdown in the viewer's timezone. Direct-sales staff are redirected to `/admin/pos` on both web and Flutter. |
 | Orders | List, assign, status, warehouse quote, bulk delete; shipping staff see fulfillment statuses; accounting sees all statuses |
-| Settings | Global site options, payment methods, catalog items per page (default **27**) |
+| Settings | Global site options, payment methods, catalog items per page (default **27**), items-per-row, authors/categories/warehouses per page, weight unit, invoice shipping fee, PayPal sandbox/live mode, Stripe availability flag |
 | Countries / reports | Country/city sync; books-without-cover report; browse books by warehouse |
 
 ### Payments
@@ -87,8 +92,9 @@ Roles: `manager`, `publisher_manager`, `warehouse_manager`, `shipping`, `account
 - Each publisher stores its own payout accounts. Customer PayPal payments are routed to that publisher when PayPal accepts the payee; otherwise the platform account collects and the split is still recorded.
 - The platform commission is an agreed **percentage of book revenue** (not shipping), stored per publisher and snapshotted on each order and POS invoice (`platform_commission_*`, `publisher_payout_amount`).
 - When a sale is finalized (order **completed**, or POS invoice created), that commission amount is **accrued** on the publishing house’s site-commission account (`commission_owed`). The publisher manager (or site manager) records a **manual transfer** to the site account via `POST /admin/publishers/{id}/commission-settlements`; balances and ledger are at `GET /admin/publishers/{id}/commission-account`.
-- PayPal: after the quote, `POST /customers/orders/paypal/start` with `order_ids` → buyer approves on PayPal → `GET /paypal/complete` captures and verifies the amount; webhook `PAYMENT.CAPTURE.COMPLETED` when `PAYPAL_WEBHOOK_ID` is set. Clients only follow approval links on `https://*.paypal.com`.
-- Env: `PAYPAL_*`, `STRIPE_*` — see `api/.env.example` and `api/config/paypal.php`.
+- PayPal: managers choose Sandbox or Live in Admin Settings; credentials stay on the API server (`PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` for the configured `PAYPAL_MODE`, or separate `PAYPAL_SANDBOX_*` and `PAYPAL_LIVE_*` credentials to enable switching). After the quote, `POST /customers/orders/paypal/start` with `order_ids` → buyer approves on PayPal → `GET /paypal/complete` captures and verifies the amount; webhook `PAYMENT.CAPTURE.COMPLETED` when `PAYPAL_WEBHOOK_ID` is set. Clients only follow approval links on `https://*.paypal.com`.
+- Card/Stripe: card is not offered at initial checkout. Staff select `stripe` (or `card`) on the warehouse quote; the customer then starts Stripe Checkout with `POST /customers/orders/{id}/stripe/start` and the API returns `checkout_url`. After return, `POST /customers/orders/{id}/stripe/verify` plus the signed `payment_intent.succeeded` webhook (`POST /webhooks/stripe`) mark the order paid. Configure `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CURRENCY`, and the success/cancel URLs in `api/.env`.
+- Env: `PAYPAL_*`, `STRIPE_*` — see `api/.env.example`, `api/config/paypal.php`, and `api/config/services.php`.
 
 ---
 
@@ -183,23 +189,24 @@ Send JWT as `Authorization: Bearer <token>`. Validation errors return 422 with `
 
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/books` | Filters: `search`, `category_id`, `author_id`, `warehouse_id`, `publisher_id`, `min_price`, `max_price`, `condition`, `in_stock` (default true), `per_page` (default 32, max 100). Only visible, unsold books with a cover. |
+| GET | `/books` | Filters: `search`, `category_id`, `author_id`, `warehouse_id`, `publisher_id`, `min_price`, `max_price`, `condition`, `in_stock` (default true), `per_page` (default **33**, max 100). Only visible, unsold books with a cover. Offset paging is clamped by `CATALOG_MAX_OFFSET_PAGE` (default 200); responses may include `next_cursor`. |
 | GET | `/books/{id}` | Book detail + relations |
 | GET | `/categories`, `/categories/{id}` | Dewey categories (show does **not** embed all books) |
 | GET | `/authors`, `/authors/{id}` | Authors (show does **not** embed all books) |
 | GET | `/warehouses`, `/warehouses/{id}` | Warehouses |
-| GET | `/publishers`, `/publishers/{id}` | Publishers (`public_settings` only) |
-| GET | `/settings` | Public settings (discount, payment method flags, …) |
+| GET | `/publishers`, `/publishers/{id}` | Publishers (`public_settings` only, including currencies) |
+| GET | `/settings` | Public settings (discount, payment method flags, catalog layout, weight unit, …) |
 
 ### Customer
 
 | Method | Path |
 |--------|------|
-| POST | `/customers/register`, `/customers/login` |
+| POST | `/customers/register`, `/customers/login` (`remember_me` optional) |
 | GET / POST | `/customers/me`, `/customers/refresh`, `/customers/logout` |
 | PUT | `/customers/profile` |
-| GET / POST / PATCH / DELETE | `/customers/cart`, `/customers/cart/items`, `/customers/cart/items/{bookId}` |
-| POST | `/customers/orders/checkout`, `/customers/orders/paypal/start` |
+| GET / POST / PATCH / DELETE | `/customers/cart`, `/customers/cart/items`, `/customers/cart/items/{bookId}` (cart GET accepts `currency_code`) |
+| POST | `/customers/orders/checkout` (optional `currency_code`), `/customers/orders/paypal/start` |
+| POST | `/customers/orders/{id}/paypal/simulate` (sandbox only), `/customers/orders/{id}/stripe/start`, `/customers/orders/{id}/stripe/verify` |
 | GET / POST / PATCH | `/customers/orders`, `/customers/orders/{id}`, `/customers/orders/{id}/confirm-quote`, `/customers/orders/{id}/status` (cancel) |
 
 ### Employee & admin
@@ -207,10 +214,10 @@ Send JWT as `Authorization: Bearer <token>`. Validation errors return 422 with `
 | Method | Path |
 |--------|------|
 | POST | `/employees/login`, `/employees/refresh`, `/employees/logout`; GET `/employees/me` |
-| GET / PATCH / POST | `/employees/orders`, `/employees/orders/{id}`, `/employees/orders/{id}/status`, `/employees/orders/{id}/warehouse-quote` |
-| CRUD | `/admin/books` (+ `bulk-delete`, `import`), `/admin/authors`, `/admin/categories`, `/admin/publishers` (+ `{id}/settings`), `/admin/warehouses`, `/admin/employees`, `/admin/customers` (+ `convert-to-employee`) |
+| GET / PATCH / POST | `/employees/orders` (roles: manager, shipping, accounting, warehouse_manager — **not** publisher_manager), `{id}`, `{id}/status`, `{id}/warehouse-quote` |
+| CRUD | `/admin/books` (+ `bulk-delete`, `import`), `/admin/authors`, `/admin/categories` (write: managers only), `/admin/publishers` (+ `{id}/settings`, `{id}/commission-account`, `{id}/order-totals`, `{id}/commission-settlements`), `/admin/warehouses`, `/admin/employees`, `/admin/customers` (+ `convert-to-employee`) |
 | * | `/admin/orders` (list, show, status, assign, warehouse-quote, delete, bulk-delete) |
-| * | `/admin/settings`, `/admin/countries` (+ sync), `/admin/upload-cover`, `/admin/upload-author-photo`, `/admin/analyze-cover` |
+| * | `/admin/settings` (+ `order-totals` for managers), `/admin/countries` (+ sync), `/admin/upload-cover`, `/admin/upload-author-photo`, `/admin/analyze-cover` |
 | GET / POST | `/admin/pos/books`, `/admin/pos/invoices`, `/admin/pos/invoices/{id}`, `/admin/pos/reports` |
 
 The admin group applies `role:*` checks plus `restrict.warehouse_manager`, `restrict.publisher_manager` and `restrict.direct_sales` scoping middleware.
@@ -240,10 +247,10 @@ Configured in `api/config/rate_limits.php` (`RATE_LIMIT_*` env vars). Registrati
 
 ## 5. Domain model (core)
 
-- **Publisher** → has many **Warehouses**; `settings` holds payout data (hidden from JSON), `public_settings` is the safe subset.
-- **Book** → authors (`author_ids`), category, publisher(s) (`publisher_id`, `publisher_ids`), warehouse; `condition` (`new`/`used`), `is_visible`, `is_sold`, `has_cover` (maintained on save).
-- **Order** → one warehouse, `items`, `status`, `stock_reserved`, payment fields and commission snapshot.
-- **POS invoice** → an order with `is_direct_sale`, optional `customer_name`, and the selling `employee_id`.
+- **Publisher** → has many **Warehouses**; `settings` holds payout data (hidden from JSON), `public_settings` is the safe subset (payments, support, return policy, currencies). Commission balances (`commission_owed`, `commission_accrued_total`, `commission_paid_total`, `commission_balances`) are manager/publisher-manager only.
+- **Book** → authors (`author_ids`), category, publisher(s) (`publisher_id`, `publisher_ids`), warehouse; `price` plus optional `prices` map; `condition` (`new`/`used`), `is_visible`, `is_sold`, `has_cover` (maintained on save).
+- **Order** → one warehouse, `items`, `status`, `stock_reserved`, `currency_code`, payment fields (PayPal / Stripe session ids) and commission snapshot.
+- **POS invoice** → an order with `is_direct_sale`, optional `customer_name`, the selling `employee_id`, and `currency_code`.
 - **Settings** → global site settings collection.
 
 ---
@@ -260,8 +267,8 @@ Designed for **100k+** books/authors:
 | **Cache invalidation** | A catalog version (`App\Support\CatalogCache`) is bumped on book writes and automatically on category/author/publisher/warehouse save or delete |
 | **Lean endpoints** | Author/category/warehouse show do not load all related books; lists use paginated `/books?…` filters |
 | **Batch loading** | Cart, checkout, PayPal and bulk actions load books/orders in one query |
-| **POS reports** | Aggregated in MongoDB (grouped by local day) instead of loading every invoice |
-| **Web** | Lazy-loaded route chunks, lazy images, TanStack Query `staleTime` 60 s |
+| **POS reports** | Aggregated in MongoDB (grouped by local day **and currency**) instead of loading every invoice |
+| **Web** | Lazy-loaded route chunks (`web/src/route-pages.tsx`), lazy images, TanStack Query `staleTime` 60 s |
 | **Flutter** | Shared HTTP client with timeouts, large JSON decoded off the UI thread, covers decoded at display size |
 
 ```env
@@ -301,7 +308,7 @@ cd api && php artisan db:seed-large --target-books=1000000 --authors=0 --chunk=5
 | Suite | Location | Notes |
 |-------|----------|-------|
 | Unit | `api/tests/Unit/` | No database |
-| Feature | `api/tests/Feature/` | Real MongoDB in the **`book_store_test`** database (set in `phpunit.xml`); refuses to run against a database not ending in `_test`; skipped when MongoDB is unreachable. Covers atomic stock (including parallel processes), checkout reservation/cancel, publisher settings exposure and authorization, publisher-manager order scope, POS report aggregation, rate limiting and cache invalidation. |
+| Feature | `api/tests/Feature/` | Real MongoDB in the **`book_store_test`** database (set in `phpunit.xml`); refuses to run against a database not ending in `_test`; skipped when MongoDB is unreachable. Covers atomic stock (including parallel processes), checkout reservation/cancel, publisher settings exposure and authorization, publisher-manager order scope, publisher commission account, POS invoice security, POS report aggregation (by currency), PayPal admin settings, rate limiting and cache invalidation. |
 
 ```bash
 cd api
@@ -309,17 +316,17 @@ php artisan test                    # both suites
 php artisan test --testsuite=Unit
 ```
 
-Web: `npx tsc -b`, `npx eslint src`, `npm run build`.
-Flutter: `flutter analyze`.
+Web: `npm run build` (`tsc -b` + Vite), `npm run lint` (`eslint .`).
+Flutter: `flutter analyze` / CI uses `dart analyze --fatal-infos`.
 
-CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (PHP 8.3), web build (Node 22), Flutter analyze.
+CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (PHP 8.3, MongoDB extension 1.21.0), web build (Node 22), Flutter analyze.
 
 ---
 
 ## 9. Localization
 
-- **Web:** `web/src/i18n/en.json`, `ar.json` (i18next); RTL by default.
-- **Mobile:** `app/lib/l10n`.
+- **Web:** `web/src/i18n/en.json`, `ar.json` (i18next); RTL by default; navy Tailwind tokens in `web/src/index.css`.
+- **Mobile:** `app/lib/l10n/app_localizations.dart`; navy palette in `app/lib/theme.dart` with light/dark (`ThemeProvider`).
 - **API:** messages localized from `Accept-Language` (`api/lang/`); bilingual category fields (`subject_title_en` / `subject_title_ar`).
 
 ---
@@ -327,7 +334,7 @@ CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (
 ## 10. Security (operators)
 
 - Never commit `.env`, JWT secrets, PayPal/Stripe/OCR keys or keystores.
-- Production: `APP_DEBUG=false`, strong `APP_KEY` + `JWT_SECRET`, HTTPS, restricted `CORS_ALLOWED_ORIGINS`, `PAYPAL_WEBHOOK_ID` and `STRIPE_WEBHOOK_SECRET` set.
+- Production: `APP_DEBUG=false`, strong `APP_KEY` + `JWT_SECRET`, HTTPS, restricted `CORS_ALLOWED_ORIGINS`, `PAYPAL_WEBHOOK_ID` and `STRIPE_WEBHOOK_SECRET` set. Customer `remember_me` uses `JWT_REMEMBER_TTL` (default 30 days).
 - Build the Flutter app with an HTTPS `API_BASE_URL`; release builds block cleartext HTTP.
 - Tokens are stored in `localStorage` (web) and `shared_preferences` (Flutter); see [AUTHENTICATION.md](./AUTHENTICATION.md).
 
@@ -350,7 +357,7 @@ CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (
 
 ### من يستخدم النظام؟
 
-- **العميل:** تصفح (كتب جديدة ومستعملة، تصنيفات، مؤلفون، مستودعات، ناشرون)، سلة، دفع، متابعة الطلبات.
+- **العميل:** تصفح (كتب جديدة ومستعملة، تصنيفات، مؤلفون، مستودعات، ناشرون)، اختيار عملة العرض، سلة، دفع (عند الاستلام / PayPal / بطاقة عبر Stripe بعد عرض المستودع)، متابعة الطلبات.
 - **الموظف:** أدوار متعددة (مدير، مدير ناشر، مشرف مستودع، شحن، محاسبة، مراجعة، سائق، بيع مباشر). إدارة الكتب والمؤلفين والتصنيفات والناشرين والمستودعات والعملاء والموظفين والطلبات والإعدادات وفواتير نقطة البيع.
 
 ### سلوك الطلب
@@ -358,7 +365,8 @@ CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (
 - كل كتاب مرتبط بمستودع وناشر. السلة من عدة مستودعات تُقسَّم إلى عدة طلبات.
 - يُحجز المخزون فور إتمام الشراء بشكل ذرّي (لا بيع لنسخ غير متوفرة)، ويُعاد مرة واحدة فقط عند الإلغاء.
 - المسار: مراجعة المستودع → عرض سعر → تأكيد العميل → تجهيز → شحن → إكمال.
-- طرق الدفع = تقاطع الإعدادات العامة مع إعدادات **كل ناشر** في السلة.
+- طرق الدفع = تقاطع الإعدادات العامة مع إعدادات **كل ناشر** في السلة. البطاقة لا تُعرض عند إتمام الشراء الأول؛ تُختار في عرض سعر المستودع ثم يفتح Stripe Checkout.
+- أسعار الكتب متعددة العملات (`price` + `prices`) حسب عملات دار النشر.
 - لكل دار نشر حسابات تحصيل خاصة (PayPal / بنك) لا تظهر إلا للمدير ولمدير الناشر نفسه. عمولة إدارة المشروع نسبة متفق عليها من إيراد الكتب وتُحفظ على كل طلب وفاتورة.
 
 ### الأمان والأداء

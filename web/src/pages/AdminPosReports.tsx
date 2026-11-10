@@ -2,10 +2,31 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { admin } from '../lib/api'
+import { admin, type PosInvoice, type Warehouse } from '../lib/api'
 import { Pagination } from '../components/Pagination'
+import { formatBookPrice } from '../lib/utils'
 
-type ReportBucket = { period: string; total: number; count: number }
+type ReportBucket = { period?: string; total: number | null; totals_by_currency?: Record<string, number>; count: number }
+
+function formatBucketTotal(bucket: ReportBucket | undefined): string {
+  if (!bucket) return 'USD 0.00'
+  const totals = bucket.totals_by_currency ?? (bucket.total !== null ? { USD: bucket.total } : {})
+  return Object.entries(totals)
+    .map(([currencyCode, amount]) => formatBookPrice(Number(amount), currencyCode, currencyCode))
+    .join(' · ') || 'USD 0.00'
+}
+
+function extractList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[]
+  if (!payload || typeof payload !== 'object') return []
+  const data = (payload as { data?: unknown }).data
+  if (Array.isArray(data)) return data as T[]
+  if (data && typeof data === 'object') {
+    const nested = (data as { data?: unknown }).data
+    if (Array.isArray(nested)) return nested as T[]
+  }
+  return []
+}
 
 function formatDateTime(raw: unknown): string {
   if (raw == null || raw === '') return '-'
@@ -29,12 +50,7 @@ export function AdminPosReports() {
     },
   })
 
-  const warehousesRaw = (warehousesData as any)?.data ?? warehousesData
-  const warehouses = Array.isArray(warehousesRaw)
-    ? warehousesRaw
-    : Array.isArray(warehousesRaw?.data)
-      ? warehousesRaw.data
-      : []
+  const warehouses = extractList<Warehouse>(warehousesData)
 
   const { data: reportsData, isLoading: reportsLoading } = useQuery({
     queryKey: ['pos-reports', reportType, warehouseFilter, Intl.DateTimeFormat().resolvedOptions().timeZone],
@@ -59,17 +75,12 @@ export function AdminPosReports() {
     },
   })
 
-  const payload = (reportsData as any)?.data ?? reportsData ?? {}
-  const summary = payload.summary as {
-    today?: ReportBucket
-    month?: ReportBucket
-    year?: ReportBucket
-    all?: ReportBucket
-  } | undefined
-  const periods: ReportBucket[] = payload.periods ?? (Array.isArray(payload) ? payload : [])
-  const invoicesBody = (invoicesData as any)?.data ?? invoicesData
-  const invoicesList = Array.isArray(invoicesBody?.data) ? invoicesBody.data : (Array.isArray(invoicesBody) ? invoicesBody : [])
-  const invoicesMeta = invoicesBody && typeof invoicesBody === 'object' && 'current_page' in invoicesBody ? invoicesBody : null
+  const payload = reportsData?.data
+  const summary = payload?.summary
+  const periods: ReportBucket[] = payload?.periods ?? []
+  const invoicesBody = invoicesData?.data
+  const invoicesList: PosInvoice[] = invoicesBody?.data ?? []
+  const invoicesMeta = invoicesBody ?? null
 
   const summaryCards = [
     { key: 'today', label: t('admin.totalToday'), data: summary?.today },
@@ -100,7 +111,7 @@ export function AdminPosReports() {
           className="px-4 py-2 border border-slate-300 rounded-lg max-w-xs"
         >
           <option value="">{t('admin.allWarehouses')}</option>
-          {warehouses.map((w: any) => (
+          {warehouses.map((w) => (
             <option key={String(w._id)} value={String(w._id)}>{w.name}</option>
           ))}
         </select>
@@ -110,7 +121,7 @@ export function AdminPosReports() {
         {summaryCards.map((card) => (
           <div key={card.key} className="bg-white p-4 rounded-lg border border-slate-200 text-center">
             <div className="text-sm text-slate-500 mb-1">{card.label}</div>
-            <div className="text-xl font-bold text-navy-900">${Number(card.data?.total ?? 0).toFixed(2)}</div>
+            <div className="text-xl font-bold text-navy-900">{formatBucketTotal(card.data)}</div>
             <div className="text-xs text-slate-400 mt-1">
               {t('admin.invoicesCount', { count: card.data?.count ?? 0 })}
             </div>
@@ -140,7 +151,7 @@ export function AdminPosReports() {
             {periods.map((r) => (
               <div key={r.period} className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
                 <div className="text-sm text-slate-500 font-mono mb-1">{r.period}</div>
-                <div className="text-xl font-bold text-navy-900">${Number(r.total).toFixed(2)}</div>
+                <div className="text-xl font-bold text-navy-900">{formatBucketTotal(r)}</div>
                 <div className="text-xs text-slate-400">{t('admin.invoicesCount', { count: r.count ?? 0 })}</div>
               </div>
             ))}
@@ -171,7 +182,7 @@ export function AdminPosReports() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {invoicesList.map((inv: any, i: number) => {
+                {invoicesList.map((inv, i) => {
                   const invoiceId = String(inv._id ?? inv.id ?? '')
                   return (
                   <tr
@@ -184,8 +195,8 @@ export function AdminPosReports() {
                     <td className="px-4 py-2 font-mono text-xs text-slate-500">{invoiceId}</td>
                     <td className="px-4 py-2">{inv.created_at ? formatDateTime(inv.created_at) : '-'}</td>
                     <td className="px-4 py-2">{inv.customer_name || t('admin.walkInCustomer')}</td>
-                    <td className="px-4 py-2">{warehouses.find((w: any) => String(w._id) === String(inv.warehouse_id))?.name || inv.warehouse_id}</td>
-                    <td className="px-4 py-2 text-end font-medium">${Number(inv.total ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2">{warehouses.find((w) => String(w._id) === String(inv.warehouse_id))?.name || inv.warehouse_id}</td>
+                    <td className="px-4 py-2 text-end font-medium">{formatBookPrice(Number(inv.total ?? 0), inv.currency_code ?? 'USD', inv.currency_code ?? 'USD')}</td>
                     <td className="px-4 py-2 text-end print:hidden">
                       <Link
                         to={`/admin/pos/invoices/${invoiceId}`}

@@ -25,6 +25,7 @@ class Book extends Model
         'has_cover',
         'description',
         'price',
+        'prices',
         'pages',
         'isbn',
         'publish_year',
@@ -45,6 +46,7 @@ class Book extends Model
     {
         return [
             'price' => 'float',
+            'prices' => 'array',
             'pages' => 'integer',
             'stock_quantity' => 'integer',
             'publish_year' => 'integer',

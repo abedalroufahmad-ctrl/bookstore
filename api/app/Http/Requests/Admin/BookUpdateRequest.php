@@ -29,6 +29,8 @@ class BookUpdateRequest extends BaseFormRequest
             'cover_image_thumb' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
+            'prices' => ['sometimes', 'array', 'max:20'],
+            'prices.*' => ['numeric', 'min:0'],
             'pages' => ['nullable', 'integer', 'min:1'],
             'isbn' => [
                 'sometimes',

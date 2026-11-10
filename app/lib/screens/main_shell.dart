@@ -54,6 +54,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isWide = MediaQuery.sizeOf(context).width >= 900;
 
     context.watch<LocaleProvider>();
     final auth = context.watch<AuthProvider>();
@@ -101,7 +102,7 @@ class _MainShellState extends State<MainShell> {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: isWide ? null : AppBar(
         automaticallyImplyLeading: false,
         title: Text(
           _currentIndex == 0 ? t.appName : _tabTitle(t, showCart: showCart),
@@ -237,8 +238,21 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-      body: body,
-      bottomNavigationBar: Container(
+      body: Column(
+        children: [
+          if (isWide) _buildDesktopHeader(context, auth, t, showCart),
+          Expanded(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isWide ? 1400 : double.infinity),
+                child: body,
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: isWide ? null : Container(
         decoration: BoxDecoration(
           color: theme.bottomNavigationBarTheme.backgroundColor,
           border: Border(
@@ -256,6 +270,137 @@ class _MainShellState extends State<MainShell> {
           selectedFontSize: 12,
           unselectedFontSize: 11,
         ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeader(
+    BuildContext context,
+    AuthProvider auth,
+    AppLocalizations t,
+    bool showCart,
+  ) {
+    final theme = Theme.of(context);
+    final name = auth.customer?.name ?? auth.employee?.name;
+
+    Widget routeLink(String label, String route, IconData icon) {
+      return TextButton.icon(
+        onPressed: () => Navigator.pushNamed(context, route),
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+      );
+    }
+
+    return Material(
+      color: theme.colorScheme.surface,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'B',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  t.appName,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                if (name != null) ...[
+                  CircleAvatar(
+                    radius: 17,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: Text(
+                      name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(name, style: theme.textTheme.labelLarge),
+                  const SizedBox(width: 12),
+                  TextButton(
+                    onPressed: () async {
+                      await context.read<AuthProvider>().logout();
+                      if (context.mounted) setState(() => _currentIndex = 0);
+                    },
+                    child: Text(t.navLogout),
+                  ),
+                ] else ...[
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    child: Text(t.navLogin),
+                  ),
+                  FilledButton.tonal(
+                    onPressed: () => Navigator.pushNamed(context, '/register'),
+                    child: Text(t.navRegister),
+                  ),
+                ],
+                if (showCart)
+                  IconButton(
+                    tooltip: t.navCart,
+                    onPressed: () => _goToCart(auth),
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                  ),
+                IconButton(
+                  tooltip: t.language,
+                  onPressed: () => context.read<LocaleProvider>().toggleLanguage(),
+                  icon: const Icon(Icons.language),
+                ),
+                IconButton(
+                  tooltip: 'Toggle Theme',
+                  onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+                  icon: Icon(
+                    context.watch<ThemeProvider>().isDarkMode
+                        ? Icons.light_mode
+                        : Icons.dark_mode,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Row(
+              children: [
+                routeLink(t.navBooks, '/books', Icons.menu_book_outlined),
+                routeLink(t.navAuthors, '/authors', Icons.edit_outlined),
+                routeLink(t.navCategories, '/categories', Icons.category_outlined),
+                routeLink(t.navPublishers, '/publishers', Icons.account_balance_outlined),
+                routeLink(t.navWarehouses, '/warehouses', Icons.warehouse_outlined),
+                if (auth.userType == UserType.customer)
+                  routeLink(t.navOrders, '/orders', Icons.receipt_long_outlined),
+                if (auth.isEmployee && !auth.isDirectSales)
+                  routeLink(t.adminDashboard, '/admin', Icons.dashboard_outlined),
+                if (auth.isDirectSales) ...[
+                  routeLink(t.adminPosTerminal, '/admin/pos', Icons.point_of_sale),
+                  routeLink(t.adminPosReports, '/admin/pos/reports', Icons.analytics_outlined),
+                ],
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+        ],
       ),
     );
   }

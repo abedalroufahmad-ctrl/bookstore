@@ -15,6 +15,14 @@ return [
 
     'secret' => env('PAYPAL_CLIENT_SECRET', ''),
 
+    'sandbox_client_id' => env('PAYPAL_SANDBOX_CLIENT_ID', ''),
+
+    'sandbox_secret' => env('PAYPAL_SANDBOX_CLIENT_SECRET', ''),
+
+    'live_client_id' => env('PAYPAL_LIVE_CLIENT_ID', ''),
+
+    'live_secret' => env('PAYPAL_LIVE_CLIENT_SECRET', ''),
+
     'currency' => env('PAYPAL_CURRENCY', 'USD'),
 
     /*
@@ -43,4 +51,6 @@ return [
     'success_redirect' => env('PAYPAL_SUCCESS_REDIRECT', ''),
 
     'cancel_redirect' => env('PAYPAL_CANCEL_REDIRECT', ''),
+
+    'order_redirect' => env('PAYPAL_ORDER_REDIRECT', 'http://localhost:5173/orders/{ORDER_ID}'),
 ];

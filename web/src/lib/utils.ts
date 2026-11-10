@@ -29,6 +29,42 @@ export function isTrustedPayPalUrl(raw: string): boolean {
   }
 }
 
+export function isTrustedStripeCheckoutUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw)
+    return url.protocol === 'https:' && url.hostname.toLowerCase() === 'checkout.stripe.com'
+  } catch {
+    return false
+  }
+}
+
+export function paymentMethodLabel(method: string | undefined, t: (key: string) => string): string {
+  switch (method?.toLowerCase()) {
+    case 'cod':
+      return t('checkout.paymentCOD')
+    case 'paypal':
+      return t('checkout.paymentPayPal')
+    case 'card':
+    case 'stripe':
+      return t('checkout.paymentCard')
+    default:
+      return method || '-'
+  }
+}
+
+export function paymentStatusLabel(status: string | undefined, t: (key: string) => string): string {
+  switch (status?.toLowerCase()) {
+    case 'pending':
+      return t('admin.paymentPending')
+    case 'paid':
+      return t('admin.paymentPaid')
+    case 'failed':
+      return t('admin.paymentFailed')
+    default:
+      return status || '-'
+  }
+}
+
 /** Constant-time string equality, so comparing secrets does not leak how many leading characters match. */
 export function secureEquals(a: string, b: string): boolean {
   const length = Math.max(a.length, b.length)
@@ -187,4 +223,43 @@ export function calculateDiscountedPrice(
         discountUsed: globalDiscount,
         isSpecial: false,
     }
+}
+
+export function formatBookPrice(price: number, currencySymbol?: string, currencyCode?: string): string {
+  const symbol = currencySymbol?.trim() || '$'
+  const separator = symbol.length > 1 ? ' ' : ''
+  let fractionDigits = 2
+  if (currencyCode) {
+    try {
+      fractionDigits = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currencyCode,
+      }).resolvedOptions().maximumFractionDigits ?? 2
+    } catch {
+      fractionDigits = 2
+    }
+  }
+  return `${symbol}${separator}${price.toFixed(fractionDigits)}`
+}
+
+export function getBookPriceForCurrency(
+  price: number,
+  prices: Record<string, number> | undefined,
+  defaultCurrencyCode: string | undefined,
+  currencyCode: string,
+): number | null {
+  const explicitPrice = prices?.[currencyCode]
+  if (typeof explicitPrice === 'number' && Number.isFinite(explicitPrice)) return explicitPrice
+
+  return currencyCode === (defaultCurrencyCode || 'USD') ? price : null
+}
+
+export function getCurrencySymbol(
+  currencyCode: string,
+  currencies: { code: string; symbol: string }[] | undefined,
+  fallbackSymbol?: string,
+  defaultCurrencyCode = 'USD',
+): string {
+  return currencies?.find((currency) => currency.code === currencyCode)?.symbol
+    ?? (currencyCode === defaultCurrencyCode ? fallbackSymbol?.trim() || currencyCode : currencyCode)
 }

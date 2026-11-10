@@ -28,6 +28,8 @@ class BookStoreRequest extends BaseFormRequest
             'cover_image_thumb' => ['nullable', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
+            'prices' => ['nullable', 'array', 'max:20'],
+            'prices.*' => ['numeric', 'min:0'],
             'pages' => ['nullable', 'integer', 'min:1'],
             'isbn' => ['required', 'string', 'max:20'],
             'publish_year' => ['nullable', 'integer', 'min:1000', 'max:2100'],
