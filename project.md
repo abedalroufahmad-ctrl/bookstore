@@ -13,7 +13,7 @@ Full-stack online bookstore: catalog, cart, multi-warehouse orders, publisher an
 |------|------|----------------|
 | **REST API** | `api/` | Laravel 11 (PHP 8.2+), MongoDB via `mongodb/laravel-mongodb` 4, JWT via `tymon/jwt-auth` 2 — public catalog, customer cart/orders, admin, employee and POS APIs |
 | **Web SPA** | `web/` | React 19, Vite 7, TypeScript, Tailwind CSS 4, TanStack Query 5, React Router 7, i18next (AR/EN), navy theme — storefront + admin + POS + publisher reports |
-| **Mobile** | `app/` | Flutter (Dart 3.10+), Provider (`Auth`, `Locale`, `Theme`, `Profile`), `http`, `shared_preferences` — storefront (guest landing), cart/checkout/orders, PayPal after quote, light/dark navy theme, staff screens (admin, POS, warehouse quotes). Shopper currency switching and Stripe Checkout are web-only today. |
+| **Mobile** | `app/` | Flutter (Dart 3.10+), Provider (`Auth`, `Currency`, `Locale`, `Theme`, `Profile`), `http`, `shared_preferences` — storefront (guest landing), cart/checkout/orders with `currency_code` (`bookstore.currency` in SharedPreferences), PayPal and Stripe Checkout after quote, light/dark navy theme, staff screens (admin, POS, warehouse quotes). |
 
 **API base (dev):** `http://localhost:8000/api/v1`
 **HTML API notes:** `http://localhost:8000/docs.html` while `php artisan serve` is running.
@@ -51,11 +51,11 @@ flowchart LR
 - Browse **books**, **categories**, **authors**, **warehouses** and **publishers** (public APIs, no login). Flutter guests land on `/guest` before signing in.
 - Book cards and book detail link to the **publisher** (`/publishers/:id`) and **warehouse** (`/warehouses/:id`) book lists (web + Flutter).
 - Books are **new** or **used** (`condition`); used books can carry any stock quantity and are marked sold when their stock runs out.
-- **Prices**: each book has a default `price` plus an optional `prices` map (ISO currency → amount). Publishers define enabled `currencies`, `default_currency_code` and `currency_symbol` (exposed on `public_settings`). The **web** storefront remembers the shopper’s currency in `localStorage` (`bookstore.currency`) and sends `currency_code` on cart/checkout. **Flutter** shows the publisher `currency_symbol` and the default book price; it does not yet offer a shopper currency picker.
+- **Prices**: each book has a default `price` plus an optional `prices` map (ISO currency → amount). Publishers define enabled `currencies`, `default_currency_code` and `currency_symbol` (exposed on `public_settings`). Shoppers pick a currency on web (`localStorage` `bookstore.currency`) and Flutter (`SharedPreferences`, `CurrencyProvider`); cart, add-to-cart, and checkout send `currency_code`.
 - Register / login, profile, logout. Customer login accepts `remember_me` (longer JWT; see [AUTHENTICATION.md](./AUTHENTICATION.md)).
 - **Cart** and **checkout**: shipping address; payment methods = global settings **intersected** with the allowed methods of every publisher in the cart. Stripe/card is **not** offered at this step.
 - Checkout **reserves stock immediately** (atomic, no overselling) and creates one order per warehouse in `pending_warehouse_review` with payment pending. Cancelling an order returns its stock exactly once.
-- **Orders**: list/detail and quote confirmation on web + Flutter. After the warehouse quote: PayPal via `POST /customers/orders/paypal/start` (web + Flutter); Stripe Checkout via `POST /customers/orders/{id}/stripe/start` + `…/stripe/verify` (**web**). Sandbox-only: `POST /customers/orders/{id}/paypal/simulate` marks PayPal paid without calling PayPal.
+- **Orders**: list/detail and quote confirmation on web + Flutter (totals use order `currency_code`). After the warehouse quote: PayPal via `POST /customers/orders/paypal/start` (web + Flutter); Stripe Checkout via `POST /customers/orders/{id}/stripe/start` (returns `checkout_url` + `session_id`) + `…/stripe/verify` (web + Flutter). Sandbox-only: `POST /customers/orders/{id}/paypal/simulate` marks PayPal paid without calling PayPal.
 
 ### Order lifecycle
 

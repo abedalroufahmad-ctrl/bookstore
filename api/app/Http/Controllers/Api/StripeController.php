@@ -56,6 +56,7 @@ class StripeController extends BaseApiController
 
         return $this->successResponse([
             'checkout_url' => $session['url'],
+            'session_id' => $session['id'],
         ], 'Redirect to Stripe Checkout to pay.');
     }
 

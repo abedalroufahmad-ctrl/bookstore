@@ -616,6 +616,21 @@ class ApiService {
     );
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> stripeStart(String orderId) async {
+    return _client.post<Map<String, dynamic>>(
+      '/customers/orders/$orderId/stripe/start',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<ApiResponse<Order>> stripeVerify(String orderId, String sessionId) async {
+    return _client.post<Order>(
+      '/customers/orders/$orderId/stripe/verify',
+      body: {'session_id': sessionId},
+      fromJson: (dynamic d) => Order.fromJson(Map<String, dynamic>.from(d as Map)),
+    );
+  }
+
   Future<ApiResponse<Order>> customerOrderGet(String id) async {
     return _client.get<Order>(
       '/customers/orders/$id',

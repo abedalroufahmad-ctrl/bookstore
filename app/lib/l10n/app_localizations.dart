@@ -213,6 +213,13 @@ class AppLocalizations {
   String get ordersWarehouseLabel => _s('المستودع', 'Warehouse');
   String get ordersPublisherLabel => _s('الناشر', 'Publisher');
   String get ordersPayWithPayPal => _s('الدفع عبر PayPal', 'Pay with PayPal');
+  String get ordersPayByCard => _s('الدفع بالبطاقة', 'Pay by card');
+  String get ordersConfirmCardPayment =>
+      _s('تأكيد دفع البطاقة', 'Confirm card payment');
+  String get ordersStripeVerifyFailed => _s(
+        'تعذّر تأكيد دفع البطاقة. حاول مرة أخرى بعد إتمام الدفع في Stripe.',
+        'Could not confirm card payment. Try again after completing checkout in Stripe.',
+      );
   String get ordersConfirmWithWarehouse =>
       _s('تأكيد وإرسال إلى المستودع', 'Confirm & resubmit to warehouse');
   String get ordersAwaitingQuoteCustomerHint => _s(
