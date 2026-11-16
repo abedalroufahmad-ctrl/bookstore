@@ -1,6 +1,6 @@
 # Bookstore App
 
-Flutter client for the bookstore platform. It handles customer browsing and checkout flows, guest access, and staff screens such as admin tools and direct-sales POS views, with a navy light/dark theme matching the web app.
+Flutter client for the bookstore platform. It handles customer browsing and checkout, PayPal payment after the warehouse quote, guest access, and staff screens such as admin tools and direct-sales POS views, with a navy light/dark theme matching the web app. Shopper currency switching and Stripe Checkout live on the web app today.
 
 **Project docs:** [project.md](../project.md)
 

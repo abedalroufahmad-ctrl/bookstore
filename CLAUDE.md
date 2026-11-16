@@ -17,6 +17,7 @@ This repository is a bookstore monorepo:
 - API base: `http://localhost:8000/api/v1`
 - Web app: `http://localhost:5173` via Vite proxy
 - Auth: dual JWT guards (`customer`, `employee`)
-- Domain features: public catalog, cart and checkout, warehouse quotes, PayPal/Stripe payments, POS sales, publisher commission accounts, and multi-currency pricing
+- Domain features: public catalog, cart and checkout with stock reservation, warehouse quotes, PayPal (web + Flutter) and Stripe Checkout after quote (web), POS sales, publisher commission accounts, multi-currency book prices (shopper currency picker on web)
+- Auth: customer `remember_me` → `JWT_REMEMBER_TTL`; employees use standard `JWT_TTL`
 
 Do not treat generated `.claude/` reports or `.agents/skills/` content as product documentation.

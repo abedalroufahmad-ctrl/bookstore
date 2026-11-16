@@ -13,7 +13,7 @@ Full-stack online bookstore: catalog, cart, multi-warehouse orders, publisher an
 |------|------|----------------|
 | **REST API** | `api/` | Laravel 11 (PHP 8.2+), MongoDB via `mongodb/laravel-mongodb` 4, JWT via `tymon/jwt-auth` 2 — public catalog, customer cart/orders, admin, employee and POS APIs |
 | **Web SPA** | `web/` | React 19, Vite 7, TypeScript, Tailwind CSS 4, TanStack Query 5, React Router 7, i18next (AR/EN), navy theme — storefront + admin + POS + publisher reports |
-| **Mobile** | `app/` | Flutter (Dart 3.10+), Provider (`Auth`, `Locale`, `Theme`, `Profile`), `http`, `shared_preferences` — storefront (guest landing), cart/checkout/orders, light/dark navy theme, staff screens (admin, POS, warehouse quotes) |
+| **Mobile** | `app/` | Flutter (Dart 3.10+), Provider (`Auth`, `Locale`, `Theme`, `Profile`), `http`, `shared_preferences` — storefront (guest landing), cart/checkout/orders, PayPal after quote, light/dark navy theme, staff screens (admin, POS, warehouse quotes). Shopper currency switching and Stripe Checkout are web-only today. |
 
 **API base (dev):** `http://localhost:8000/api/v1`
 **HTML API notes:** `http://localhost:8000/docs.html` while `php artisan serve` is running.
@@ -51,11 +51,11 @@ flowchart LR
 - Browse **books**, **categories**, **authors**, **warehouses** and **publishers** (public APIs, no login). Flutter guests land on `/guest` before signing in.
 - Book cards and book detail link to the **publisher** (`/publishers/:id`) and **warehouse** (`/warehouses/:id`) book lists (web + Flutter).
 - Books are **new** or **used** (`condition`); used books can carry any stock quantity and are marked sold when their stock runs out.
-- **Prices**: each book has a default `price` plus an optional `prices` map (ISO currency → amount). Publishers define enabled `currencies`, `default_currency_code` and `currency_symbol` (exposed on `public_settings`). Web storefront remembers the shopper’s currency in `localStorage` (`bookstore.currency`); cart and checkout send `currency_code`.
+- **Prices**: each book has a default `price` plus an optional `prices` map (ISO currency → amount). Publishers define enabled `currencies`, `default_currency_code` and `currency_symbol` (exposed on `public_settings`). The **web** storefront remembers the shopper’s currency in `localStorage` (`bookstore.currency`) and sends `currency_code` on cart/checkout. **Flutter** shows the publisher `currency_symbol` and the default book price; it does not yet offer a shopper currency picker.
 - Register / login, profile, logout. Customer login accepts `remember_me` (longer JWT; see [AUTHENTICATION.md](./AUTHENTICATION.md)).
 - **Cart** and **checkout**: shipping address; payment methods = global settings **intersected** with the allowed methods of every publisher in the cart. Stripe/card is **not** offered at this step.
 - Checkout **reserves stock immediately** (atomic, no overselling) and creates one order per warehouse in `pending_warehouse_review` with payment pending. Cancelling an order returns its stock exactly once.
-- **Orders**: list/detail, quote confirmation, then PayPal (`POST /customers/orders/paypal/start`) or Stripe Checkout (`POST /customers/orders/{id}/stripe/start` + `…/stripe/verify`) after the warehouse quote. Sandbox-only: `POST /customers/orders/{id}/paypal/simulate` marks PayPal paid without calling PayPal.
+- **Orders**: list/detail and quote confirmation on web + Flutter. After the warehouse quote: PayPal via `POST /customers/orders/paypal/start` (web + Flutter); Stripe Checkout via `POST /customers/orders/{id}/stripe/start` + `…/stripe/verify` (**web**). Sandbox-only: `POST /customers/orders/{id}/paypal/simulate` marks PayPal paid without calling PayPal.
 
 ### Order lifecycle
 
@@ -79,7 +79,7 @@ Roles: `manager`, `publisher_manager`, `warehouse_manager`, `shipping`, `account
 | **Publisher reports** | Web `/admin/publisher-reports`: scoped counts plus order revenue by currency (`GET /admin/publishers/{id}/order-totals`). Site-wide totals: `GET /admin/settings/order-totals` (managers). |
 | Warehouses | Belong to a publisher; `warehouse_manager` is scoped to assigned warehouse(s) |
 | **Publisher manager** | Scoped to their publisher's warehouses, books, employees and orders |
-| Customers / employees | Admin management; filter employees by role, publisher and warehouse; convert customer → employee; warehouse managers, shipping and direct-sales staff can have multiple warehouses |
+| Customers / employees | Admin management; filter employees by role, publisher and warehouse; convert customer → employee; roles that use `warehouse_ids` (warehouse manager, shipping, accounting, review, direct sales) can be assigned one or more warehouses |
 | **Direct sales (POS)** | Walk-in invoices with optional customer name (no customer login). Staff pick books, create and print the invoice. Default catalog is the employee's own warehouse. Managers, publisher managers, warehouse managers and direct-sales staff (own invoices only) can review invoices. Reports show **today**, **this month**, **this year** and **all time** totals **by currency** plus a day/month/year breakdown in the viewer's timezone. Direct-sales staff are redirected to `/admin/pos` on both web and Flutter. |
 | Orders | List, assign, status, warehouse quote, bulk delete; shipping staff see fulfillment statuses; accounting sees all statuses |
 | Settings | Global site options, payment methods, catalog items per page (default **27**), items-per-row, authors/categories/warehouses per page, weight unit, invoice shipping fee, PayPal sandbox/live mode, Stripe availability flag |
@@ -235,7 +235,7 @@ The admin group applies `role:*` checks plus `restrict.warehouse_manager`, `rest
 | `login` | 5/min per email+IP, 20/min per IP | Customer and employee login |
 | `heavy` | 6/min per account | Cover analysis, book import, country/city sync |
 
-Configured in `api/config/rate_limits.php` (`RATE_LIMIT_*` env vars). Registration, refresh, checkout and PayPal start have their own route limits.
+Configured in `api/config/rate_limits.php` (`RATE_LIMIT_*` env vars). Registration, refresh, checkout, PayPal start/simulate, and Stripe start/verify are also limited to 30/min on those routes.
 
 ### Postman / manual testing
 
@@ -357,7 +357,7 @@ CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (
 
 ### من يستخدم النظام؟
 
-- **العميل:** تصفح (كتب جديدة ومستعملة، تصنيفات، مؤلفون، مستودعات، ناشرون)، اختيار عملة العرض، سلة، دفع (عند الاستلام / PayPal / بطاقة عبر Stripe بعد عرض المستودع)، متابعة الطلبات.
+- **العميل:** تصفح (كتب جديدة ومستعملة، تصنيفات، مؤلفون، مستودعات، ناشرون)، سلة، دفع (عند الاستلام / PayPal؛ وعلى الويب اختيار عملة العرض وبطاقة Stripe بعد عرض المستودع)، متابعة الطلبات.
 - **الموظف:** أدوار متعددة (مدير، مدير ناشر، مشرف مستودع، شحن، محاسبة، مراجعة، سائق، بيع مباشر). إدارة الكتب والمؤلفين والتصنيفات والناشرين والمستودعات والعملاء والموظفين والطلبات والإعدادات وفواتير نقطة البيع.
 
 ### سلوك الطلب

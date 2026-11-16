@@ -4,7 +4,7 @@ Monorepo for the bookstore platform: a Laravel 11 API in `api/`, a React 19 + Vi
 
 **Documentation:** **[project.md](./project.md)** · **[AUTHENTICATION.md](./AUTHENTICATION.md)**
 
-This project includes a public catalog, JWT-based customer/employee auth, checkout-time stock reservation, warehouse quotes, PayPal and Stripe after quote, POS invoicing, publisher commission accounting, and multi-currency book pricing.
+This project includes a public catalog, JWT-based customer/employee auth (customer `remember_me`), checkout-time stock reservation, warehouse quotes, PayPal after quote (web + Flutter), Stripe Checkout after quote (web), POS invoicing, publisher commission accounting, and multi-currency book pricing (shopper currency picker on web).
 
 ## Quick start
 

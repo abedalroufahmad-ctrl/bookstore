@@ -1,6 +1,6 @@
 # Bookstore Web
 
-React 19 + Vite 7 + TypeScript + Tailwind CSS 4 storefront/admin app for the bookstore monorepo. It covers the public catalog, customer flows, employee admin screens, POS views, and publisher reports with Arabic/English support and a navy theme.
+React 19 + Vite 7 + TypeScript + Tailwind CSS 4 storefront/admin app for the bookstore monorepo. It covers the public catalog, customer flows (including shopper currency preference and Stripe Checkout after the warehouse quote), employee admin screens, POS views, and publisher reports with Arabic/English support and a navy theme.
 
 **Project docs:** [project.md](../project.md)
 
