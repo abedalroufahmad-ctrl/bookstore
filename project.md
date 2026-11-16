@@ -319,7 +319,7 @@ php artisan test --testsuite=Unit
 Web: `npm run build` (`tsc -b` + Vite), `npm run lint` (`eslint .`).
 Flutter: `flutter analyze` / CI uses `dart analyze --fatal-infos`.
 
-CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests (PHP 8.3, MongoDB extension 1.21.0), web build (Node 22), Flutter analyze.
+CI (`.github/workflows/ci.yml`, on push/PR to `main`/`master`): API unit tests; API feature tests against MongoDB 7 (`mongo:7` service, database `book_store_test` via `phpunit.xml`); web ESLint + build (Node 22); Flutter `dart analyze --fatal-infos`.
 
 ---
 
