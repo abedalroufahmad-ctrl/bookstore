@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/theme_provider.dart';
 import 'account_screen.dart';
@@ -58,6 +59,7 @@ class _MainShellState extends State<MainShell> {
 
     context.watch<LocaleProvider>();
     final auth = context.watch<AuthProvider>();
+    final currency = context.watch<CurrencyProvider>();
     final showCart = !auth.isEmployee;
 
     final screens = <Widget>[
@@ -108,6 +110,29 @@ class _MainShellState extends State<MainShell> {
           _currentIndex == 0 ? t.appName : _tabTitle(t, showCart: showCart),
         ),
         actions: [
+          if (!auth.isEmployee && currency.options.length > 1)
+            PopupMenuButton<String>(
+              tooltip: t.currencyLabel,
+              onSelected: (code) =>
+                  context.read<CurrencyProvider>().setCurrencyCode(code),
+              itemBuilder: (context) => currency.options
+                  .map(
+                    (c) => PopupMenuItem<String>(
+                      value: c.code,
+                      child: Text('${c.code} · ${c.symbol}'),
+                    ),
+                  )
+                  .toList(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Center(
+                  child: Text(
+                    currency.currencyCode,
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: 'Toggle Theme',
             onPressed: () => context.read<ThemeProvider>().toggleTheme(),
@@ -240,7 +265,7 @@ class _MainShellState extends State<MainShell> {
       ),
       body: Column(
         children: [
-          if (isWide) _buildDesktopHeader(context, auth, t, showCart),
+          if (isWide) _buildDesktopHeader(context, auth, t, showCart, currency),
           Expanded(
             child: Align(
               alignment: Alignment.topCenter,
@@ -279,6 +304,7 @@ class _MainShellState extends State<MainShell> {
     AuthProvider auth,
     AppLocalizations t,
     bool showCart,
+    CurrencyProvider currency,
   ) {
     final theme = Theme.of(context);
     final name = auth.customer?.name ?? auth.employee?.name;
@@ -325,6 +351,24 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
                 const Spacer(),
+                if (showCart && currency.options.length > 1)
+                  PopupMenuButton<String>(
+                    tooltip: t.currencyLabel,
+                    onSelected: (code) =>
+                        context.read<CurrencyProvider>().setCurrencyCode(code),
+                    itemBuilder: (context) => currency.options
+                        .map(
+                          (c) => PopupMenuItem<String>(
+                            value: c.code,
+                            child: Text('${c.code} · ${c.symbol}'),
+                          ),
+                        )
+                        .toList(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(currency.currencyCode),
+                    ),
+                  ),
                 if (name != null) ...[
                   CircleAvatar(
                     radius: 17,

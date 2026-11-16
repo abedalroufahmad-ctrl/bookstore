@@ -27,11 +27,13 @@ class Order {
     this.platformCommissionAmount,
     this.publisherPayoutAmount,
     this.payoutPaypalEmail,
+    this.currencyCode,
   });
 
   final String id;
   final String status;
   final double total;
+  final String? currencyCode;
   final List<OrderItem> items;
   final Map<String, dynamic>? shippingAddress;
   final Customer? customer;
@@ -79,6 +81,7 @@ class Order {
       platformCommissionAmount: _numToDouble(json['platform_commission_amount']),
       publisherPayoutAmount: _numToDouble(json['publisher_payout_amount']),
       payoutPaypalEmail: json['payout_paypal_email']?.toString(),
+      currencyCode: json['currency_code']?.toString().toUpperCase(),
     );
   }
 }

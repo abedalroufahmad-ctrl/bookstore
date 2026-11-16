@@ -6,6 +6,7 @@ import '../config.dart';
 import '../l10n/app_localizations.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
 import '../theme.dart';
 import '../utils/price_format.dart';
 import '../utils/weight_format.dart';
@@ -348,7 +349,11 @@ class _AddToCartButtonState extends State<_AddToCartButton> {
     final t = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _adding = true);
-    final res = await ApiService.instance.addToCart(widget.bookId);
+    final currencyCode = context.read<CurrencyProvider>().currencyCode;
+    final res = await ApiService.instance.addToCart(
+      widget.bookId,
+      currencyCode: currencyCode,
+    );
     if (!mounted) return;
     setState(() => _adding = false);
     messenger.showSnackBar(

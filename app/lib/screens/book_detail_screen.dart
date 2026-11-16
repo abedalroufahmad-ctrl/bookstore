@@ -5,6 +5,7 @@ import '../api/api_service.dart';
 import '../config.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
 import '../utils/weight_format.dart';
 import '../utils/price_format.dart';
 
@@ -92,7 +93,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return;
     }
     final t = AppLocalizations.of(context);
-    final res = await ApiService.instance.addToCart(_book!.id, quantity: _qty);
+    final currencyCode = context.read<CurrencyProvider>().currencyCode;
+    final res = await ApiService.instance.addToCart(
+      _book!.id,
+      quantity: _qty,
+      currencyCode: currencyCode,
+    );
     if (!mounted) return;
     if (res.success) {
       ScaffoldMessenger.of(context).showSnackBar(

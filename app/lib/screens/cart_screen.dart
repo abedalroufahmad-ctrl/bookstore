@@ -7,6 +7,8 @@ import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/cart.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
+import '../utils/price_format.dart';
 
 class CartScreen extends StatefulWidget {
   final bool showAppBar;
@@ -22,15 +24,18 @@ class _CartScreenState extends State<CartScreen> {
   double _total = 0;
   bool _loading = true;
   UserType? _loadedFor;
+  String? _loadedCurrency;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final type = context.watch<AuthProvider>().userType;
-    if (_loadedFor != type) {
+    final currency = context.watch<CurrencyProvider>().currencyCode;
+    if (_loadedFor != type || _loadedCurrency != currency) {
       _loadedFor = type;
+      _loadedCurrency = currency;
       if (type == UserType.customer) {
-        _load();
+        _load(currency);
       } else if (mounted) {
         setState(() {
           _loading = false;
@@ -41,10 +46,12 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load([String? currencyCode]) async {
     if (!mounted) return;
+    final code =
+        currencyCode ?? context.read<CurrencyProvider>().currencyCode;
     setState(() => _loading = true);
-    final res = await ApiService.instance.getCart();
+    final res = await ApiService.instance.getCart(currencyCode: code);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -59,14 +66,16 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _remove(String bookId) async {
-    await ApiService.instance.removeFromCart(bookId);
-    _load();
+    final code = context.read<CurrencyProvider>().currencyCode;
+    await ApiService.instance.removeFromCart(bookId, currencyCode: code);
+    _load(code);
   }
 
   Future<void> _updateQty(String bookId, int qty) async {
     if (qty < 1) return;
-    await ApiService.instance.updateCartItem(bookId, qty);
-    _load();
+    final code = context.read<CurrencyProvider>().currencyCode;
+    await ApiService.instance.updateCartItem(bookId, qty, currencyCode: code);
+    _load(code);
   }
 
   Widget _scaffold({required Widget body}) {
@@ -80,6 +89,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final auth = context.watch<AuthProvider>();
+    final currency = context.watch<CurrencyProvider>();
 
     // Cart lives in the bottom-nav IndexedStack — never replace the root route with /login.
     if (auth.userType != UserType.customer) {
@@ -151,6 +161,7 @@ class _CartScreenState extends State<CartScreen> {
               itemBuilder: (context, i) {
                 final item = _items[i];
                 final title = item.book?.title ?? 'Book';
+                final lineSymbol = item.book?.currencySymbol ?? currency.currentSymbol;
                 return GFCard(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: EdgeInsets.zero,
@@ -160,7 +171,7 @@ class _CartScreenState extends State<CartScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            '\$${item.price.toStringAsFixed(2)} × ${item.quantity}',
+                            '${formatBookPrice(item.price, lineSymbol)} × ${item.quantity}',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -216,7 +227,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    t.totalStr(_total),
+                    '${t.totalLabel}: ${formatBookPrice(_total, currency.currentSymbol)}',
                     style: Theme.of(context).textTheme.titleLarge,
                     overflow: TextOverflow.ellipsis,
                   ),

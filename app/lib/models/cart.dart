@@ -46,19 +46,35 @@ class CartItem {
 }
 
 class CartItemBook {
-  CartItemBook({this.id, this.title, this.price = 0, this.discountPercent});
+  CartItemBook({
+    this.id,
+    this.title,
+    this.price = 0,
+    this.discountPercent,
+    this.currencySymbol,
+  });
 
   final String? id;
   final String? title;
   final double price;
   final int? discountPercent;
+  final String? currencySymbol;
 
   factory CartItemBook.fromJson(Map<String, dynamic> json) {
+    String? currencySymbol;
+    final publisher = json['publisher'];
+    if (publisher is Map) {
+      final settings = publisher['settings'] ?? publisher['public_settings'];
+      if (settings is Map) {
+        currencySymbol = settings['currency_symbol']?.toString();
+      }
+    }
     return CartItemBook(
       id: json['id']?.toString() ?? json['_id']?.toString(),
       title: json['title'],
       price: (json['price'] ?? 0).toDouble(),
       discountPercent: json['discount_percent'],
+      currencySymbol: currencySymbol,
     );
   }
 }

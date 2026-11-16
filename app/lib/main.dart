@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
+import 'providers/currency_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/theme_provider.dart';
@@ -54,6 +55,7 @@ class BookStoreApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CurrencyProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),

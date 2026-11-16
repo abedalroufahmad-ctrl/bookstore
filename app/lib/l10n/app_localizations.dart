@@ -161,6 +161,7 @@ class AppLocalizations {
   String get remove => _s('حذف', 'Remove');
   String get checkout => _s('إتمام الشراء', 'Checkout');
   String totalStr(double amount) => isAr ? 'الإجمالي: \$${ amount.toStringAsFixed(2)}' : 'Total: \$${amount.toStringAsFixed(2)}';
+  String get currencyLabel => _s('العملة', 'Currency');
 
   // ── Checkout ─────────────────────────────────────────────────────────────────
   String get checkoutTitle => _s('إتمام الشراء', 'Checkout');

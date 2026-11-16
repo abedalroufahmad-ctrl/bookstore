@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
 import '../providers/profile_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -99,9 +100,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       'country': _countryController.text.trim(),
       'postal_code': _postalController.text.trim(),
     };
+    final currencyCode = context.read<CurrencyProvider>().currencyCode;
     final res = await ApiService.instance.checkout(
       shipping,
       paymentMethod: _selectedPaymentMethod,
+      currencyCode: currencyCode,
     );
     if (!mounted) return;
     setState(() => _loading = false);
