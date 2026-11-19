@@ -525,7 +525,7 @@ class ApiService {
               ?.map((e) => CartItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
-      final total = (d['total'] ?? 0).toDouble();
+      final total = d['total'] == null ? null : (d['total'] as num).toDouble();
       return ApiResponse(
         success: true,
         message: res.message,
@@ -1343,5 +1343,5 @@ class AuthResult {
 class CartData {
   CartData({required this.items, required this.total});
   final List<CartItem> items;
-  final double total;
+  final double? total;
 }

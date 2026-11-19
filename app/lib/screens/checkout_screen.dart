@@ -166,6 +166,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Text(
+                  t.cartWarehouseSplitNotice,
+                  style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(t.shippingAddress, style: const TextStyle(fontSize: 18)),
               const SizedBox(height: 16),
               TextFormField(

@@ -162,6 +162,19 @@ class AppLocalizations {
   String get checkout => _s('إتمام الشراء', 'Checkout');
   String totalStr(double amount) => isAr ? 'الإجمالي: \$${ amount.toStringAsFixed(2)}' : 'Total: \$${amount.toStringAsFixed(2)}';
   String get currencyLabel => _s('العملة', 'Currency');
+  String get cartWarehouseSplitNotice => _s(
+        'يتم تجميع العناصر حسب المستودع. سيُعالج كل مستودع كطلب منفصل.',
+        'Items are grouped by warehouse. Each warehouse will be processed as a separate order.',
+      );
+  String get cartGrandTotal => _s('الإجمالي عبر كل المستودعات', 'Total across all warehouses');
+  String get cartWarehouseCurrencyNote => _s(
+        'يُكمَل شراء كل مستودع بعملته.',
+        'Each warehouse is checked out in its own currency.',
+      );
+  String get cartUnknownWarehouse => _s('مستودع غير معروف', 'Unknown warehouse');
+  String cartCurrencyUnavailable(String currency) =>
+      _s('غير متاح بعملة $currency', 'Unavailable in $currency');
+  String discountBadge(int percent) => _s('خصم $percent%', 'Discount $percent%');
 
   // ── Checkout ─────────────────────────────────────────────────────────────────
   String get checkoutTitle => _s('إتمام الشراء', 'Checkout');
@@ -210,6 +223,7 @@ class AppLocalizations {
   String get ordersBooksSubtotal => _s('مجموع الكتب', 'Books subtotal');
   String get ordersTotalLabel => _s('الإجمالي', 'Total');
   String get ordersStatusLabel => _s('الحالة', 'Status');
+  String get ordersOrderDate => _s('تاريخ الطلب', 'Order date');
   String get ordersWarehouseLabel => _s('المستودع', 'Warehouse');
   String get ordersPublisherLabel => _s('الناشر', 'Publisher');
   String get ordersPayWithPayPal => _s('الدفع عبر PayPal', 'Pay with PayPal');

@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/order.dart';
-import '../utils/currency_symbol.dart';
 import '../utils/price_format.dart';
 import '../utils/stripe_checkout.dart';
 
@@ -265,7 +264,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     }
 
     final o = _order!;
-    final moneySymbol = orderCurrencySymbol(o);
+    final moneySymbol = (o.currencyCode ?? 'USD').toUpperCase();
+    final orderDate = _formatOrderDate(o.createdAt, t.isAr);
     final awaitingQuote = o.status == 'awaiting_customer_confirmation';
     final paymentMethod = (o.paymentMethod ?? '').toLowerCase();
     final canConfirmCod = awaitingQuote &&
@@ -296,6 +296,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (orderDate != null) ...[
+                    Text(
+                      '${t.ordersOrderDate}: $orderDate',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Text(
                     '${t.ordersStatusLabel}: ${t.orderStatus(o.status)}',
                     style: theme.textTheme.bodyLarge,
@@ -536,5 +543,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         ],
       ),
     );
+  }
+
+  String? _formatOrderDate(String? raw, bool isAr) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return null;
+    final local = parsed.toLocal();
+    const enMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const arMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    final month = isAr ? arMonths[local.month - 1] : enMonths[local.month - 1];
+    final hour12 = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour < 12 ? (isAr ? 'ص' : 'AM') : (isAr ? 'م' : 'PM');
+    if (isAr) {
+      return '${local.day} $month ${local.year}، $hour12:$minute $period';
+    }
+    return '$month ${local.day}, ${local.year}, $hour12:$minute $period';
   }
 }

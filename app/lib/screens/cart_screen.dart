@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:provider/provider.dart';
 
@@ -21,7 +20,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   List<CartItem> _items = [];
-  double _total = 0;
+  double? _total;
   bool _loading = true;
   UserType? _loadedFor;
   String? _loadedCurrency;
@@ -40,7 +39,7 @@ class _CartScreenState extends State<CartScreen> {
         setState(() {
           _loading = false;
           _items = [];
-          _total = 0;
+          _total = null;
         });
       }
     }
@@ -60,7 +59,7 @@ class _CartScreenState extends State<CartScreen> {
         _total = res.data!.total;
       } else {
         _items = [];
-        _total = 0;
+        _total = null;
       }
     });
   }
@@ -71,11 +70,17 @@ class _CartScreenState extends State<CartScreen> {
     _load(code);
   }
 
-  Future<void> _updateQty(String bookId, int qty) async {
+  Future<void> _updateQty(String bookId, int qty, String currencyCode) async {
     if (qty < 1) return;
-    final code = context.read<CurrencyProvider>().currencyCode;
-    await ApiService.instance.updateCartItem(bookId, qty, currencyCode: code);
-    _load(code);
+    final shopper = context.read<CurrencyProvider>().currencyCode;
+    await ApiService.instance.updateCartItem(bookId, qty, currencyCode: currencyCode);
+    if (!mounted) return;
+    _load(shopper);
+  }
+
+  String _lineCurrency(CartItem item, String shopperCurrency) {
+    if (item.currencyAvailable) return shopperCurrency.toUpperCase();
+    return (item.book?.warehouseCurrencyCode ?? item.currencyCode).toUpperCase();
   }
 
   Widget _scaffold({required Widget body}) {
@@ -150,71 +155,110 @@ class _CartScreenState extends State<CartScreen> {
         ),
       );
     }
+    final shopper = currency.currencyCode.toUpperCase();
+    final groups = _groupByWarehouse(t, shopper);
+    final checkoutBlocked = _items.any((item) => item.price == null);
+    final mixedCurrencies = _items.map((item) => _lineCurrency(item, shopper)).toSet().length > 1;
+
     return Scaffold(
       appBar: widget.showAppBar ? AppBar(title: Text(t.cartTitle)) : null,
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              itemCount: _items.length,
-              itemBuilder: (context, i) {
-                final item = _items[i];
-                final title = item.book?.title ?? 'Book';
-                final lineSymbol = item.book?.currencySymbol ?? currency.currentSymbol;
-                return GFCard(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: EdgeInsets.zero,
-                  content: ListTile(
-                    title: Text(title),
-                    subtitle: Row(
+              children: [
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Text(
+                    t.cartWarehouseSplitNotice,
+                    style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 13),
+                  ),
+                ),
+                for (final group in groups) ...[
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Flexible(
-                          child: Text(
-                            '${formatBookPrice(item.price, lineSymbol)} × ${item.quantity}',
-                            overflow: TextOverflow.ellipsis,
+                        Container(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${group.name}  ${group.warehouseCurrency}',
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                              ),
+                              Text(
+                                group.priced
+                                    ? formatBookPrice(group.subtotal, group.priceCurrency)
+                                    : t.cartCurrencyUnavailable(group.priceCurrency),
+                                style: TextStyle(
+                                  color: group.priced
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.error,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        if (item.book != null && (item.book!.discountPercent ?? 0) > 0) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.navy100,
-                              borderRadius: BorderRadius.circular(4),
+                        for (final item in group.items)
+                          ListTile(
+                            title: Text(item.book?.title ?? 'Book'),
+                            subtitle: Text(
+                              item.price == null
+                                  ? t.cartCurrencyUnavailable(_lineCurrency(item, shopper))
+                                  : '${formatBookPrice(item.price!, _lineCurrency(item, shopper))} × ${item.quantity}'
+                                      '${(item.book?.discountPercent ?? 0) > 0 ? '  ${t.discountBadge(item.book!.discountPercent!)}' : ''}',
                             ),
-                            child: Text(
-                              ' خصم ${item.book!.discountPercent}%',
-                              style: const TextStyle(fontSize: 10, color: AppColors.navy700, fontWeight: FontWeight.bold),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove),
+                                  onPressed: item.quantity <= 1 || item.price == null
+                                      ? null
+                                      : () => _updateQty(
+                                            item.bookId,
+                                            item.quantity - 1,
+                                            _lineCurrency(item, shopper),
+                                          ),
+                                ),
+                                Text('${item.quantity}'),
+                                IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: item.price == null
+                                      ? null
+                                      : () => _updateQty(
+                                            item.bookId,
+                                            item.quantity + 1,
+                                            _lineCurrency(item, shopper),
+                                          ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _remove(item.bookId),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: item.quantity <= 1
-                              ? null
-                              : () => _updateQty(item.bookId, item.quantity - 1),
-                        ),
-                        Text('${item.quantity}'),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () =>
-                              _updateQty(item.bookId, item.quantity + 1),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _remove(item.bookId),
-                        ),
                       ],
                     ),
                   ),
-                );
-              },
+                ],
+              ],
             ),
           ),
           Container(
@@ -223,18 +267,30 @@ class _CartScreenState extends State<CartScreen> {
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    '${t.totalLabel}: ${formatBookPrice(_total, currency.currentSymbol)}',
-                    style: Theme.of(context).textTheme.titleLarge,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(t.cartGrandTotal, style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        _total == null ? '—' : formatBookPrice(_total!, shopper),
+                        style: Theme.of(context).textTheme.titleLarge,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (mixedCurrencies)
+                        Text(
+                          t.cartWarehouseCurrencyNote,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
                 GFButton(
-                  onPressed: () => Navigator.pushNamed(context, '/checkout'),
+                  onPressed: checkoutBlocked
+                      ? null
+                      : () => Navigator.pushNamed(context, '/checkout'),
                   text: t.checkout,
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -245,4 +301,46 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
   }
+
+  List<_CartWarehouseGroup> _groupByWarehouse(AppLocalizations t, String shopper) {
+    final groups = <_CartWarehouseGroup>[];
+    for (final item in _items) {
+      final id = item.book?.warehouseId ?? 'unknown';
+      final lineCurrency = _lineCurrency(item, shopper);
+      final existing = groups.where((group) => group.id == id);
+      final group = existing.isEmpty
+          ? _CartWarehouseGroup(
+              id: id,
+              name: item.book?.warehouseName ?? t.cartUnknownWarehouse,
+              warehouseCurrency: (item.book?.warehouseCurrencyCode ?? lineCurrency).toUpperCase(),
+              priceCurrency: lineCurrency,
+            )
+          : existing.first;
+      if (existing.isEmpty) groups.add(group);
+      group.items.add(item);
+      if (item.price == null || item.subtotal == null || lineCurrency != group.priceCurrency) {
+        group.priced = false;
+      } else {
+        group.subtotal += item.subtotal!;
+      }
+    }
+    return groups;
+  }
+}
+
+class _CartWarehouseGroup {
+  _CartWarehouseGroup({
+    required this.id,
+    required this.name,
+    required this.warehouseCurrency,
+    required this.priceCurrency,
+  });
+
+  final String id;
+  final String name;
+  final String warehouseCurrency;
+  final String priceCurrency;
+  final List<CartItem> items = [];
+  double subtotal = 0;
+  bool priced = true;
 }
