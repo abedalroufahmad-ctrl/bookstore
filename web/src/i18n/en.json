@@ -140,7 +140,8 @@
     "loading": "Loading...",
     "warehouseSplitNotice": "Items are grouped by warehouse. Each warehouse will be processed as a separate order.",
     "unknownWarehouse": "Unknown warehouse",
-    "grandTotal": "Total across all warehouses"
+    "grandTotal": "Total across all warehouses",
+    "warehouseCurrencyNote": "Each warehouse is checked out in its own currency."
   },
   "checkout": {
     "title": "Checkout",
@@ -165,6 +166,7 @@
     "title": "My Orders",
     "noOrders": "No orders yet",
     "order": "Order",
+    "orderDate": "Order date",
     "total": "Total",
     "booksSubtotal": "Books subtotal",
     "shippingFee": "Shipping fee",

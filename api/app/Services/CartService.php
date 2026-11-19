@@ -205,12 +205,25 @@ class CartService extends BaseService implements CartServiceInterface
             $book = $books[(string) ($item['book_id'] ?? '')] ?? null;
             $currentPrice = null;
             $currencyAvailable = false;
+            $offeredCode = $currencyCode !== null ? strtoupper($currencyCode) : 'USD';
             if ($book) {
+                $warehouseCurrency = $this->defaultCurrencyCode($book);
+                $offeredCode = $currencyCode !== null ? strtoupper($currencyCode) : $warehouseCurrency;
                 try {
                     $currentPrice = $this->calculateDiscountedPrice($book, $currencyCode);
                     $currencyAvailable = true;
-                } catch (\InvalidArgumentException) {
-                    // Keep the cart visible so customers can remove items after changing currency.
+                } catch (\InvalidArgumentException $e) {
+                    if (! str_contains($e->getMessage(), 'not offered in')) {
+                        throw $e;
+                    }
+                    // Shopper currency is not sold by this warehouse's publisher.
+                    // Still show the price in the publisher's currency.
+                    $offeredCode = $warehouseCurrency;
+                    try {
+                        $currentPrice = $this->calculateDiscountedPrice($book, $offeredCode);
+                    } catch (\InvalidArgumentException) {
+                        $currentPrice = null;
+                    }
                 }
             }
 
@@ -222,9 +235,10 @@ class CartService extends BaseService implements CartServiceInterface
                     ? null
                     : CurrencyAmount::round(
                         $currentPrice * ($item['quantity'] ?? 0),
-                        $currencyCode ?? $this->defaultCurrencyCode($book)
+                        $offeredCode
                     ),
-                'currency_code' => $currencyCode ?? $this->defaultCurrencyCode($book),
+                'currency_code' => $offeredCode,
+                'currency_symbol' => $book ? $this->currencySymbol($book, $offeredCode) : $offeredCode,
                 'currency_available' => $currencyAvailable,
                 'book' => $book ? [
                     'id' => $book->getKey(),
@@ -235,6 +249,8 @@ class CartService extends BaseService implements CartServiceInterface
                     'warehouse' => $book->warehouse ? [
                         'id' => $book->warehouse->getKey(),
                         'name' => $book->warehouse->name,
+                        'currency_code' => $this->defaultCurrencyCode($book),
+                        'currency_symbol' => $this->currencySymbol($book, $this->defaultCurrencyCode($book)),
                     ] : null,
                     'publisher' => $book->publisher ? [
                         'id' => $book->publisher->getKey(),
@@ -311,11 +327,47 @@ class CartService extends BaseService implements CartServiceInterface
 
     private function defaultCurrencyCode(Book $book): string
     {
+        $settings = $this->publisherSettings($book);
+
+        return strtoupper((string) ($settings['default_currency_code'] ?? 'USD'));
+    }
+
+    private function currencySymbol(Book $book, string $currencyCode): string
+    {
+        $currencyCode = strtoupper($currencyCode);
+        $settings = $this->publisherSettings($book);
+        foreach ($settings['currencies'] ?? [] as $currency) {
+            if (! is_array($currency)) {
+                continue;
+            }
+            if (strtoupper((string) ($currency['code'] ?? '')) !== $currencyCode) {
+                continue;
+            }
+            $symbol = trim((string) ($currency['symbol'] ?? ''));
+            if ($symbol !== '') {
+                return $symbol;
+            }
+        }
+
+        if ($currencyCode === strtoupper((string) ($settings['default_currency_code'] ?? 'USD'))) {
+            $symbol = trim((string) ($settings['currency_symbol'] ?? ''));
+            if ($symbol !== '') {
+                return $symbol;
+            }
+        }
+
+        return $currencyCode;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function publisherSettings(Book $book): array
+    {
         if (! $book->relationLoaded('publisher')) {
             $book->load('publisher');
         }
-        $settings = is_array($book->publisher?->settings) ? $book->publisher->settings : [];
 
-        return strtoupper((string) ($settings['default_currency_code'] ?? 'USD'));
+        return is_array($book->publisher?->settings) ? $book->publisher->settings : [];
     }
 }

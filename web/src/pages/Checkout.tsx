@@ -176,7 +176,8 @@ export function Checkout() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!cartData || cartItems.length === 0 || enabledMethods.length === 0 || cartData.data?.total == null) {
+    const lines = (cartData?.data?.items ?? []) as { price?: number | null }[]
+    if (!cartData || lines.length === 0 || lines.some((item) => item.price == null) || enabledMethods.length === 0) {
       return
     }
     checkout.mutate()
@@ -271,7 +272,7 @@ export function Checkout() {
         )}
         <button
           type="submit"
-          disabled={!cartData || cartItems.length === 0 || checkout.isPending || enabledMethods.length === 0 || cartData.data?.total == null}
+          disabled={!cartData || cartItems.length === 0 || checkout.isPending || enabledMethods.length === 0 || (cartData.data?.items ?? []).some((item: { price?: number | null }) => item.price == null)}
           className="w-full py-2.5 rounded-lg font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           style={{ background: 'var(--color-primary)' }}
         >

@@ -25,7 +25,7 @@ class CartController extends BaseApiController
         return $this->successResponse([
             'cart' => $cart,
             'items' => $items,
-            'total' => round($total, 2),
+            'total' => $this->roundedTotal($total),
         ]);
     }
 
@@ -45,7 +45,7 @@ class CartController extends BaseApiController
 
             return $this->successResponse([
                 'cart' => $cart,
-                'total' => round($total, 2),
+                'total' => $this->roundedTotal($total),
             ], 'Item added to cart');
         } catch (\InvalidArgumentException $e) {
             return $this->domainErrorResponse($e);
@@ -62,7 +62,7 @@ class CartController extends BaseApiController
 
             return $this->successResponse([
                 'cart' => $cart,
-                'total' => round($total, 2),
+                'total' => $this->roundedTotal($total),
             ], 'Item removed from cart');
         } catch (\InvalidArgumentException $e) {
             return $this->domainErrorResponse($e);
@@ -85,11 +85,16 @@ class CartController extends BaseApiController
 
             return $this->successResponse([
                 'cart' => $cart,
-                'total' => round($total, 2),
+                'total' => $this->roundedTotal($total),
             ], 'Cart updated');
         } catch (\InvalidArgumentException $e) {
             return $this->domainErrorResponse($e);
         }
+    }
+
+    private function roundedTotal(?float $total): ?float
+    {
+        return $total === null ? null : round($total, 2);
     }
 
     private function currencyCode(Request $request): string

@@ -140,7 +140,8 @@
     "loading": "جاري التحميل...",
     "warehouseSplitNotice": "يتم تجميع العناصر حسب المستودع. سيُعالج كل مستودع كطلب منفصل.",
     "unknownWarehouse": "مستودع غير معروف",
-    "grandTotal": "الإجمالي عبر كل المستودعات"
+    "grandTotal": "الإجمالي عبر كل المستودعات",
+    "warehouseCurrencyNote": "يُكمَل شراء كل مستودع بعملته."
   },
   "checkout": {
     "title": "إتمام الشراء",
@@ -165,6 +166,7 @@
     "title": "طلباتي",
     "noOrders": "لا توجد طلبات بعد",
     "order": "طلب",
+    "orderDate": "تاريخ الطلب",
     "total": "المجموع",
     "booksSubtotal": "مجموع الكتب",
     "shippingFee": "رسوم الشحن",

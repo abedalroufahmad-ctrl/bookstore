@@ -143,19 +143,36 @@ class OrderService extends BaseService implements OrderServiceInterface
 
         $currencyCode = strtoupper($currencyCode);
         $doCheckout = function () use ($cart, $customer, $shippingAddress, $paymentInfo, $paymentMethod, $paymentStatusPending, $currencyCode) {
-            $repricedItems = $this->cartService->repriceItems($cart->items ?? [], $currencyCode);
-            if ($repricedItems === []) {
-                throw new \InvalidArgumentException('Cart is empty.');
+            $groupedByWarehouse = $this->groupCartItemsByWarehouse($cart->items ?? []);
+            $pricedGroups = [];
+            foreach ($groupedByWarehouse as $warehouseId => $rawItems) {
+                try {
+                    $items = $this->cartService->repriceItems($rawItems, $currencyCode);
+                    $orderCurrency = $currencyCode;
+                } catch (\InvalidArgumentException $e) {
+                    if (! str_contains($e->getMessage(), 'not offered in')) {
+                        throw $e;
+                    }
+                    // This warehouse does not sell in the shopper currency. Price the order
+                    // in the publisher currency shown on the cart.
+                    $items = $this->cartService->repriceItems($rawItems, null);
+                    $orderCurrency = strtoupper((string) ($items[0]['currency_code'] ?? 'USD'));
+                }
+                if ($items === []) {
+                    throw new \InvalidArgumentException('Some items are invalid or unavailable.');
+                }
+                $pricedGroups[$warehouseId] = [
+                    'items' => $items,
+                    'currency' => $orderCurrency,
+                ];
             }
-
-            $groupedByWarehouse = $this->groupCartItemsByWarehouse($repricedItems);
 
             // Reserve all stock up front so concurrent checkouts cannot sell the same copies.
             $reserved = [];
             try {
-                foreach ($groupedByWarehouse as $items) {
-                    $this->stockService->validateAndDeduct($items);
-                    $reserved[] = $items;
+                foreach ($pricedGroups as $group) {
+                    $this->stockService->validateAndDeduct($group['items']);
+                    $reserved[] = $group['items'];
                 }
             } catch (\Throwable $e) {
                 foreach ($reserved as $items) {
@@ -166,11 +183,13 @@ class OrderService extends BaseService implements OrderServiceInterface
 
             $createdOrders = [];
             try {
-                foreach ($groupedByWarehouse as $warehouseId => $items) {
-                    $booksSubtotal = $this->calculateItemsTotal($items, $currencyCode);
-                    $shippingFee = $this->invoiceShippingFee($currencyCode);
-                    $total = CurrencyAmount::round($booksSubtotal + $shippingFee, $currencyCode);
-                    $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal, $currencyCode);
+                foreach ($pricedGroups as $warehouseId => $group) {
+                    $items = $group['items'];
+                    $orderCurrency = $group['currency'];
+                    $booksSubtotal = $this->calculateItemsTotal($items, $orderCurrency);
+                    $shippingFee = $this->invoiceShippingFee($orderCurrency);
+                    $total = CurrencyAmount::round($booksSubtotal + $shippingFee, $orderCurrency);
+                    $payout = $this->publisherPayoutService->snapshotForWarehouse((string) $warehouseId, $booksSubtotal, $orderCurrency);
 
                     $order = $this->orderRepository->create(array_merge([
                         'customer_id' => $customer->getKey(),
@@ -182,7 +201,7 @@ class OrderService extends BaseService implements OrderServiceInterface
                         'shipping_fee' => $shippingFee,
                         'shipping_method' => null,
                         'total' => $total,
-                        'currency_code' => $currencyCode,
+                        'currency_code' => $orderCurrency,
                         'shipping_address' => $shippingAddress,
                         'payment_info' => $paymentInfo ?? [],
                         'payment_method' => $paymentMethod,

@@ -31,10 +31,20 @@ type OrderPayload = {
   created_at?: string
 }
 
+function formatOrderDate(value: string | undefined, language: string): string | null {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat(language.startsWith('ar') ? 'ar' : 'en', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { userType } = useAuth()
   const { settings } = useSettings()
   const queryClient = useQueryClient()
@@ -125,6 +135,7 @@ export function OrderDetail() {
 
   const order = data.data as OrderPayload
   const currencyCode = order.currency_code ?? 'USD'
+  const orderDate = formatOrderDate(order.created_at, i18n.language)
   const canConfirmCod =
     order.status === 'awaiting_customer_confirmation'
     && order.payment_method !== 'paypal'
@@ -152,6 +163,12 @@ export function OrderDetail() {
         {t('orders.order')} #{order._id}
       </h1>
       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
+        {orderDate ? (
+          <div>
+            <span className="text-sm font-medium text-slate-600">{t('orders.orderDate')}:</span>{' '}
+            <span className="text-slate-800">{orderDate}</span>
+          </div>
+        ) : null}
         <div>
           <span className="text-sm font-medium text-slate-600">{t('admin.status')}:</span>{' '}
           <span className="text-slate-800">

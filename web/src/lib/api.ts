@@ -680,6 +680,7 @@ export interface CartItemDetail {
   price: number | null
   subtotal: number | null
   currency_code: string
+  currency_symbol?: string
   currency_available: boolean
   book?: {
     id: string
@@ -687,7 +688,7 @@ export interface CartItemDetail {
     price: number
     prices?: Record<string, number>
     discount_percent?: number
-    warehouse?: { id?: string; name?: string } | null
+    warehouse?: { id?: string; name?: string; currency_code?: string; currency_symbol?: string } | null
     publisher?: { id?: string; name?: string; settings?: Publisher['public_settings'] } | null
   }
 }
