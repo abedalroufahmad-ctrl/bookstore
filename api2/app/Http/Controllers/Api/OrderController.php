@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Domain\Order\Enums\OrderStatus;
+use App\Domain\Order\Interfaces\OrderServiceInterface;
+use App\Http\Requests\Order\CheckoutRequest;
+use App\Http\Requests\Order\UpdateOrderStatusRequest;
+use App\Models\Order;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class OrderController extends BaseApiController
+{
+    public function __construct(
+        private OrderServiceInterface $orderService
+    ) {}
+
+    public function checkout(CheckoutRequest $request): JsonResponse
+    {
+        try {
+            $customer = auth('customer')->user();
+            $orders = $this->orderService->checkout(
+                $customer,
+                $request->validated('shipping_address'),
+                $request->validated('payment_method'),
+                $request->validated('payment_info'),
+                $request->validated('currency_code', 'USD')
+            );
+
+            return $this->successResponse([
+                'orders' => array_map(fn (Order $order) => $order->hideInternalPayouts(), $orders),
+                'count' => count($orders),
+            ], 'Order(s) created successfully', 201);
+        } catch (\InvalidArgumentException $e) {
+            return $this->domainErrorResponse($e);
+        } catch (\Throwable $e) {
+            return $this->errorResponse(
+                config('app.debug') ? $e->getMessage() : 'Checkout failed. Please try again.',
+                500
+            );
+        }
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $customer = auth('customer')->user();
+        $perPage = min((int) $request->get('per_page', 15), 100);
+        $orders = $this->orderService->getOrdersForCustomer($customer, $perPage);
+        $orders->getCollection()->transform(fn (Order $order) => $order->hideInternalPayouts());
+
+        return $this->successResponse($orders);
+    }
+
+    public function show(string $id): JsonResponse
+    {
+        $customer = auth('customer')->user();
+        $order = $this->orderService->getOrderById($id, $customer->getKey(), ['warehouse.publisher']);
+
+        if (! $order) {
+            return $this->errorResponse('Order not found', 404);
+        }
+
+        return $this->successResponse($order->hideInternalPayouts());
+    }
+
+    public function updateStatus(UpdateOrderStatusRequest $request, string $id): JsonResponse
+    {
+        try {
+            $customer = auth('customer')->user();
+            $order = $this->orderService->getOrderById($id, $customer->getKey());
+
+            if (! $order) {
+                return $this->errorResponse('Order not found', 404);
+            }
+
+            $newStatus = $request->validated('status');
+
+            if ($newStatus !== OrderStatus::Cancelled->value) {
+                return $this->errorResponse('Customers can only cancel orders. Use employee API for other status updates.', 403);
+            }
+
+            $order = $this->orderService->updateStatus($order, $newStatus);
+
+            return $this->successResponse($order->hideInternalPayouts(), 'Order cancelled');
+        } catch (\InvalidArgumentException $e) {
+            return $this->domainErrorResponse($e);
+        }
+    }
+
+    public function confirmQuote(string $id): JsonResponse
+    {
+        try {
+            $customer = auth('customer')->user();
+            $order = $this->orderService->getOrderById($id, $customer->getKey());
+
+            if (! $order) {
+                return $this->errorResponse('Order not found', 404);
+            }
+
+            $order = $this->orderService->confirmOrderQuoteByCustomer($order, $customer);
+
+            return $this->successResponse($order->hideInternalPayouts(), 'Order confirmed with warehouse.');
+        } catch (\InvalidArgumentException $e) {
+            return $this->domainErrorResponse($e);
+        }
+    }
+}

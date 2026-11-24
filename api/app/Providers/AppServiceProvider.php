@@ -58,6 +58,20 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // PHP 8.6 warns that Laravel 11 session handlers omit create_sid()/validateId().
+        // Laravel turns that warning into an exception and every request returns 500.
+        $previous = set_error_handler(function (int $level, string $message, string $file = '', int $line = 0) use (&$previous) {
+            if ($level === E_WARNING && str_contains($message, 'SessionHandlerInterface is missing the')) {
+                return true;
+            }
+
+            if (is_callable($previous)) {
+                return $previous($level, $message, $file, $line);
+            }
+
+            return false;
+        });
+
         $this->configureRateLimiting();
     }
 

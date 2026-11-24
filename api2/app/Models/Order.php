@@ -1,0 +1,99 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\PresentsDocumentId;
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * Order items (stored): [{book_id, quantity, price, book_title?, weight?}].
+ * weight is the unit book weight in grams at sale time.
+ * API responses may enrich book_title / weight when the order is loaded via OrderService.
+ */
+class Order extends Model
+{
+    use PresentsDocumentId;
+
+    protected $table = 'orders';
+
+    protected $fillable = [
+        'customer_id',
+        'customer_name', // for walk-in direct sales
+        'is_direct_sale', // boolean flag for POS orders
+        'employee_id',
+        'warehouse_id',
+        'items',
+        'status',
+        'stock_reserved',
+        'books_subtotal',
+        'shipping_fee',
+        'shipping_method',
+        'total',
+        'currency_code',
+        'shipping_address',
+        'payment_info',
+        'payment_method',
+        'payment_status',
+        'stripe_checkout_session_id',
+        'stripe_checkout_session_expires_at',
+        'platform_commission_percent',
+        'platform_commission_amount',
+        'publisher_payout_amount',
+        'payout_paypal_email',
+        'payout_paypal_merchant_id',
+        'created_at',
+        'updated_at',
+    ];
+
+    protected $hidden = [
+        'stripe_checkout_session_id',
+        'stripe_checkout_session_expires_at',
+    ];
+
+    /** @var list<string> */
+    public const INTERNAL_PAYOUT_FIELDS = [
+        'platform_commission_percent',
+        'platform_commission_amount',
+        'publisher_payout_amount',
+        'payout_paypal_email',
+        'payout_paypal_merchant_id',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_direct_sale' => 'boolean',
+            'stock_reserved' => 'boolean',
+            'items' => 'array',
+            'books_subtotal' => 'float',
+            'shipping_fee' => 'float',
+            'total' => 'float',
+            'shipping_address' => 'array',
+            'payment_info' => 'array',
+            'platform_commission_percent' => 'float',
+            'platform_commission_amount' => 'float',
+            'publisher_payout_amount' => 'float',
+        ];
+    }
+
+    public function hideInternalPayouts(): static
+    {
+        return $this->makeHidden(self::INTERNAL_PAYOUT_FIELDS);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+}

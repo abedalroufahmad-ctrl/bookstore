@@ -1,6 +1,6 @@
 # Claude Code ToolBox — MCP & Skills awareness
 
-_Generated: 2026-10-31T12:27:26.311Z_
+_Generated: 2026-11-10T16:39:06.767Z_
 
 ## How to use this report
 
@@ -29,12 +29,19 @@ _No active user-scoped servers in mcp.json._
 
 ### Project-scoped
 
-_None found (or no workspace open)._
+- **security-audit** — `/home/abedkh/Documents/dev/bookstore/.agents/skills/security-audit`
+  - Security guidance and vulnerability review for codebases, APIs, services, CLI tools, libraries, and daemons. Use for security questions, focused reviews, vulnerability research, security audits, or pen tests. Run the com
 
 ### User-scoped
 
+- **find-skills** — `/home/abedkh/.agents/skills/find-skills`
+  - Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used w
+
 - **microsoft-foundry** — `/home/abedkh/.agents/skills/microsoft-foundry`
   - Build, deploy, evaluate, optimize, fine-tune, and manage Microsoft Foundry agents, models, and resources end to end. USE FOR: foundry, azd ai agent, azd provision/deploy, hosted agent scaffold/develop/run/deploy/troubles
+
+- **security-audit** — `/home/abedkh/.agents/skills/security-audit`
+  - Security guidance and vulnerability review for codebases, APIs, services, CLI tools, libraries, and daemons. Use for security questions, focused reviews, vulnerability research, security audits, or pen tests. Run the com
 
 - **banner-design** — `/home/abedkh/.cursor/skills/banner-design`
   - Design banners for social media, ads, website heroes, creative assets, and print. Multiple art direction options with AI-generated visuals. Actions: design, create, generate banner. Platforms: Facebook, Twitter/X, Linked

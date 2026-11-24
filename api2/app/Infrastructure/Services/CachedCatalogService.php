@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Infrastructure\Services;
+
+use App\Support\CatalogCache;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
+
+class CachedCatalogService
+{
+    public function __construct(
+        protected CategoryService $categoryService,
+        protected AuthorService $authorService,
+        protected BookService $bookService,
+        protected WarehouseService $warehouseService
+    ) {}
+
+    public function getCachedCategories(array $filters = [], int $perPage = 50): LengthAwarePaginator
+    {
+        $page = (int) (request()->get('page') ?: 1);
+        if (! config('catalog.cache_enabled', true)) {
+            return $this->categoryService->getAll($filters, $perPage);
+        }
+
+        $key = $this->cacheKey('categories', $filters, $perPage, $page);
+        $ttl = config('catalog.cache_ttl.categories', 3600);
+
+        return Cache::remember($key, $ttl, fn () => $this->categoryService->getAll($filters, $perPage));
+    }
+
+    public function getCachedAuthors(array $filters = [], int $perPage = 50): LengthAwarePaginator
+    {
+        $page = (int) (request()->get('page') ?: 1);
+        if (! config('catalog.cache_enabled', true)) {
+            return $this->authorService->getAll($filters, $perPage);
+        }
+
+        $key = $this->cacheKey('authors', $filters, $perPage, $page);
+        $ttl = config('catalog.cache_ttl.authors', 3600);
+
+        return Cache::remember($key, $ttl, fn () => $this->authorService->getAll($filters, $perPage));
+    }
+
+    public function getCachedBooks(array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        $page = (int) (request()->get('page') ?: 1);
+        $cursor = (string) (request()->get('cursor') ?: '');
+        if (! config('catalog.cache_enabled', true)) {
+            return $this->bookService->getAll($filters, $perPage);
+        }
+
+        // Do not cache cursor seeks (one-off); cache common offset pages.
+        if ($cursor !== '') {
+            return $this->bookService->getAll($filters, $perPage);
+        }
+
+        $key = $this->cacheKey('books', $filters, $perPage, $page);
+        $ttl = config('catalog.cache_ttl.books', 300);
+
+        return Cache::remember($key, $ttl, fn () => $this->bookService->getAll($filters, $perPage));
+    }
+
+    public function getCachedWarehouses(array $filters = [], int $perPage = 50): LengthAwarePaginator
+    {
+        $page = (int) (request()->get('page') ?: 1);
+        if (! config('catalog.cache_enabled', true)) {
+            return $this->warehouseService->getAll($filters, $perPage);
+        }
+
+        $key = $this->cacheKey('warehouses', $filters, $perPage, $page);
+        $ttl = config('catalog.cache_ttl.warehouses', 3600);
+
+        return Cache::remember($key, $ttl, fn () => $this->warehouseService->getAll($filters, $perPage));
+    }
+
+    /**
+     * Invalidate catalog cache. Call when admin updates categories, authors, or books.
+     * Bumps a version so all cached catalog data is refetched on next request.
+     */
+    public function forgetCatalogCache(): void
+    {
+        CatalogCache::bump();
+    }
+
+    private function cacheKey(string $type, array $filters, int $perPage, int $page = 1): string
+    {
+        $prefix = config('catalog.cache_prefix', 'bookstore_catalog_');
+        $version = CatalogCache::version();
+
+        return $prefix.'v'.$version.'_'.$type.'_'.md5(json_encode($filters).$perPage.$page);
+    }
+}
