@@ -12,6 +12,8 @@
 /api/vendor/
 /api2/.env
 /api2/vendor/
+/api2/bootstrap/cache/config.php
+/api2/bootstrap/cache/routes-v7.php
 /api2/storage/framework/cache/data/**/*
 /api2/storage/framework/sessions/*
 !/api2/storage/framework/sessions/.gitkeep
