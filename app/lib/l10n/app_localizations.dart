@@ -113,6 +113,14 @@ class AppLocalizations {
 
   // ── Home ────────────────────────────────────────────────────────────────────
   String get heroTitle => _s('مرحباً بك في متجر الكتب', 'Welcome to Book Store');
+  String get homeHeroTitle => _s('متجرك الشامل للكتب', 'Your Comprehensive Book Store');
+  String get homeHeroBullet1 => _s('تصفح آلاف الكتب في جميع التصنيفات', 'Browse thousands of books across all categories');
+  String get homeHeroBullet2 => _s('اكتشف مؤلفين جدد والكتب الأكثر مبيعاً', 'Discover new authors and bestsellers');
+  String get homeHeroBullet3 => _s('خصومات خاصة على عناوين مختارة', 'Special discounts on selected titles');
+  String get homeHeroCta => _s('ابدأ الآن', 'Start Now');
+  String get homeBrowseBooks => _s('تصفح الكتب', 'Browse Books');
+  String get homeTopAuthors => _s('أفضل المؤلفين', 'Top Authors');
+  String get homeCategories => _s('التصنيفات', 'Categories');
   String get featuredBooks => _s('عروض مميزة', 'Featured Books');
   String get newestBooks => _s('أحدث الكتب', 'Newest Books');
   String get viewAll => _s('عرض الكل', 'View All');
@@ -153,6 +161,20 @@ class AppLocalizations {
   String get remove => _s('حذف', 'Remove');
   String get checkout => _s('إتمام الشراء', 'Checkout');
   String totalStr(double amount) => isAr ? 'الإجمالي: \$${ amount.toStringAsFixed(2)}' : 'Total: \$${amount.toStringAsFixed(2)}';
+  String get currencyLabel => _s('العملة', 'Currency');
+  String get cartWarehouseSplitNotice => _s(
+        'يتم تجميع العناصر حسب المستودع. سيُعالج كل مستودع كطلب منفصل.',
+        'Items are grouped by warehouse. Each warehouse will be processed as a separate order.',
+      );
+  String get cartGrandTotal => _s('الإجمالي عبر كل المستودعات', 'Total across all warehouses');
+  String get cartWarehouseCurrencyNote => _s(
+        'يُكمَل شراء كل مستودع بعملته.',
+        'Each warehouse is checked out in its own currency.',
+      );
+  String get cartUnknownWarehouse => _s('مستودع غير معروف', 'Unknown warehouse');
+  String cartCurrencyUnavailable(String currency) =>
+      _s('غير متاح بعملة $currency', 'Unavailable in $currency');
+  String discountBadge(int percent) => _s('خصم $percent%', 'Discount $percent%');
 
   // ── Checkout ─────────────────────────────────────────────────────────────────
   String get checkoutTitle => _s('إتمام الشراء', 'Checkout');
@@ -201,9 +223,17 @@ class AppLocalizations {
   String get ordersBooksSubtotal => _s('مجموع الكتب', 'Books subtotal');
   String get ordersTotalLabel => _s('الإجمالي', 'Total');
   String get ordersStatusLabel => _s('الحالة', 'Status');
+  String get ordersOrderDate => _s('تاريخ الطلب', 'Order date');
   String get ordersWarehouseLabel => _s('المستودع', 'Warehouse');
   String get ordersPublisherLabel => _s('الناشر', 'Publisher');
   String get ordersPayWithPayPal => _s('الدفع عبر PayPal', 'Pay with PayPal');
+  String get ordersPayByCard => _s('الدفع بالبطاقة', 'Pay by card');
+  String get ordersConfirmCardPayment =>
+      _s('تأكيد دفع البطاقة', 'Confirm card payment');
+  String get ordersStripeVerifyFailed => _s(
+        'تعذّر تأكيد دفع البطاقة. حاول مرة أخرى بعد إتمام الدفع في Stripe.',
+        'Could not confirm card payment. Try again after completing checkout in Stripe.',
+      );
   String get ordersConfirmWithWarehouse =>
       _s('تأكيد وإرسال إلى المستودع', 'Confirm & resubmit to warehouse');
   String get ordersAwaitingQuoteCustomerHint => _s(
@@ -284,6 +314,11 @@ class AppLocalizations {
   String get adminSupportEmail => _s('بريد الدعم', 'Support email');
   String get adminSupportPhone => _s('هاتف الدعم', 'Support phone');
   String get adminDefaultDiscount => _s('الخصم الافتراضي (%)', 'Default discount (%)');
+  String get adminCurrencySymbol => _s('رمز العملة لأسعار الكتب', 'Book price currency symbol');
+  String get adminCurrencySymbolHint => _s(
+        'مثال: \$ أو € أو JD. يغيّر الرمز المعروض فقط ولا يحوّل قيمة السعر.',
+        'Example: \$, €, or JD. Changes the displayed symbol only; prices are not converted.',
+      );
   String get adminDefaultDiscountHint => _s(
         'سيُطبَّق هذا الخصم على كل كتبك ما لم يُتجاوز بخصم خاص.',
         'Applied to all your books unless overridden.',

@@ -5,7 +5,9 @@ import '../api/api_service.dart';
 import '../config.dart';
 import '../models/book.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
 import '../utils/weight_format.dart';
+import '../utils/price_format.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -91,7 +93,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return;
     }
     final t = AppLocalizations.of(context);
-    final res = await ApiService.instance.addToCart(_book!.id, quantity: _qty);
+    final currencyCode = context.read<CurrencyProvider>().currencyCode;
+    final res = await ApiService.instance.addToCart(
+      _book!.id,
+      quantity: _qty,
+      currencyCode: currencyCode,
+    );
     if (!mounted) return;
     if (res.success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,7 +144,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             Row(
               children: [
                 Text(
-                  '\$${discountedPrice.toStringAsFixed(2)}',
+                  formatBookPrice(discountedPrice, b.currencySymbol),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
@@ -146,7 +153,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 if (finalDiscount > 0) ...[
                   const SizedBox(width: 8),
                   Text(
-                    '\$${price.toStringAsFixed(2)}',
+                    formatBookPrice(price, b.currencySymbol),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           decoration: TextDecoration.lineThrough,

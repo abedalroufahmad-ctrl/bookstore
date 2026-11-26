@@ -1,13 +1,44 @@
 import { Suspense } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
+import { publishersPublic, type CurrencyOption } from '../lib/api'
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
 import { SearchBox } from './SearchBox'
 
 export function Layout() {
   const { user, userType, logout } = useAuth()
   const { t, i18n } = useTranslation()
   const location = useLocation()
+  const { currencyCode, setCurrencyCode } = useCurrencyPreference()
+  const { data: publisherData } = useQuery({
+    queryKey: ['public-currency-options'],
+    queryFn: async () => {
+      const response = await publishersPublic.list({ per_page: 100 })
+      return response.data.data
+    },
+    staleTime: 300_000,
+  })
+  const currencyOptions = useMemo(() => {
+    const options = new Map<string, CurrencyOption>()
+    for (const publisher of publisherData?.data ?? []) {
+      const settings = publisher.public_settings
+      const currencies = settings?.currencies ?? []
+      for (const currency of currencies) {
+        if (/^[A-Z]{3}$/.test(currency.code)) options.set(currency.code, currency)
+      }
+      if (currencies.length === 0) {
+        options.set('USD', { code: 'USD', name: 'US Dollar', symbol: settings?.currency_symbol || '$' })
+      }
+    }
+    if (options.size === 0) options.set('USD', { code: 'USD', name: 'US Dollar', symbol: '$' })
+    if (!options.has(currencyCode)) {
+      options.set(currencyCode, { code: currencyCode, name: currencyCode, symbol: currencyCode })
+    }
+    return [...options.values()].sort((a, b) => a.code.localeCompare(b.code))
+  }, [currencyCode, publisherData])
   const isHomePage = location.pathname === '/'
   const isBooksPage = location.pathname === '/books' || location.pathname.startsWith('/books/')
   const isDirectSales = userType === 'employee' && user?.role === 'direct_sales'
@@ -19,6 +50,22 @@ export function Layout() {
 
   const navLinks = (
     <>
+      <label className="flex items-center gap-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+        <span>{t('common.currency', 'Currency')}</span>
+        <select
+          value={currencyCode}
+          onChange={(event) => setCurrencyCode(event.target.value)}
+          aria-label={t('common.currency', 'Currency')}
+          className="px-2 py-1 rounded border bg-white"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+        >
+          {currencyOptions.map((currency) => (
+            <option key={currency.code} value={currency.code}>
+              {currency.code} · {currency.symbol}
+            </option>
+          ))}
+        </select>
+      </label>
       <Link to="/books" className="text-sm py-2 font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.books')}</Link>
       <Link to="/authors" className="text-sm py-2 font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.authors')}</Link>
       <Link to="/categories" className="text-sm py-2 font-medium hover:opacity-80" style={{ color: 'var(--color-text)' }}>{t('nav.categories')}</Link>

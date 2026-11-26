@@ -71,6 +71,9 @@ export const AdminReportsBooksWithoutCover = lazy(() =>
     default: m.AdminReportsBooksWithoutCover,
   })),
 )
+export const PublisherReports = lazy(() =>
+  import('./pages/PublisherReports').then((m) => ({ default: m.PublisherReports })),
+)
 export const AdminWarehouseBrowse = lazy(() =>
   import('./pages/AdminWarehouseBrowse').then((m) => ({
     default: m.AdminWarehouseBrowse,

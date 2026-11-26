@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { authors as authorsApi } from '../lib/api'
 import { resolveCoverUrl } from '../lib/utils'
 import { Pagination } from '../components/Pagination'
-import { catalogGridStyle, useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
+import { catalogGridStyle } from '../contexts/settingsUtils'
 import type { Author } from '../lib/api'
 
 export function AuthorList() {

@@ -1,43 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { cart } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
-
-interface CartItem {
-  book_id: string
-  quantity: number
-  price: number
-  book?: {
-    title?: string
-    warehouse?: { id?: string; name?: string }
-    discount_percent?: number
-  }
-}
+import { cart, type CartItemDetail } from '../lib/api'
+import { useAuth } from '../contexts/authContextCore'
+import { useCurrencyPreference } from '../hooks/useCurrencyPreference'
+import { formatBookPrice } from '../lib/utils'
 
 export function CartPage() {
   const { userType } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
+  const { currencyCode } = useCurrencyPreference()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cart'],
+    queryKey: ['cart', currencyCode],
     queryFn: async () => {
-      const res = await cart.get()
+      const res = await cart.get(currencyCode)
       return res.data
     },
     enabled: userType === 'customer' || userType === 'employee',
   })
 
   const removeItem = useMutation({
-    mutationFn: (bookId: string) => cart.removeItem(bookId),
+    mutationFn: (bookId: string) => cart.removeItem(bookId, currencyCode),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   })
 
   const updateQty = useMutation({
-    mutationFn: ({ bookId, qty }: { bookId: string; qty: number }) =>
-      cart.updateItem(bookId, qty),
+    mutationFn: ({ bookId, qty, currency }: { bookId: string; qty: number; currency: string }) =>
+      cart.updateItem(bookId, qty, currency),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   })
 
@@ -48,8 +40,8 @@ export function CartPage() {
 
   if (isLoading) return <div className="text-center py-12">{t('cart.loading')}</div>
 
-  const items = data?.data?.items ?? []
-  const total = data?.data?.total ?? 0
+  const items: CartItemDetail[] = data?.data?.items ?? []
+  const total = data?.data?.total
 
   if (items.length === 0) {
     return (
@@ -60,16 +52,34 @@ export function CartPage() {
     )
   }
 
-  const groupedItems = items.reduce((acc: Record<string, { name: string; items: CartItem[]; subtotal: number }>, item: CartItem) => {
+  const lineCurrency = (item: CartItemDetail) =>
+    (item.currency_available ? currencyCode : item.book?.warehouse?.currency_code || item.currency_code || currencyCode).toUpperCase()
+
+  const groupedItems = items.reduce((acc: Record<string, { name: string; warehouseCurrency: string; currencyCode: string; items: CartItemDetail[]; subtotal: number; priced: boolean }>, item) => {
     const warehouseId = item.book?.warehouse?.id ?? 'unknown'
     const warehouseName = item.book?.warehouse?.name ?? t('cart.unknownWarehouse', 'Unknown Warehouse')
+    const itemCurrency = lineCurrency(item)
     if (!acc[warehouseId]) {
-      acc[warehouseId] = { name: warehouseName, items: [], subtotal: 0 }
+      acc[warehouseId] = {
+        name: warehouseName,
+        warehouseCurrency: (item.book?.warehouse?.currency_code || itemCurrency).toUpperCase(),
+        currencyCode: itemCurrency,
+        items: [],
+        subtotal: 0,
+        priced: true,
+      }
     }
     acc[warehouseId].items.push(item)
-    acc[warehouseId].subtotal += (item.price ?? 0) * (item.quantity ?? 0)
+    if (item.price == null || item.subtotal == null || lineCurrency(item) !== acc[warehouseId].currencyCode) {
+      acc[warehouseId].priced = false
+    } else {
+      acc[warehouseId].subtotal += item.subtotal
+    }
     return acc
   }, {})
+
+  const checkoutBlocked = items.some((item) => item.price == null)
+  const mixedWarehouseCurrencies = new Set(items.map((item) => lineCurrency(item))).size > 1
 
   return (
     <div>
@@ -85,14 +95,17 @@ export function CartPage() {
             <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
               <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                 <span>🏭</span> {group.name}
+                <span className="text-xs font-medium text-slate-500">{group.warehouseCurrency}</span>
               </h2>
               <span className="text-sm font-bold text-[var(--color-primary)]">
-                ${group.subtotal.toFixed(2)}
+                {group.priced
+                  ? formatBookPrice(group.subtotal, group.currencyCode, group.currencyCode)
+                  : t('cart.currencyUnavailable', 'Unavailable in {{currency}}', { currency: group.currencyCode })}
               </span>
             </div>
             
             <div className="p-4 space-y-4">
-              {group.items.map((item: CartItem) => (
+              {group.items.map((item) => (
                 <div
                   key={item.book_id}
                   className="flex items-center justify-between pb-4 border-b border-slate-100 last:border-0 last:pb-0"
@@ -100,7 +113,15 @@ export function CartPage() {
                   <div>
                     <p className="font-medium">{item.book?.title ?? t('common.book')}</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-slate-500">${item.price?.toFixed(2)} × {item.quantity}</p>
+                      {item.price == null ? (
+                        <p className="text-sm text-red-600">
+                          {t('cart.currencyUnavailable', 'Unavailable in {{currency}}', { currency: lineCurrency(item) })}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-500">
+                          {formatBookPrice(item.price, lineCurrency(item), lineCurrency(item))} × {item.quantity}
+                        </p>
+                      )}
                       {item.book?.discount_percent && item.book.discount_percent > 0 ? (
                         <span className="text-[10px] bg-[var(--color-primary-light)] text-[var(--color-primary)] px-1 rounded font-bold">
                           {t('discount.special', { percent: item.book.discount_percent })}
@@ -110,16 +131,17 @@ export function CartPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity - 1 })}
-                      disabled={item.quantity <= 1}
+                      onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity - 1, currency: lineCurrency(item) })}
+                      disabled={item.quantity <= 1 || item.price == null}
                       className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center"
                     >
                       −
                     </button>
                     <span className="w-6 text-center">{item.quantity}</span>
                     <button
-                      onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity + 1 })}
-                      className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 flex items-center justify-center"
+                      onClick={() => updateQty.mutate({ bookId: item.book_id, qty: item.quantity + 1, currency: lineCurrency(item) })}
+                      disabled={item.price == null}
+                      className="w-8 h-8 rounded bg-slate-200 hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center"
                     >
                       +
                     </button>
@@ -139,11 +161,17 @@ export function CartPage() {
       <div className="mt-8 flex justify-between items-center bg-slate-50 p-6 rounded-xl border border-slate-200">
         <div>
           <p className="text-sm text-slate-500 mb-1">{t('cart.grandTotal', 'Total across all warehouses')}</p>
-          <p className="text-2xl font-bold text-[var(--color-text)]">${total.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-[var(--color-text)]">
+            {total == null ? '—' : formatBookPrice(total, currencyCode, currencyCode)}
+          </p>
+          {mixedWarehouseCurrencies ? (
+            <p className="text-sm text-slate-500 mt-1">{t('cart.warehouseCurrencyNote')}</p>
+          ) : null}
         </div>
         <Link
           to="/checkout"
-          className="px-8 py-3 rounded-lg font-bold text-white hover:opacity-90 transition-opacity shadow-sm"
+          aria-disabled={checkoutBlocked}
+          className={`px-8 py-3 rounded-lg font-bold text-white transition-opacity shadow-sm ${checkoutBlocked ? 'opacity-50 pointer-events-none' : 'hover:opacity-90'}`}
           style={{ background: 'var(--color-primary)' }}
         >
           {t('cart.checkout')}

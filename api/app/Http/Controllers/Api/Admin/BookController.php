@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BookStoreRequest;
 use App\Http\Requests\Admin\BookUpdateRequest;
 use App\Http\Requests\Admin\BulkDeleteBooksRequest;
 use App\Infrastructure\Services\BookService;
+use App\Models\Publisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -86,6 +87,9 @@ class BookController extends BaseApiController
             }
             $data['publisher_id'] = $publisherId;
             $data['publisher_ids'] = [$publisherId];
+        }
+        if ($priceError = $this->validateBookPrices($data)) {
+            return $priceError;
         }
 
         $warehouseIds = array_values(array_unique(array_filter(array_map(
@@ -212,6 +216,9 @@ class BookController extends BaseApiController
             $data['publisher_ids'] = $ids !== [] ? $ids : ($managed ? [$managed] : []);
             $data['publisher_id'] = $managed;
         }
+        if ($priceError = $this->validateBookPrices($data, (string) ($existing->publisher_id ?? ''))) {
+            return $priceError;
+        }
         if ($denied = $this->denyUnmanagedBookWarehouse($employee, $existing)) {
             return $denied;
         }
@@ -253,6 +260,7 @@ class BookController extends BaseApiController
                 'cover_image_thumb' => $book->cover_image_thumb,
                 'description' => $book->description,
                 'price' => $book->price,
+                'prices' => $book->prices,
                 'pages' => $book->pages,
                 'isbn' => $isbn,
                 'publish_year' => $book->publish_year,
@@ -367,6 +375,51 @@ class BookController extends BaseApiController
         $data['publisher_id'] = $ids[0] ?? null;
 
         return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function validateBookPrices(array &$data, ?string $fallbackPublisherId = null): ?JsonResponse
+    {
+        if (! array_key_exists('prices', $data)) {
+            return null;
+        }
+        if (! is_array($data['prices']) || $data['prices'] === []) {
+            return $this->errorResponse('At least one currency price is required.', 422);
+        }
+
+        foreach ($data['prices'] as $code => $price) {
+            if (! is_string($code) || ! preg_match('/^[A-Z]{3}$/', $code) || ! is_numeric($price) || (float) $price < 0) {
+                return $this->errorResponse('Book prices must use valid three-letter currency codes and non-negative amounts.', 422);
+            }
+        }
+
+        $publisherId = (string) ($data['publisher_id'] ?? ($data['publisher_ids'][0] ?? $fallbackPublisherId ?? ''));
+        $publisher = $publisherId !== '' ? Publisher::query()->find($publisherId) : null;
+        $settings = is_array($publisher?->settings) ? $publisher->settings : [];
+        $enabledCodes = array_column(
+            array_filter($settings['currencies'] ?? [], 'is_array'),
+            'code'
+        );
+        if ($enabledCodes === []) {
+            $enabledCodes = ['USD'];
+        }
+        if ($enabledCodes === []) {
+            return $this->errorResponse('Configure currencies for this publisher before adding currency-specific book prices.', 422);
+        }
+
+        if (array_diff(array_keys($data['prices']), $enabledCodes) !== []) {
+            return $this->errorResponse('Book prices may only use currencies enabled by its publisher.', 422);
+        }
+
+        $defaultCode = (string) ($settings['default_currency_code'] ?? 'USD');
+        if (! array_key_exists($defaultCode, $data['prices'])) {
+            return $this->errorResponse('A price is required in the publisher default currency.', 422);
+        }
+        $data['price'] = (float) $data['prices'][$defaultCode];
+
+        return null;
     }
 
     /**

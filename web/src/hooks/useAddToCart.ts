@@ -1,24 +1,27 @@
+import axios from 'axios'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { cart } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/authContextCore'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useCurrencyPreference } from './useCurrencyPreference'
 
 export function useAddToCart() {
   const { userType } = useAuth()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { currencyCode } = useCurrencyPreference()
 
   const addToCartMutation = useMutation({
-    mutationFn: (bookId: string) => cart.addItem(bookId, 1),
+    mutationFn: (bookId: string) => cart.addItem(bookId, 1, currencyCode),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
   })
 
   const { data: cartData } = useQuery({
-    queryKey: ['cart'],
+    queryKey: ['cart', currencyCode],
     queryFn: async () => {
-      const res = await cart.get()
+      const res = await cart.get(currencyCode)
       return res.data
     },
     enabled: userType === 'customer',
@@ -32,12 +35,14 @@ export function useAddToCart() {
       return
     }
     addToCartMutation.mutate(bookId, {
-      onError: (err: any) => {
-        if (err?.response?.status === 401) {
+      onError: (err: unknown) => {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
           navigate('/login')
           return
         }
-        const message = err?.response?.data?.message ?? t('common.error')
+        const message = axios.isAxiosError<{ message?: string }>(err)
+          ? err.response?.data?.message ?? t('common.error')
+          : t('common.error')
         alert(message)
       },
     })

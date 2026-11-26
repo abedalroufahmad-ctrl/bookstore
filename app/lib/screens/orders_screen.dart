@@ -5,6 +5,8 @@ import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/order.dart';
 import '../providers/auth_provider.dart';
+import '../utils/currency_symbol.dart';
+import '../utils/price_format.dart';
 import 'order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -86,6 +88,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 itemCount: _orders.length,
                 itemBuilder: (context, i) {
                   final o = _orders[i];
+                  final symbol = orderCurrencySymbol(o);
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
@@ -97,7 +100,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          '\$${o.total.toStringAsFixed(2)} • ${t.orderStatus(o.status)}'
+                          '${formatBookPrice(o.total, symbol)} • ${t.orderStatus(o.status)}'
                           '${(o.paymentStatus != null && o.paymentStatus!.trim().isNotEmpty) ? '\n${t.paymentStatusLabel}: ${o.paymentStatus}' : ''}',
                           style: Theme.of(context).textTheme.bodySmall,
                           maxLines: 4,

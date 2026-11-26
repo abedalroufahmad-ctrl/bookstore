@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Publisher;
 use App\Models\Warehouse;
+use App\Support\CurrencyAmount;
 
 class PublisherPayoutService
 {
@@ -19,12 +20,12 @@ class PublisherPayoutService
      *     payout_paypal_merchant_id: string|null
      * }
      */
-    public function snapshotForWarehouse(string $warehouseId, float $booksSubtotal): array
+    public function snapshotForWarehouse(string $warehouseId, float $booksSubtotal, string $currencyCode = 'USD'): array
     {
         $warehouse = Warehouse::query()->with('publisher')->find($warehouseId);
         $publisher = $warehouse?->publisher instanceof Publisher ? $warehouse->publisher : null;
 
-        return $this->snapshotForPublisher($publisher, $booksSubtotal);
+        return $this->snapshotForPublisher($publisher, $booksSubtotal, $currencyCode);
     }
 
     /**
@@ -36,11 +37,11 @@ class PublisherPayoutService
      *     payout_paypal_merchant_id: string|null
      * }
      */
-    public function snapshotForPublisher(?Publisher $publisher, float $booksSubtotal): array
+    public function snapshotForPublisher(?Publisher $publisher, float $booksSubtotal, string $currencyCode = 'USD'): array
     {
         $settings = is_array($publisher?->settings) ? $publisher->settings : [];
 
-        return $this->snapshotFromSettings($settings, $booksSubtotal);
+        return $this->snapshotFromSettings($settings, $booksSubtotal, $currencyCode);
     }
 
     /**
@@ -58,10 +59,14 @@ class PublisherPayoutService
     {
         $percent = $order->platform_commission_percent;
         if ($percent === null || $percent === '') {
-            return $this->snapshotForWarehouse((string) ($order->warehouse_id ?? ''), $booksSubtotal);
+            return $this->snapshotForWarehouse(
+                (string) ($order->warehouse_id ?? ''),
+                $booksSubtotal,
+                (string) ($order->currency_code ?? 'USD')
+            );
         }
 
-        $amounts = $this->amountsForPercent($percent, $booksSubtotal);
+        $amounts = $this->amountsForPercent($percent, $booksSubtotal, (string) ($order->currency_code ?? 'USD'));
 
         return [
             'platform_commission_percent' => $amounts['platform_commission_percent'],
@@ -82,9 +87,9 @@ class PublisherPayoutService
      *     payout_paypal_merchant_id: string|null
      * }
      */
-    public function snapshotFromSettings(array $settings, float $booksSubtotal): array
+    public function snapshotFromSettings(array $settings, float $booksSubtotal, string $currencyCode = 'USD'): array
     {
-        $amounts = $this->amountsForPercent($settings['platform_commission_percent'] ?? 0, $booksSubtotal);
+        $amounts = $this->amountsForPercent($settings['platform_commission_percent'] ?? 0, $booksSubtotal, $currencyCode);
 
         return [
             'platform_commission_percent' => $amounts['platform_commission_percent'],
@@ -98,11 +103,11 @@ class PublisherPayoutService
     /**
      * @return array{platform_commission_percent: float, platform_commission_amount: float, publisher_payout_amount: float}
      */
-    public function amountsForPercent(mixed $percent, float $booksSubtotal): array
+    public function amountsForPercent(mixed $percent, float $booksSubtotal, string $currencyCode = 'USD'): array
     {
         $rate = $this->normalizePercent($percent);
-        $booksSubtotal = round(max(0, $booksSubtotal), 2);
-        $commission = round($booksSubtotal * ($rate / 100), 2);
+        $booksSubtotal = CurrencyAmount::round(max(0, $booksSubtotal), $currencyCode);
+        $commission = CurrencyAmount::round($booksSubtotal * ($rate / 100), $currencyCode);
         if ($commission > $booksSubtotal) {
             $commission = $booksSubtotal;
         }
@@ -110,7 +115,7 @@ class PublisherPayoutService
         return [
             'platform_commission_percent' => $rate,
             'platform_commission_amount' => $commission,
-            'publisher_payout_amount' => round($booksSubtotal - $commission, 2),
+            'publisher_payout_amount' => CurrencyAmount::round($booksSubtotal - $commission, $currencyCode),
         ];
     }
 

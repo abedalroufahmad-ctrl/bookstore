@@ -36,6 +36,13 @@
       0 => 'Termwind\\Laravel\\TermwindServiceProvider',
     ),
   ),
+  'provydon/docs-generate' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'SwaggerAuto\\Providers\\DocsGenerateServiceProvider',
+    ),
+  ),
   'spatie/laravel-ignition' => 
   array (
     'aliases' => 

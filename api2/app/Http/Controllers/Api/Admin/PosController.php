@@ -1,0 +1,246 @@
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Domain\Auth\Enums\UserRole;
+use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Admin\PosInvoiceStoreRequest;
+use App\Infrastructure\Services\BookService;
+use App\Models\Order;
+use App\Models\Warehouse;
+use App\Services\OrderService;
+use App\Services\PosReportAggregator;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class PosController extends BaseApiController
+{
+    public function __construct(
+        protected OrderService $orderService,
+        protected BookService $bookService,
+        protected PosReportAggregator $posReportAggregator
+    ) {}
+
+    /**
+     * Sellable catalog for the POS terminal.
+     * Direct-sales staff are limited to their assigned warehouse(s).
+     * Warehouse / publisher managers stay scoped to their managed records.
+     */
+    public function books(Request $request): JsonResponse
+    {
+        $employee = auth('employee')->user();
+        $filters = [
+            'in_stock' => true,
+            'is_visible' => true,
+            'is_sold' => false,
+        ];
+        if ($request->filled('search') && is_string($request->get('search'))) {
+            $filters['search'] = $request->get('search');
+        }
+        if ($request->filled('warehouse_id') && is_string($request->get('warehouse_id'))) {
+            $filters['warehouse_id'] = $request->get('warehouse_id');
+        }
+        if ($request->filled('publisher_id') && is_string($request->get('publisher_id'))) {
+            $filters['publisher_id'] = $request->get('publisher_id');
+        }
+
+        if ($employee && (
+            UserRole::isWarehouseScoped($employee->role)
+            || $employee->role === UserRole::DirectSales->value
+        )) {
+            $managedIds = $employee->getManagedWarehouseIds();
+            $filters['warehouse_ids'] = empty($managedIds) ? ['__none__'] : $managedIds;
+        } elseif ($employee && UserRole::isPublisherScoped($employee->role)) {
+            $filters['publisher_id'] = $employee->getManagedPublisherId() ?? '__none__';
+        }
+
+        $filters['with'] = ['authors', 'warehouse', 'publisher', 'category'];
+        $perPage = min((int) $request->get('per_page', 24), 100);
+        $books = $this->bookService->getAll($filters, $perPage);
+
+        return $this->successResponse($books);
+    }
+
+    public function createInvoice(PosInvoiceStoreRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $employee = auth('employee')->user();
+        $warehouseId = (string) $validated['warehouse_id'];
+        $warehouse = Warehouse::with('publisher')->find($warehouseId);
+        if (! $warehouse) {
+            return $this->errorResponse('Warehouse not found.', 404);
+        }
+
+        if ($deny = $this->forbidWarehouseForSale($employee, $warehouse)) {
+            return $deny;
+        }
+
+        $customerName = trim((string) ($validated['customer_name'] ?? ''));
+
+        try {
+            $order = $this->orderService->createPosInvoice(
+                $validated['items'],
+                $warehouseId,
+                $employee?->getKey(),
+                $customerName !== '' ? $customerName : null,
+                strtoupper((string) (data_get($warehouse->publisher?->settings, 'default_currency_code') ?: 'USD'))
+            );
+
+            return $this->successResponse(
+                $this->hidePayoutsForDirectSalesEmployee($order, $employee),
+                'Invoice created successfully',
+                201
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->domainErrorResponse($e);
+        } catch (\Throwable $e) {
+            return $this->errorResponse(config('app.debug') ? $e->getMessage() : 'Failed to create invoice.', 500);
+        }
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $employee = auth('employee')->user();
+        $query = $this->scopedInvoiceQuery($employee);
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', (string) $request->get('warehouse_id'));
+        }
+        if ($request->filled('search')) {
+            $search = (string) $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('customer_name', 'like', '%'.$search.'%')
+                    ->orWhere('id', $search);
+            });
+        }
+
+        $perPage = min((int) $request->get('per_page', 25), 100);
+        $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $orders->getCollection()->transform(
+            fn (Order $order) => $this->hidePayoutsForDirectSalesEmployee($order, $employee)
+        );
+
+        return $this->successResponse($orders);
+    }
+
+    public function show(string $id): JsonResponse
+    {
+        $employee = auth('employee')->user();
+        $order = $this->scopedInvoiceQuery($employee)->find($id);
+        if (! $order) {
+            return $this->errorResponse('Invoice not found', 404);
+        }
+
+        $order = $this->orderService->getOrderById((string) $order->getKey(), null, ['warehouse.publisher', 'employee']);
+        if (! $order) {
+            return $this->errorResponse('Invoice not found', 404);
+        }
+
+        return $this->successResponse($this->hidePayoutsForDirectSalesEmployee($order, $employee));
+    }
+
+    public function reports(Request $request): JsonResponse
+    {
+        $employee = auth('employee')->user();
+        $query = $this->scopedInvoiceQuery($employee);
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', (string) $request->get('warehouse_id'));
+        }
+
+        $type = $request->get('type', 'daily');
+        $timezone = $this->posReportAggregator->resolveTimezone(
+            $request->get('timezone'),
+            $request->get('utc_offset_minutes')
+        );
+
+        $aggregated = $this->posReportAggregator->aggregateDailyBuckets(
+            $this->posReportAggregator->fetchDailyBuckets($query, $timezone),
+            is_string($type) ? $type : 'daily',
+            $timezone
+        );
+
+        return $this->successResponse($aggregated);
+    }
+
+    private function scopedInvoiceQuery($employee)
+    {
+        $query = Order::where('is_direct_sale', true);
+
+        if (! $employee) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($employee->role === UserRole::Manager->value) {
+            return $query;
+        }
+
+        if ($employee->role === UserRole::DirectSales->value) {
+            // Own POS invoices only — never online orders, never other staff's POS.
+            return $query->where('employee_id', (string) $employee->getKey());
+        }
+
+        if (UserRole::isWarehouseScoped($employee->role)) {
+            $managedIds = $employee->getManagedWarehouseIds();
+            if (empty($managedIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereIn('warehouse_id', $managedIds);
+        }
+
+        if (UserRole::isPublisherScoped($employee->role)) {
+            $pubId = $employee->getManagedPublisherId();
+            if (! $pubId) {
+                return $query->whereRaw('1 = 0');
+            }
+            $whIds = Warehouse::where('publisher_id', $pubId)->pluck('id')->map(fn ($id) => (string) $id)->all();
+            if (empty($whIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereIn('warehouse_id', $whIds);
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
+
+    private function hidePayoutsForDirectSalesEmployee(Order $order, $employee): Order
+    {
+        return $employee?->role === UserRole::DirectSales->value
+            ? $order->hideInternalPayouts()
+            : $order;
+    }
+
+    private function forbidWarehouseForSale($employee, Warehouse $warehouse): ?JsonResponse
+    {
+        if (! $employee) {
+            return $this->errorResponse('Unauthenticated.', 401);
+        }
+
+        $warehouseId = (string) $warehouse->getKey();
+
+        if ($employee->role === UserRole::Manager->value) {
+            return null;
+        }
+
+        if ($employee->role === UserRole::DirectSales->value
+            && ! $employee->managesWarehouse($warehouseId)) {
+            return $this->errorResponse('Forbidden. You can only create invoices for your assigned warehouses.', 403);
+        }
+
+        if (UserRole::isWarehouseScoped($employee->role) && ! $employee->managesWarehouse($warehouseId)) {
+            return $this->errorResponse('Forbidden. You can only create invoices for your assigned warehouses.', 403);
+        }
+
+        if (UserRole::isPublisherScoped($employee->role)) {
+            $pubId = $employee->getManagedPublisherId();
+            if (! $pubId || (string) $warehouse->publisher_id !== $pubId) {
+                return $this->errorResponse('Forbidden. You can only create invoices for your publisher\'s warehouses.', 403);
+            }
+        }
+
+        return null;
+    }
+}

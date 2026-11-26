@@ -9,6 +9,7 @@ use App\Models\Book;
 use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\Setting;
+use App\Support\CurrencyAmount;
 use Illuminate\Support\Collection;
 
 class CartService extends BaseService implements CartServiceInterface
@@ -32,7 +33,7 @@ class CartService extends BaseService implements CartServiceInterface
         return $cart;
     }
 
-    public function addBook(Cart $cart, string $bookId, int $quantity = 1): Cart
+    public function addBook(Cart $cart, string $bookId, int $quantity = 1, ?string $currencyCode = null): Cart
     {
         $book = Book::find($bookId);
         if (! $book) {
@@ -54,12 +55,14 @@ class CartService extends BaseService implements CartServiceInterface
             $newQty = ($items[$existingIndex]['quantity'] ?? 0) + $quantity;
             $this->assertBookPurchasable($book, $newQty);
             $items[$existingIndex]['quantity'] = $newQty;
-            $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book);
+            $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book, $currencyCode);
+            $items[$existingIndex]['currency_code'] = $currencyCode;
         } else {
             $items[] = [
                 'book_id' => $bookId,
                 'quantity' => $quantity,
-                'price' => $this->calculateDiscountedPrice($book),
+                'price' => $this->calculateDiscountedPrice($book, $currencyCode),
+                'currency_code' => $currencyCode,
             ];
         }
 
@@ -80,7 +83,7 @@ class CartService extends BaseService implements CartServiceInterface
         return $cart->fresh();
     }
 
-    public function updateQuantity(Cart $cart, string $bookId, int $quantity): Cart
+    public function updateQuantity(Cart $cart, string $bookId, int $quantity, ?string $currencyCode = null): Cart
     {
         if ($quantity <= 0) {
             return $this->removeBook($cart, $bookId);
@@ -107,7 +110,8 @@ class CartService extends BaseService implements CartServiceInterface
         }
 
         $items[$existingIndex]['quantity'] = $quantity;
-        $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book);
+        $items[$existingIndex]['price'] = $this->calculateDiscountedPrice($book, $currencyCode);
+        $items[$existingIndex]['currency_code'] = $currencyCode;
 
         $this->cartRepository->update($cart->getKey(), ['items' => $items]);
 
@@ -127,22 +131,31 @@ class CartService extends BaseService implements CartServiceInterface
         }
     }
 
-    public function calculateTotal(Cart $cart): float
+    public function calculateTotal(Cart $cart, ?string $currencyCode = null): ?float
     {
-        $items = $this->repriceItems($cart->items ?? []);
+        try {
+            $items = $this->repriceItems($cart->items ?? [], $currencyCode);
+        } catch (\InvalidArgumentException $e) {
+            if (str_contains($e->getMessage(), 'not offered in')) {
+                return null;
+            }
+            throw $e;
+        }
 
-        return collect($items)->reduce(function (float $total, array $item) {
+        $total = collect($items)->reduce(function (float $total, array $item) {
             return $total + (($item['price'] ?? 0) * ($item['quantity'] ?? 0));
         }, 0.0);
+
+        return CurrencyAmount::round($total, $currencyCode ?? 'USD');
     }
 
     /**
      * @param  array<int, array<string, mixed>>  $items
      * @return array<int, array<string, mixed>>
      */
-    public function repriceItems(array $items): array
+    public function repriceItems(array $items, ?string $currencyCode = null): array
     {
-        $books = $this->loadBooksById($items);
+        $books = $this->loadBooksById($items, ['publisher']);
         $repriced = [];
         foreach ($items as $item) {
             $bookId = $item['book_id'] ?? null;
@@ -166,7 +179,8 @@ class CartService extends BaseService implements CartServiceInterface
             $repriced[] = [
                 'book_id' => (string) $bookId,
                 'quantity' => $qty,
-                'price' => $this->calculateDiscountedPrice($book),
+                'price' => $this->calculateDiscountedPrice($book, $currencyCode),
+                'currency_code' => $currencyCode ?? ($book ? $this->defaultCurrencyCode($book) : (string) ($item['currency_code'] ?? 'USD')),
                 'book_title' => $book->title,
                 'weight' => $book->weight !== null && is_numeric($book->weight)
                     ? round((float) $book->weight, 3)
@@ -182,28 +196,61 @@ class CartService extends BaseService implements CartServiceInterface
         $this->cartRepository->update($cart->getKey(), ['status' => CartStatus::Converted->value]);
     }
 
-    public function getItemsWithDetails(Cart $cart): Collection
+    public function getItemsWithDetails(Cart $cart, ?string $currencyCode = null): Collection
     {
         $items = collect($cart->items ?? []);
         $books = $this->loadBooksById($items->all(), ['warehouse', 'publisher']);
 
-        return $items->map(function (array $item) use ($books) {
+        return $items->map(function (array $item) use ($books, $currencyCode) {
             $book = $books[(string) ($item['book_id'] ?? '')] ?? null;
-            $currentPrice = $book ? $this->calculateDiscountedPrice($book) : ($item['price'] ?? 0);
+            $currentPrice = null;
+            $currencyAvailable = false;
+            $offeredCode = $currencyCode !== null ? strtoupper($currencyCode) : 'USD';
+            if ($book) {
+                $warehouseCurrency = $this->defaultCurrencyCode($book);
+                $offeredCode = $currencyCode !== null ? strtoupper($currencyCode) : $warehouseCurrency;
+                try {
+                    $currentPrice = $this->calculateDiscountedPrice($book, $currencyCode);
+                    $currencyAvailable = true;
+                } catch (\InvalidArgumentException $e) {
+                    if (! str_contains($e->getMessage(), 'not offered in')) {
+                        throw $e;
+                    }
+                    // Shopper currency is not sold by this warehouse's publisher.
+                    // Still show the price in the publisher's currency.
+                    $offeredCode = $warehouseCurrency;
+                    try {
+                        $currentPrice = $this->calculateDiscountedPrice($book, $offeredCode);
+                    } catch (\InvalidArgumentException) {
+                        $currentPrice = null;
+                    }
+                }
+            }
 
             return [
                 'book_id' => $item['book_id'],
                 'quantity' => $item['quantity'],
                 'price' => $currentPrice,
-                'subtotal' => round($currentPrice * ($item['quantity'] ?? 0), 2),
+                'subtotal' => $currentPrice === null
+                    ? null
+                    : CurrencyAmount::round(
+                        $currentPrice * ($item['quantity'] ?? 0),
+                        $offeredCode
+                    ),
+                'currency_code' => $offeredCode,
+                'currency_symbol' => $book ? $this->currencySymbol($book, $offeredCode) : $offeredCode,
+                'currency_available' => $currencyAvailable,
                 'book' => $book ? [
                     'id' => $book->getKey(),
                     'title' => $book->title,
                     'price' => $book->price,
+                    'prices' => $book->prices,
                     'discount_percent' => $book->discount_percent,
                     'warehouse' => $book->warehouse ? [
                         'id' => $book->warehouse->getKey(),
                         'name' => $book->warehouse->name,
+                        'currency_code' => $this->defaultCurrencyCode($book),
+                        'currency_symbol' => $this->currencySymbol($book, $this->defaultCurrencyCode($book)),
                     ] : null,
                     'publisher' => $book->publisher ? [
                         'id' => $book->publisher->getKey(),
@@ -240,13 +287,87 @@ class CartService extends BaseService implements CartServiceInterface
         return $byId;
     }
 
-    protected function calculateDiscountedPrice(Book $book): float
+    protected function calculateDiscountedPrice(Book $book, ?string $currencyCode = null): float
     {
+        $currencyCode = $currencyCode !== null ? strtoupper($currencyCode) : null;
+        $prices = is_array($book->prices) ? $book->prices : [];
+        if ($currencyCode !== null) {
+            $settings = is_array($book->publisher?->settings) ? $book->publisher->settings : [];
+            $enabledCodes = array_column(
+                array_filter($settings['currencies'] ?? [], 'is_array'),
+                'code'
+            );
+            if ($enabledCodes === []) {
+                $enabledCodes = ['USD'];
+            }
+            if (! in_array($currencyCode, $enabledCodes, true)) {
+                throw new \InvalidArgumentException("This book is not offered in {$currencyCode}.");
+            }
+            if (array_key_exists($currencyCode, $prices)) {
+                $basePrice = (float) $prices[$currencyCode];
+            } elseif ($currencyCode === $this->defaultCurrencyCode($book)) {
+                $basePrice = (float) $book->price;
+            } else {
+                throw new \InvalidArgumentException("This book is not offered in {$currencyCode}.");
+            }
+        } else {
+            $basePrice = (float) $book->price;
+        }
+
         $discount = $book->discount_percent;
         if (! $discount || $discount <= 0) {
             $discount = Setting::get('global_discount', 0);
         }
 
-        return round($book->price * (1 - $discount / 100), 2);
+        return CurrencyAmount::round(
+            $basePrice * (1 - $discount / 100),
+            $currencyCode ?? $this->defaultCurrencyCode($book)
+        );
+    }
+
+    private function defaultCurrencyCode(Book $book): string
+    {
+        $settings = $this->publisherSettings($book);
+
+        return strtoupper((string) ($settings['default_currency_code'] ?? 'USD'));
+    }
+
+    private function currencySymbol(Book $book, string $currencyCode): string
+    {
+        $currencyCode = strtoupper($currencyCode);
+        $settings = $this->publisherSettings($book);
+        foreach ($settings['currencies'] ?? [] as $currency) {
+            if (! is_array($currency)) {
+                continue;
+            }
+            if (strtoupper((string) ($currency['code'] ?? '')) !== $currencyCode) {
+                continue;
+            }
+            $symbol = trim((string) ($currency['symbol'] ?? ''));
+            if ($symbol !== '') {
+                return $symbol;
+            }
+        }
+
+        if ($currencyCode === strtoupper((string) ($settings['default_currency_code'] ?? 'USD'))) {
+            $symbol = trim((string) ($settings['currency_symbol'] ?? ''));
+            if ($symbol !== '') {
+                return $symbol;
+            }
+        }
+
+        return $currencyCode;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function publisherSettings(Book $book): array
+    {
+        if (! $book->relationLoaded('publisher')) {
+            $book->load('publisher');
+        }
+
+        return is_array($book->publisher?->settings) ? $book->publisher->settings : [];
     }
 }

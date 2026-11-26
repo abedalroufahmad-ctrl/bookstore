@@ -15,6 +15,7 @@ class UpdateCartItemRequest extends BaseFormRequest
     {
         return [
             'quantity' => ['required', 'integer', 'min:0'],
+            'currency_code' => ['sometimes', 'string', 'regex:/^[A-Z]{3}$/'],
         ];
     }
 }

@@ -9,9 +9,10 @@
         "php": "^8.2",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
-        "mongodb/laravel-mongodb": "^4.0",
-        "mongodb/mongodb": "^1.21.4",
+        "mongodb/laravel-mongodb": "^4.9",
+        "mongodb/mongodb": "^2.1",
         "phpoffice/phpspreadsheet": "^5.5",
+        "provydon/docs-generate": "^1.2",
         "tymon/jwt-auth": "^2.0"
     },
     "require-dev": {

@@ -55,6 +55,17 @@ class Book {
 
   bool get isPurchasable => isVisible && !isSold && stockQuantity > 0;
 
+  String get currencySymbol {
+    final symbol = [
+      publisher?.currencySymbol,
+      ...?publishers?.map((publisher) => publisher.currencySymbol),
+    ].whereType<String>().map((symbol) => symbol.trim()).firstWhere(
+          (symbol) => symbol.isNotEmpty,
+          orElse: () => r'$',
+        );
+    return symbol;
+  }
+
   /// Well-known placeholder hosts that don't count as real covers.
   static const _placeholderHosts = [
     'via.placeholder.com',
@@ -225,15 +236,67 @@ class Category {
 }
 
 class Publisher {
-  Publisher({required this.id, this.name});
+  Publisher({
+    required this.id,
+    this.name,
+    this.currencySymbol,
+    this.defaultCurrencyCode,
+    this.currencies = const [],
+  });
 
   final String id;
   final String? name;
+  final String? currencySymbol;
+  final String? defaultCurrencyCode;
+  final List<ShopCurrencyInfo> currencies;
 
   factory Publisher.fromJson(Map<String, dynamic> json) {
     final id = json['_id'] ?? json['id'] ?? '';
-    return Publisher(id: id.toString(), name: json['name']);
+    final settings = json['public_settings'] ?? json['settings'];
+    final currencies = <ShopCurrencyInfo>[];
+    if (settings is Map) {
+      final rawList = settings['currencies'];
+      if (rawList is List) {
+        for (final item in rawList) {
+          if (item is Map) {
+            final code = item['code']?.toString().toUpperCase() ?? '';
+            if (RegExp(r'^[A-Z]{3}$').hasMatch(code)) {
+              currencies.add(
+                ShopCurrencyInfo(
+                  code: code,
+                  symbol: item['symbol']?.toString() ?? code,
+                  name: item['name']?.toString() ?? code,
+                ),
+              );
+            }
+          }
+        }
+      }
+    }
+    return Publisher(
+      id: id.toString(),
+      name: json['name'],
+      currencySymbol: settings is Map
+          ? settings['currency_symbol']?.toString()
+          : json['currency_symbol']?.toString(),
+      defaultCurrencyCode: settings is Map
+          ? settings['default_currency_code']?.toString().toUpperCase()
+          : null,
+      currencies: currencies,
+    );
   }
+}
+
+class ShopCurrencyInfo {
+  const ShopCurrencyInfo({
+    required this.code,
+    required this.symbol,
+    this.name = '',
+  });
+
+  final String code;
+  final String symbol;
+  final String name;
 }
 
 class Warehouse {

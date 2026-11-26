@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\EmployeeAuthController;
 use App\Http\Controllers\Api\EmployeeOrderController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PayPalController;
+use App\Http\Controllers\Api\StripeController;
 use App\Http\Controllers\Api\PublicAuthorController;
 use App\Http\Controllers\Api\PublicBookController;
 use App\Http\Controllers\Api\PublicCategoryController;
@@ -78,6 +79,7 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
             Route::get('publishers/{id}/settings', [PublisherController::class, 'getSettings']);
             Route::put('publishers/{id}/settings', [PublisherController::class, 'updateSettings']);
             Route::get('publishers/{id}/commission-account', [PublisherController::class, 'commissionAccount']);
+            Route::get('publishers/{id}/order-totals', [PublisherController::class, 'orderTotals']);
             Route::post('publishers/{id}/commission-settlements', [PublisherController::class, 'storeCommissionSettlement']);
         });
 
@@ -95,6 +97,7 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
 
         // Categories write + publishers CRUD + warehouse create/delete: managers only
         Route::middleware('role:manager')->group(function () {
+            Route::get('settings/order-totals', [SettingController::class, 'orderTotals']);
             Route::post('categories', [CategoryController::class, 'store']);
             Route::put('categories/{id}', [CategoryController::class, 'update']);
             Route::delete('categories/{id}', [CategoryController::class, 'destroy']);
@@ -190,6 +193,9 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
 
             Route::post('orders/checkout', [OrderController::class, 'checkout'])->middleware('throttle:30,1');
             Route::post('orders/paypal/start', [PayPalController::class, 'start'])->middleware('throttle:30,1');
+            Route::post('orders/{id}/paypal/simulate', [PayPalController::class, 'simulateSandboxPayment'])->middleware('throttle:30,1');
+            Route::post('orders/{id}/stripe/start', [StripeController::class, 'start'])->middleware('throttle:30,1');
+            Route::post('orders/{id}/stripe/verify', [StripeController::class, 'verify'])->middleware('throttle:30,1');
             Route::get('orders', [OrderController::class, 'index']);
             Route::post('orders/{id}/confirm-quote', [OrderController::class, 'confirmQuote']);
             Route::get('orders/{id}', [OrderController::class, 'show']);

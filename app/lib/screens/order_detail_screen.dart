@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/order.dart';
+import '../utils/price_format.dart';
+import '../utils/stripe_checkout.dart';
 
 /// Customer view of one order (`GET /customers/orders/{id}`), mirrors web OrderDetail.tsx.
 class OrderDetailScreen extends StatefulWidget {
@@ -15,18 +17,43 @@ class OrderDetailScreen extends StatefulWidget {
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen>
+    with WidgetsBindingObserver {
   Order? _order;
   bool _loading = true;
   String? _error;
   bool _confirmBusy = false;
   bool _paypalBusy = false;
+  bool _stripeBusy = false;
+  bool _stripeVerifyBusy = false;
+  String? _pendingStripeSessionId;
   String? _actionMessage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _pendingStripeSessionId != null &&
+        !_stripeVerifyBusy) {
+      _verifyStripePayment(_pendingStripeSessionId!);
+    }
+  }
+
+  static bool _isStripePaymentMethod(String? method) {
+    final normalized = (method ?? '').toLowerCase();
+    return normalized == 'stripe' || normalized == 'card';
   }
 
   Future<void> _load() async {
@@ -127,6 +154,71 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     setState(() => _actionMessage = res.message);
   }
 
+  Future<void> _startStripe() async {
+    if (_stripeBusy || _stripeVerifyBusy || _order == null) return;
+    setState(() {
+      _stripeBusy = true;
+      _actionMessage = null;
+    });
+    final res = await ApiService.instance.stripeStart(_order!.id);
+    if (!mounted) return;
+    setState(() => _stripeBusy = false);
+
+    String? checkoutUrl;
+    String? sessionId;
+    if (res.success && res.data != null) {
+      final data = res.data!;
+      final rawUrl = data['checkout_url'];
+      final rawSession = data['session_id'];
+      checkoutUrl =
+          rawUrl == null || rawUrl.toString().trim().isEmpty ? null : rawUrl.toString();
+      sessionId = rawSession == null || rawSession.toString().trim().isEmpty
+          ? null
+          : rawSession.toString();
+    }
+
+    if (res.success &&
+        checkoutUrl != null &&
+        sessionId != null &&
+        isTrustedStripeCheckoutUrl(checkoutUrl)) {
+      final uri = Uri.tryParse(checkoutUrl);
+      if (uri != null &&
+          await canLaunchUrl(uri) &&
+          await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        setState(() => _pendingStripeSessionId = sessionId);
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _actionMessage = res.message.isNotEmpty
+        ? res.message
+        : AppLocalizations.of(context).ordersStripeVerifyFailed);
+  }
+
+  Future<void> _verifyStripePayment(String sessionId) async {
+    if (_stripeVerifyBusy || _order == null) return;
+    setState(() {
+      _stripeVerifyBusy = true;
+      _actionMessage = null;
+    });
+    final res = await ApiService.instance.stripeVerify(_order!.id, sessionId);
+    if (!mounted) return;
+    setState(() {
+      _stripeVerifyBusy = false;
+      if (res.success && res.data != null) {
+        _order = res.data;
+        _pendingStripeSessionId = null;
+      } else {
+        _actionMessage =
+            res.message.isNotEmpty ? res.message : AppLocalizations.of(context).ordersStripeVerifyFailed;
+      }
+    });
+    if (res.success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message)));
+    }
+  }
+
   /// Only open PayPal over HTTPS, so a tampered API response can't send buyers elsewhere.
   static bool _isTrustedPayPalUri(Uri uri) {
     final host = uri.host.toLowerCase();
@@ -172,10 +264,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     final o = _order!;
-    final canConfirmCod =
-        o.status == 'awaiting_customer_confirmation' && (o.paymentMethod ?? '') != 'paypal';
-    final canPayPal =
-        o.status == 'awaiting_customer_confirmation' && o.paymentMethod == 'paypal';
+    final moneySymbol = (o.currencyCode ?? 'USD').toUpperCase();
+    final orderDate = _formatOrderDate(o.createdAt, t.isAr);
+    final awaitingQuote = o.status == 'awaiting_customer_confirmation';
+    final paymentMethod = (o.paymentMethod ?? '').toLowerCase();
+    final canConfirmCod = awaitingQuote &&
+        paymentMethod != 'paypal' &&
+        !_isStripePaymentMethod(o.paymentMethod);
+    final canPayPal = awaitingQuote && paymentMethod == 'paypal';
+    final canPayByCard = awaitingQuote && _isStripePaymentMethod(o.paymentMethod);
+    final awaitingStripeVerify = _pendingStripeSessionId != null;
     final ship = _shippingOneLine(o);
 
     return Scaffold(
@@ -198,6 +296,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (orderDate != null) ...[
+                    Text(
+                      '${t.ordersOrderDate}: $orderDate',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Text(
                     '${t.ordersStatusLabel}: ${t.orderStatus(o.status)}',
                     style: theme.textTheme.bodyLarge,
@@ -220,7 +325,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(t.ordersBooksSubtotal),
-                        Text('\$${(o.booksSubtotal ?? 0).toStringAsFixed(2)}'),
+                        Text(formatBookPrice(o.booksSubtotal ?? 0, moneySymbol)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -228,7 +333,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(t.shippingFeeLabel),
-                        Text('\$${(o.shippingFee ?? 0).toStringAsFixed(2)}'),
+                        Text(formatBookPrice(o.shippingFee ?? 0, moneySymbol)),
                       ],
                     ),
                   ],
@@ -243,7 +348,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ),
                       Text(
-                        '\$${o.total.toStringAsFixed(2)}',
+                        formatBookPrice(o.total, moneySymbol),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -333,7 +438,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                             ...o.items.map((item) {
                               final lineQty =
-                                  '${item.quantity} × \$${item.price.toStringAsFixed(2)}';
+                                  '${item.quantity} × ${formatBookPrice(item.price, moneySymbol)}';
                               return TableRow(
                                 children: [
                                   Padding(
@@ -368,7 +473,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
                     ),
                   ],
-                  if (canConfirmCod || canPayPal) ...[
+                  if (canConfirmCod || canPayPal || canPayByCard || awaitingStripeVerify) ...[
                     const SizedBox(height: 20),
                     if (canConfirmCod)
                       FilledButton(
@@ -398,6 +503,38 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             : Text(t.ordersPayWithPayPal),
                       ),
                     ],
+                    if (canPayByCard) ...[
+                      if (canConfirmCod || canPayPal) const SizedBox(height: 12),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF635BFF),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: (_stripeBusy || _stripeVerifyBusy) ? null : _startStripe,
+                        child: _stripeBusy
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(t.ordersPayByCard),
+                      ),
+                    ],
+                    if (awaitingStripeVerify) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: _stripeVerifyBusy
+                            ? null
+                            : () => _verifyStripePayment(_pendingStripeSessionId!),
+                        child: _stripeVerifyBusy
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(t.ordersConfirmCardPayment),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -406,5 +543,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ],
       ),
     );
+  }
+
+  String? _formatOrderDate(String? raw, bool isAr) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return null;
+    final local = parsed.toLocal();
+    const enMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const arMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    final month = isAr ? arMonths[local.month - 1] : enMonths[local.month - 1];
+    final hour12 = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour < 12 ? (isAr ? 'ص' : 'AM') : (isAr ? 'م' : 'PM');
+    if (isAr) {
+      return '${local.day} $month ${local.year}، $hour12:$minute $period';
+    }
+    return '$month ${local.day}, ${local.year}, $hour12:$minute $period';
   }
 }

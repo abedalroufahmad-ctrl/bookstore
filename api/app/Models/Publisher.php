@@ -24,6 +24,7 @@ class Publisher extends Model
         'commission_owed',
         'commission_accrued_total',
         'commission_paid_total',
+        'commission_balances',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class Publisher extends Model
         'commission_owed' => 'float',
         'commission_accrued_total' => 'float',
         'commission_paid_total' => 'float',
+        'commission_balances' => 'array',
     ];
 
     /**
@@ -43,6 +45,7 @@ class Publisher extends Model
         'commission_owed',
         'commission_accrued_total',
         'commission_paid_total',
+        'commission_balances',
     ];
 
     protected $appends = ['public_settings'];
@@ -53,11 +56,20 @@ class Publisher extends Model
         'support_email',
         'support_phone',
         'return_policy',
+        'currency_symbol',
+        'currencies',
+        'default_currency_code',
     ];
 
     public function getPublicSettingsAttribute(): array
     {
         $settings = is_array($this->settings) ? $this->settings : [];
+        $settings['default_currency_code'] ??= 'USD';
+        $settings['currencies'] ??= [[
+            'code' => 'USD',
+            'name' => 'US Dollar',
+            'symbol' => $settings['currency_symbol'] ?? '$',
+        ]];
 
         return array_intersect_key($settings, array_flip(self::PUBLIC_SETTING_KEYS));
     }

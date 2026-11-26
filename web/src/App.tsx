@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './contexts/authContextCore'
 import { Layout } from './components/Layout'
 import {
   Login,
@@ -37,6 +38,7 @@ import {
   PublisherSettings,
   AdminCountries,
   AdminReportsBooksWithoutCover,
+  PublisherReports,
   AdminWarehouseBrowse,
   AdminWarehouseBooksAdmin,
   AdminPos,
@@ -283,6 +285,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <PublisherSettings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="admin/publisher-reports"
+          element={
+            <AdminRoute>
+              <PublisherReports />
             </AdminRoute>
           }
         />

@@ -142,12 +142,16 @@ class ApiClient {
 
   Future<ApiResponse<T>> delete<T>(
     String path, {
+    Map<String, String>? params,
     T Function(dynamic)? fromJson,
   }) async {
     try {
+      final uri = params != null && params.isNotEmpty
+          ? Uri.parse('$_baseUrl$path').replace(queryParameters: params)
+          : Uri.parse('$_baseUrl$path');
       final res = await _http
           .delete(
-            Uri.parse('$_baseUrl$path'),
+            uri,
             headers: await _headers(),
           )
           .timeout(_requestTimeout);

@@ -111,10 +111,72 @@ class PublisherSettingsSecurityTest extends MongoFeatureTestCase
 
         $this->getJson($url, $headers)->assertOk()->assertJsonPath('data.paypal_merchant_id', 'MERCHANT-SECRET');
 
-        $this->putJson($url, ['support_phone' => '+1 555', 'platform_commission_percent' => 15], $headers)
+        $this->putJson($url, [
+            'support_phone' => '+1 555',
+            'platform_commission_percent' => 15,
+            'default_discount' => 35,
+            'paypal_email' => 'unauthorized@press.test',
+            'bank_name' => 'Unauthorized Bank',
+            'bank_account_number' => 'UNAUTHORIZED-123',
+        ], $headers)
             ->assertOk()
             ->assertJsonPath('data.support_phone', '+1 555')
             ->assertJsonPath('data.platform_commission_percent', 15);
+
+        $this->assertSame(0, (int) ($this->publisher->fresh()->settings['default_discount'] ?? 0));
+        $this->assertSame('payouts@press.test', $this->publisher->fresh()->settings['paypal_email']);
+        $this->assertSame('Hidden Bank', $this->publisher->fresh()->settings['bank_name']);
+        $this->assertSame('IBAN-SECRET-123', $this->publisher->fresh()->settings['bank_account_number']);
+    }
+
+    public function test_publisher_manager_can_change_default_discount(): void
+    {
+        $pm = $this->employee('publisher_manager', ['publisher_id' => (string) $this->publisher->_id]);
+
+        $this->putJson(
+            "/api/v1/admin/publishers/{$this->publisher->_id}/settings",
+            ['default_discount' => 20],
+            $this->employeeHeaders($pm)
+        )->assertOk()->assertJsonPath('data.default_discount', 20);
+
+        $this->assertSame(20, (int) ($this->publisher->fresh()->settings['default_discount'] ?? 0));
+    }
+
+    public function test_publisher_manager_can_change_currency_symbol_and_it_is_public(): void
+    {
+        $pm = $this->employee('publisher_manager', ['publisher_id' => (string) $this->publisher->_id]);
+        $headers = $this->employeeHeaders($pm);
+
+        $this->putJson(
+            "/api/v1/admin/publishers/{$this->publisher->_id}/settings",
+            ['currency_symbol' => '€'],
+            $headers
+        )->assertOk()->assertJsonPath('data.currency_symbol', '€');
+
+        $this->assertSame('€', $this->publisher->fresh()->settings['currency_symbol']);
+        $this->getJson("/api/v1/publishers/{$this->publisher->_id}")
+            ->assertOk()
+            ->assertJsonPath('data.public_settings.currency_symbol', '€');
+    }
+
+    public function test_publisher_manager_can_edit_own_payout_accounts(): void
+    {
+        $pm = $this->employee('publisher_manager', ['publisher_id' => (string) $this->publisher->_id]);
+
+        $this->putJson(
+            "/api/v1/admin/publishers/{$this->publisher->_id}/settings",
+            [
+                'paypal_email' => 'new-payouts@press.test',
+                'bank_name' => 'New Bank',
+                'bank_account_number' => 'NEW-IBAN-456',
+            ],
+            $this->employeeHeaders($pm)
+        )->assertOk();
+
+        $settings = $this->publisher->fresh()->settings;
+        $this->assertSame('new-payouts@press.test', $settings['paypal_email']);
+        $this->assertSame('New Bank', $settings['bank_name']);
+        $this->assertSame('NEW-IBAN-456', $settings['bank_account_number']);
     }
 
     public function test_publisher_manager_cannot_change_platform_commission(): void

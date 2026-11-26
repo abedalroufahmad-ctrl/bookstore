@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 jobs:
-  api:
+  api-unit:
     name: API (PHPUnit unit)
     runs-on: ubuntu-latest
     defaults:
@@ -20,8 +20,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          # Keep extension version compatible with locked mongodb/* packages.
-          extensions: mongodb-1.15.0, mbstring, xml, curl, zip
+          # Keep the extension version compatible with locked mongodb/mongodb 1.21.x.
+          extensions: mongodb-1.21.0, mbstring, xml, curl, zip
           coverage: none
 
       - name: Install Composer dependencies
@@ -40,8 +40,62 @@ jobs:
       - name: Run unit tests
         run: php artisan test --testsuite=Unit
 
+  api-feature:
+    name: API (PHPUnit feature, MongoDB)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      MONGODB_URI: mongodb://localhost:27017
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mongodb-1.21.0, mbstring, xml, curl, zip
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: |
+          rm -rf vendor
+          composer install --no-interaction --prefer-dist
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan jwt:secret --force
+
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            php -r '
+              try {
+                $m = new MongoDB\Driver\Manager(getenv("MONGODB_URI"));
+                $m->executeCommand("admin", new MongoDB\Driver\Command(["ping" => 1]));
+                exit(0);
+              } catch (Throwable $e) {
+                exit(1);
+              }
+            ' && exit 0
+            sleep 2
+          done
+          echo "MongoDB did not become ready" >&2
+          exit 1
+
+      - name: Run feature tests
+        run: php artisan test --testsuite=Feature
+
   web:
-    name: Web (build)
+    name: Web (lint + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,6 +112,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck and build
         run: npm run build

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { publishersPublic as publishersApi } from '../lib/api'
 import { Pagination } from '../components/Pagination'
-import { useSettings } from '../contexts/SettingsContext'
+import { useSettings } from '../contexts/settingsContextCore'
 import type { Publisher } from '../lib/api'
 
 export function PublisherList() {

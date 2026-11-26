@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../api/api_service.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/currency_provider.dart';
 import '../providers/profile_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -99,9 +100,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       'country': _countryController.text.trim(),
       'postal_code': _postalController.text.trim(),
     };
+    final currencyCode = context.read<CurrencyProvider>().currencyCode;
     final res = await ApiService.instance.checkout(
       shipping,
       paymentMethod: _selectedPaymentMethod,
+      currencyCode: currencyCode,
     );
     if (!mounted) return;
     setState(() => _loading = false);
@@ -163,6 +166,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Text(
+                  t.cartWarehouseSplitNotice,
+                  style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(t.shippingAddress, style: const TextStyle(fontSize: 18)),
               const SizedBox(height: 16),
               TextFormField(

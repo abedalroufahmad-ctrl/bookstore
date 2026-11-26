@@ -514,15 +514,18 @@ class ApiService {
   }
 
   // Cart
-  Future<ApiResponse<CartData>> getCart() async {
-    final res = await _client.get<Map<String, dynamic>>('/customers/cart');
+  Future<ApiResponse<CartData>> getCart({String currencyCode = 'USD'}) async {
+    final res = await _client.get<Map<String, dynamic>>(
+      '/customers/cart',
+      params: {'currency_code': currencyCode.toUpperCase()},
+    );
     if (res.success && res.data != null) {
       final d = res.data as Map<String, dynamic>;
       final items = (d['items'] as List?)
               ?.map((e) => CartItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
-      final total = (d['total'] ?? 0).toDouble();
+      final total = d['total'] == null ? null : (d['total'] as num).toDouble();
       return ApiResponse(
         success: true,
         message: res.message,
@@ -532,19 +535,40 @@ class ApiService {
     return ApiResponse(success: false, message: res.message, data: null);
   }
 
-  Future<ApiResponse<dynamic>> addToCart(String bookId, {int quantity = 1}) async {
+  Future<ApiResponse<dynamic>> addToCart(
+    String bookId, {
+    int quantity = 1,
+    String currencyCode = 'USD',
+  }) async {
     return _client.post('/customers/cart/items', body: {
       'book_id': bookId,
       'quantity': quantity,
+      'currency_code': currencyCode.toUpperCase(),
     });
   }
 
-  Future<ApiResponse<dynamic>> removeFromCart(String bookId) async {
-    return _client.delete('/customers/cart/items/$bookId');
+  Future<ApiResponse<dynamic>> removeFromCart(
+    String bookId, {
+    String currencyCode = 'USD',
+  }) async {
+    return _client.delete(
+      '/customers/cart/items/$bookId',
+      params: {'currency_code': currencyCode.toUpperCase()},
+    );
   }
 
-  Future<ApiResponse<dynamic>> updateCartItem(String bookId, int quantity) async {
-    return _client.patch('/customers/cart/items/$bookId', body: {'quantity': quantity});
+  Future<ApiResponse<dynamic>> updateCartItem(
+    String bookId,
+    int quantity, {
+    String currencyCode = 'USD',
+  }) async {
+    return _client.patch(
+      '/customers/cart/items/$bookId',
+      body: {
+        'quantity': quantity,
+        'currency_code': currencyCode.toUpperCase(),
+      },
+    );
   }
 
   // Orders
@@ -568,6 +592,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> checkout(
     Map<String, dynamic> shippingAddress, {
     required String paymentMethod,
+    String currencyCode = 'USD',
     Map<String, dynamic>? paymentInfo,
   }) async {
     return _client.post<Map<String, dynamic>>(
@@ -575,6 +600,7 @@ class ApiService {
       body: {
         'shipping_address': shippingAddress,
         'payment_method': paymentMethod,
+        'currency_code': currencyCode.toUpperCase(),
         ...? (paymentInfo != null ? {'payment_info': paymentInfo} : null),
       },
       fromJson: (d) => Map<String, dynamic>.from(d as Map),
@@ -587,6 +613,21 @@ class ApiService {
       '/customers/orders/paypal/start',
       body: {'order_ids': orderIds},
       fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> stripeStart(String orderId) async {
+    return _client.post<Map<String, dynamic>>(
+      '/customers/orders/$orderId/stripe/start',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<ApiResponse<Order>> stripeVerify(String orderId, String sessionId) async {
+    return _client.post<Order>(
+      '/customers/orders/$orderId/stripe/verify',
+      body: {'session_id': sessionId},
+      fromJson: (dynamic d) => Order.fromJson(Map<String, dynamic>.from(d as Map)),
     );
   }
 
@@ -1302,5 +1343,5 @@ class AuthResult {
 class CartData {
   CartData({required this.items, required this.total});
   final List<CartItem> items;
-  final double total;
+  final double? total;
 }
